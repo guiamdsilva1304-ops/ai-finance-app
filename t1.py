@@ -48,8 +48,8 @@ if "user" not in st.session_state:
                     "password": password
                 })
                 st.success("Conta criada")
-            except:
-                st.error("Erro ao criar conta")
+       except Exception as e:
+    st.error(f"Erro real: {e}")
 
     st.stop()
 
