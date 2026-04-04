@@ -17,6 +17,7 @@ supabase = create_client(
 st.set_page_config(page_title="Seu Dinheiro", layout="centered")
 
 # ========================
+# ========================
 # 🔐 LOGIN
 # ========================
 if "user" not in st.session_state:
@@ -28,6 +29,7 @@ if "user" not in st.session_state:
 
     col1, col2 = st.columns(2)
 
+    # LOGIN
     with col1:
         if st.button("Login"):
             try:
@@ -37,9 +39,11 @@ if "user" not in st.session_state:
                 })
                 st.session_state.user = user
                 st.rerun()
-            except:
-                st.error("Erro no login")
 
+            except Exception as e:
+                st.error(f"Erro real (login): {e}")
+
+    # SIGN UP
     with col2:
         if st.button("Criar conta"):
             try:
@@ -47,12 +51,12 @@ if "user" not in st.session_state:
                     "email": email,
                     "password": password
                 })
-                st.success("Conta criada")
-       except Exception as e:
-    st.error(f"Erro real: {e}")
+                st.success("Conta criada com sucesso! Agora faça login.")
+
+            except Exception as e:
+                st.error(f"Erro real (signup): {e}")
 
     st.stop()
-
 # ========================
 # 👤 USER ID
 # ========================
