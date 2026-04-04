@@ -3,7 +3,7 @@ from supabase import create_client, Client
 from openai import OpenAI
 
 # ========================
-# 🔐 CONFIG (SECRETS)
+# 🔐 CONFIG
 # ========================
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
@@ -13,7 +13,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # ========================
-# 🔐 LOGIN SYSTEM
+# 🔐 LOGIN
 # ========================
 if "user" not in st.session_state:
 
@@ -24,7 +24,6 @@ if "user" not in st.session_state:
 
     col1, col2 = st.columns(2)
 
-    # LOGIN
     with col1:
         if st.button("Login"):
             try:
@@ -34,11 +33,9 @@ if "user" not in st.session_state:
                 })
                 st.session_state.user = user
                 st.rerun()
-
             except Exception as e:
-                st.error(f"Erro (login): {e}")
+                st.error(f"Erro login: {e}")
 
-    # SIGNUP
     with col2:
         if st.button("Criar conta"):
             try:
@@ -46,15 +43,14 @@ if "user" not in st.session_state:
                     "email": email,
                     "password": password
                 })
-                st.success("Conta criada! Verifique seu email se necessário.")
-
+                st.success("Conta criada! Faça login.")
             except Exception as e:
-                st.error(f"Erro (signup): {e}")
+                st.error(f"Erro signup: {e}")
 
     st.stop()
 
 # ========================
-# 👤 USER + LOGOUT
+# 👤 SIDEBAR
 # ========================
 with st.sidebar:
     st.write(f"👤 {st.session_state.user.user.email}")
@@ -69,7 +65,7 @@ with st.sidebar:
         st.rerun()
 
 # ========================
-# 💰 APP UI
+# 💰 DASHBOARD
 # ========================
 st.title("💰 Seu Dinheiro Hoje")
 
@@ -86,52 +82,18 @@ st.write(f"📈 Sobra: R${saldo}")
 st.write(f"📉 Taxa: {taxa:.1f}%")
 
 if gastos > renda:
-    st.warning("⚠️ Você está gastando mais do que ganha!")
+    st.error("⚠️ Você está gastando mais do que ganha!")
+elif taxa > 70:
+    st.warning("⚠️ Você está gastando muito.")
+else:
+    st.success("✅ Boa gestão!")
 
 # ========================
-# 🤖 AI CHAT
+# 🤖 PERSISTENT CHAT
 # ========================
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"])
-
-prompt = st.chat_input("Pergunte algo...")
-
-if prompt:
-    st.session_state.messages.append({"role": "user", "content": prompt})
-
-    st.chat_message("user").write(prompt)
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a financial advisor helping users improve their financial life."
-                },
-                *st.session_state.messages
-            ]
-        )
-
-        answer = response.choices[0].message.content
-
-    except Exception as e:
-        st.error(f"Erro na IA: {e}")
-        st.stop()
-
-    st.session_state.messages.append({"role": "assistant", "content": answer})
-
-    st.chat_message("assistant").write(answer)
-    # ========================
-# 🤖 CHAT (PERSISTENT)
-# ========================
-
 user_id = st.session_state.user.user.id
 
-# Load messages from DB (only once)
+# Load messages once
 if "messages_loaded" not in st.session_state:
 
     try:
@@ -152,18 +114,18 @@ if "messages_loaded" not in st.session_state:
         st.error(f"Erro ao carregar chat: {e}")
         st.session_state.messages = []
 
-# Display messages
+# Show messages
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
+# ✅ ONLY ONE CHAT INPUT
 prompt = st.chat_input("Pergunte algo...")
 
 if prompt:
-    # Save user message locally
+    # show + save user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
 
-    # Save to Supabase
     try:
         supabase.table("messages").insert({
             "user_id": user_id,
@@ -171,16 +133,25 @@ if prompt:
             "content": prompt
         }).execute()
     except Exception as e:
-        st.error(f"Erro ao salvar mensagem: {e}")
+        st.error(f"Erro salvar user: {e}")
 
-    # AI response
+    # AI RESPONSE
     try:
         response = client.chat.completions.create(
             model="gpt-4.1-mini",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a financial advisor."
+                    "content": f"""
+You are a financial advisor.
+
+User:
+Income: {renda}
+Expenses: {gastos}
+Goal: {meta}
+
+Give practical and personalized advice.
+"""
                 },
                 *st.session_state.messages
             ]
@@ -192,11 +163,10 @@ if prompt:
         st.error(f"Erro IA: {e}")
         st.stop()
 
-    # Save AI response locally
+    # show + save assistant
     st.session_state.messages.append({"role": "assistant", "content": answer})
     st.chat_message("assistant").write(answer)
 
-    # Save AI response in DB
     try:
         supabase.table("messages").insert({
             "user_id": user_id,
@@ -204,4 +174,4 @@ if prompt:
             "content": answer
         }).execute()
     except Exception as e:
-        st.error(f"Erro ao salvar resposta: {e}")
+        st.error(f"Erro salvar IA: {e}")
