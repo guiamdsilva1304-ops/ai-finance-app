@@ -60,7 +60,6 @@ with st.sidebar:
             supabase.auth.sign_out()
         except:
             pass
-
         st.session_state.clear()
         st.rerun()
 
@@ -81,12 +80,19 @@ st.write(f"💸 Gastos: R${gastos}")
 st.write(f"📈 Sobra: R${saldo}")
 st.write(f"📉 Taxa: {taxa:.1f}%")
 
-if gastos > renda:
-    st.error("⚠️ Você está gastando mais do que ganha!")
-elif taxa > 70:
-    st.warning("⚠️ Você está gastando muito.")
-else:
-    st.success("✅ Boa gestão!")
+# ========================
+# 🤖 PROACTIVE AI INSIGHTS
+# ========================
+if "insight_shown" not in st.session_state:
+
+    if gastos > renda:
+        st.error("🚨 Você está no prejuízo. Corte gastos imediatamente.")
+    elif taxa > 70:
+        st.warning("⚠️ Você está gastando demais da sua renda.")
+    else:
+        st.success("✅ Você está com bom controle financeiro.")
+
+    st.session_state.insight_shown = True
 
 # ========================
 # 🤖 PERSISTENT CHAT
@@ -118,14 +124,14 @@ if "messages_loaded" not in st.session_state:
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
-# ✅ ONLY ONE CHAT INPUT
+# ONLY ONE INPUT
 prompt = st.chat_input("Pergunte algo...")
 
 if prompt:
-    # show + save user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
 
+    # Save user message
     try:
         supabase.table("messages").insert({
             "user_id": user_id,
@@ -138,22 +144,28 @@ if prompt:
     # AI RESPONSE
     try:
         response = client.chat.completions.create(
-            model="gpt-4.1-mini",
+            model="gpt-5",
+            temperature=0.7,
             messages=[
                 {
                     "role": "system",
                     "content": f"""
-You are a financial advisor.
+You are an elite financial advisor.
+
+Your mission:
+- Improve the user's financial life
+- Be direct and strategic
+- Give actionable steps
 
 User:
 Income: {renda}
 Expenses: {gastos}
 Goal: {meta}
 
-Give practical and personalized advice.
+Be practical, not generic.
 """
                 },
-                *st.session_state.messages
+                *st.session_state.messages[-10:]
             ]
         )
 
@@ -163,10 +175,10 @@ Give practical and personalized advice.
         st.error(f"Erro IA: {e}")
         st.stop()
 
-    # show + save assistant
     st.session_state.messages.append({"role": "assistant", "content": answer})
     st.chat_message("assistant").write(answer)
 
+    # Save AI response
     try:
         supabase.table("messages").insert({
             "user_id": user_id,
