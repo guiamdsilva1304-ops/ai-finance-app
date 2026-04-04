@@ -125,3 +125,83 @@ if prompt:
     st.session_state.messages.append({"role": "assistant", "content": answer})
 
     st.chat_message("assistant").write(answer)
+    # ========================
+# 🤖 CHAT (PERSISTENT)
+# ========================
+
+user_id = st.session_state.user.user.id
+
+# Load messages from DB (only once)
+if "messages_loaded" not in st.session_state:
+
+    try:
+        data = supabase.table("messages") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .order("created_at") \
+            .execute()
+
+        st.session_state.messages = [
+            {"role": m["role"], "content": m["content"]}
+            for m in data.data
+        ]
+
+        st.session_state.messages_loaded = True
+
+    except Exception as e:
+        st.error(f"Erro ao carregar chat: {e}")
+        st.session_state.messages = []
+
+# Display messages
+for msg in st.session_state.messages:
+    st.chat_message(msg["role"]).write(msg["content"])
+
+prompt = st.chat_input("Pergunte algo...")
+
+if prompt:
+    # Save user message locally
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.chat_message("user").write(prompt)
+
+    # Save to Supabase
+    try:
+        supabase.table("messages").insert({
+            "user_id": user_id,
+            "role": "user",
+            "content": prompt
+        }).execute()
+    except Exception as e:
+        st.error(f"Erro ao salvar mensagem: {e}")
+
+    # AI response
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a financial advisor."
+                },
+                *st.session_state.messages
+            ]
+        )
+
+        answer = response.choices[0].message.content
+
+    except Exception as e:
+        st.error(f"Erro IA: {e}")
+        st.stop()
+
+    # Save AI response locally
+    st.session_state.messages.append({"role": "assistant", "content": answer})
+    st.chat_message("assistant").write(answer)
+
+    # Save AI response in DB
+    try:
+        supabase.table("messages").insert({
+            "user_id": user_id,
+            "role": "assistant",
+            "content": answer
+        }).execute()
+    except Exception as e:
+        st.error(f"Erro ao salvar resposta: {e}")
