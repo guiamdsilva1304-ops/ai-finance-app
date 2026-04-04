@@ -80,6 +80,63 @@ st.write(f"💸 Gastos: R${gastos}")
 st.write(f"📈 Sobra: R${saldo}")
 st.write(f"📉 Taxa: {taxa:.1f}%")
 
+st.subheader("🧠 Avaliação da IA")
+
+# Score logic
+if taxa >= 100:
+    score = 20
+    nivel = "Crítico"
+elif taxa >= 80:
+    score = 40
+    nivel = "Alto risco"
+elif taxa >= 60:
+    score = 60
+    nivel = "Atenção"
+else:
+    score = 85
+    nivel = "Saudável"
+
+# UI
+st.write(f"📊 Score financeiro: {score}/100")
+st.write(f"🚦 Nível: {nivel}")
+
+# AI explanation
+try:
+    evaluation = client.chat.completions.create(
+        model="gpt-4.1",
+        temperature=0.5,
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a financial analyst. Be direct and practical."
+            },
+            {
+                "role": "user",
+                "content": f"""
+User financial situation:
+
+Income: {renda}
+Expenses: {gastos}
+Balance: {saldo}
+Spending rate: {taxa}%
+
+Give:
+1. Diagnosis
+2. Main problem
+3. 3 practical actions to improve immediately
+
+Be short and clear.
+"""
+            }
+        ]
+    )
+
+    feedback = evaluation.choices[0].message.content
+
+    st.info(feedback)
+
+except Exception as e:
+    st.error(f"Erro avaliação IA: {e}")
 # ========================
 # 🤖 PROACTIVE AI INSIGHTS
 # ========================
