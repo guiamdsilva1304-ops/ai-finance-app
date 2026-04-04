@@ -187,8 +187,8 @@ Responda com:
                 messages=[{"role": "user", "content": prompt}]
             )
             answer = response.choices[0].message.content
-        except:
-            st.error("Erro na IA")
+        except Exception as e:
+    st.error(f"Erro real: {e}")
             st.stop()
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
