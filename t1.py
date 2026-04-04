@@ -96,9 +96,20 @@ goal = st.sidebar.text_input("Meta", "Guardar dinheiro")
 savings = income - expenses
 expense_ratio = expenses / income if income > 0 else 0
 
-score, behavior = calculate_behavior(income, expenses, st.session_state.user_data["history"])
+score, behavior = calculate_behavior(
+    income,
+    expenses,
+    st.session_state.user_data["history"]
+)
+
 level = get_level(score)
-auto_insight = generate_auto_insight(income, expenses, savings, st.session_state.user_data["history"])
+
+auto_insight = generate_auto_insight(
+    income,
+    expenses,
+    savings,
+    st.session_state.user_data["history"]
+)
 
 # ========================
 # 🔥 STREAK
@@ -146,20 +157,24 @@ if user_input:
         st.stop()
     st.session_state.last_request = now
 
-    # 🔐 LIMIT
+    # 🔐 LIMIT REQUESTS
     st.session_state.requests_count += 1
     if st.session_state.requests_count > 10:
         st.error("Limite atingido.")
         st.stop()
 
-    # 🔐 FILTER
+    # 🔐 INPUT FILTER
     if any(word in user_input.lower() for word in ["ignore", "system", "hack"]):
         st.warning("Entrada inválida.")
         st.stop()
 
     st.session_state.user_data["history"].append(user_input)
 
-    st.session_state.messages.append({"role": "user", "content": user_input})
+    st.session_state.messages.append({
+        "role": "user",
+        "content": user_input
+    })
+
     st.chat_message("user").write(user_input)
 
     prompt = f"""
@@ -176,7 +191,7 @@ Pergunta: {user_input}
 Responda com:
 1. Diagnóstico
 2. Problema
-3. Plano (com números)
+3. Plano com números
 4. Impacto em R$
 """
 
@@ -186,10 +201,16 @@ Responda com:
                 model="gpt-4.1-mini",
                 messages=[{"role": "user", "content": prompt}]
             )
+
             answer = response.choices[0].message.content
+
         except Exception as e:
-    st.error(f"Erro real: {e}")
+            st.error(f"Erro real: {e}")
             st.stop()
 
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": answer
+    })
+
     st.chat_message("assistant").write(answer)
