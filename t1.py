@@ -1,5 +1,6 @@
 import streamlit as st
 from openai import OpenAI
+from supabase import create_client
 from datetime import datetime
 import time
 
@@ -8,22 +9,67 @@ import time
 # ========================
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
+supabase = create_client(
+    st.secrets["SUPABASE_URL"],
+    st.secrets["SUPABASE_KEY"]
+)
+
 st.set_page_config(page_title="Seu Dinheiro", layout="centered")
+
+# ========================
+# 🔐 LOGIN
+# ========================
+if "user" not in st.session_state:
+
+    st.title("🔐 Login")
+
+    email = st.text_input("Email")
+    password = st.text_input("Senha", type="password")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("Login"):
+            try:
+                user = supabase.auth.sign_in_with_password({
+                    "email": email,
+                    "password": password
+                })
+                st.session_state.user = user
+                st.rerun()
+            except:
+                st.error("Erro no login")
+
+    with col2:
+        if st.button("Criar conta"):
+            try:
+                supabase.auth.sign_up({
+                    "email": email,
+                    "password": password
+                })
+                st.success("Conta criada")
+            except:
+                st.error("Erro ao criar conta")
+
+    st.stop()
+
+# ========================
+# 👤 USER ID
+# ========================
+user_id = st.session_state.user.user.id
 
 # ========================
 # 🧠 SESSION STATE
 # ========================
-if "user_data" not in st.session_state:
-    st.session_state.user_data = {"history": []}
-
 if "messages" not in st.session_state:
-    st.session_state.messages = []
 
-if "streak" not in st.session_state:
-    st.session_state.streak = 0
+    data = supabase.table("messages") \
+        .select("*") \
+        .eq("user_id", user_id) \
+        .order("created_at") \
+        .execute()
 
-if "last_active" not in st.session_state:
-    st.session_state.last_active = None
+    st.session_state.messages = data.data if data.data else []
 
 if "last_request" not in st.session_state:
     st.session_state.last_request = 0
@@ -34,49 +80,14 @@ if "requests_count" not in st.session_state:
 if "last_insight" not in st.session_state:
     st.session_state.last_insight = None
 
-# ========================
-# 🧠 FUNCTIONS
-# ========================
-def calculate_behavior(income, expenses, history):
-    score = 0
+if "streak" not in st.session_state:
+    st.session_state.streak = 1
 
-    if expenses < income * 0.6:
-        score += 2
-    elif expenses < income * 0.8:
-        score += 1
-    else:
-        score -= 1
-
-    if income - expenses > 500:
-        score += 2
-    elif income - expenses > 0:
-        score += 1
-    else:
-        score -= 2
-
-    if len(history) > 3:
-        score += 1
-
-    if score >= 3:
-        return score, "Disciplinado"
-    elif score >= 1:
-        return score, "Equilibrado"
-    else:
-        return score, "Impulsivo"
-
-
-def get_level(score):
-    if score <= 0:
-        return "Nível 1 — Iniciante"
-    elif score <= 2:
-        return "Nível 2 — Em evolução"
-    elif score <= 4:
-        return "Nível 3 — Consistente"
-    else:
-        return "Nível 4 — Avançado"
+if "last_active" not in st.session_state:
+    st.session_state.last_active = datetime.now().date()
 
 # ========================
-# 🎨 UI INPUT
+# 🎨 UI
 # ========================
 st.title("💸 Seu Dinheiro")
 
@@ -86,29 +97,6 @@ goal = st.sidebar.text_input("Meta", "Guardar dinheiro")
 
 savings = income - expenses
 expense_ratio = expenses / income if income > 0 else 0
-
-score, behavior = calculate_behavior(
-    income,
-    expenses,
-    st.session_state.user_data["history"]
-)
-
-level = get_level(score)
-
-# ========================
-# 🔥 STREAK
-# ========================
-today = datetime.now().date()
-
-if st.session_state.last_active is None:
-    st.session_state.streak = 1
-elif st.session_state.last_active != today:
-    if (today - st.session_state.last_active).days == 1:
-        st.session_state.streak += 1
-    else:
-        st.session_state.streak = 1
-
-st.session_state.last_active = today
 
 # ========================
 # 📊 INFO
@@ -120,11 +108,8 @@ st.write(f"""
 📉 Taxa: {round(expense_ratio*100,1)}%
 """)
 
-st.write(f"🔥 Streak: {st.session_state.streak}")
-st.write(f"📊 {level} | {behavior}")
-
 # ========================
-# 🚨 PROGRESS FEEDBACK
+# 🚨 PROGRESS
 # ========================
 if savings > 0:
     st.success(f"Você está acumulando R$ {savings}/mês")
@@ -132,41 +117,45 @@ else:
     st.error(f"Você está no negativo em R$ {abs(savings)}")
 
 # ========================
-# 🔮 FUTURE PROJECTION
+# 🔮 PROJECTION
 # ========================
-future = savings * 12
-st.info(f"📅 Em 12 meses: R$ {future}")
+st.info(f"📅 Em 12 meses: R$ {savings * 12}")
 
 # ========================
-# 🧠 DAILY INSIGHT (PROACTIVE)
+# 🧠 DAILY INSIGHT
 # ========================
+today = datetime.now().date()
+
 if st.session_state.last_insight != today:
 
     if savings < 0:
-        insight = f"🚨 Hoje você está perdendo R$ {abs(savings)}"
+        insight = f"🚨 Você está perdendo R$ {abs(savings)}"
     elif expense_ratio > 0.7:
-        insight = "⚠️ Você está gastando acima do ideal (70%)"
-    elif savings < 300:
-        insight = "⚠️ Sua margem é muito baixa"
+        insight = "⚠️ Você está gastando acima do ideal"
     else:
-        insight = "✅ Você está em uma boa situação financeira"
+        insight = "✅ Situação saudável"
 
     st.warning(insight)
-
     st.session_state.last_insight = today
 
 # ========================
-# ⚡ ACTION BUTTONS
+# 💬 CHAT DISPLAY
+# ========================
+for msg in st.session_state.messages:
+    st.chat_message(msg["role"]).write(msg["content"])
+
+# ========================
+# ⚡ QUICK ACTIONS
 # ========================
 st.subheader("⚡ Ações rápidas")
 
-col1, col2, col3 = st.columns(3)
-
 quick_input = None
+
+col1, col2, col3 = st.columns(3)
 
 with col1:
     if st.button("Economizar"):
-        quick_input = "Como posso economizar dinheiro?"
+        quick_input = "Como economizar dinheiro?"
 
 with col2:
     if st.button("Investir"):
@@ -177,14 +166,10 @@ with col3:
         quick_input = "Como sair das dívidas?"
 
 # ========================
-# 💬 CHAT
+# 💬 INPUT
 # ========================
-for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"])
-
 user_input = st.chat_input("Pergunte algo...")
 
-# 👇 priority for quick actions
 if quick_input:
     user_input = quick_input
 
@@ -203,12 +188,12 @@ if user_input:
         st.error("Limite atingido.")
         st.stop()
 
-    # 🔐 FILTER
-    if any(word in user_input.lower() for word in ["ignore", "system", "hack"]):
-        st.warning("Entrada inválida.")
-        st.stop()
-
-    st.session_state.user_data["history"].append(user_input)
+    # SAVE USER MESSAGE
+    supabase.table("messages").insert({
+        "user_id": user_id,
+        "role": "user",
+        "content": user_input
+    }).execute()
 
     st.session_state.messages.append({
         "role": "user",
@@ -217,6 +202,9 @@ if user_input:
 
     st.chat_message("user").write(user_input)
 
+    # ========================
+    # 🧠 AI
+    # ========================
     prompt = f"""
 Você é um consultor financeiro direto.
 
@@ -235,18 +223,24 @@ Responda com:
 4. Impacto em R$
 """
 
-    with st.spinner("Analisando..."):
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4.1-mini",
-                messages=[{"role": "user", "content": prompt}]
-            )
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
 
-            answer = response.choices[0].message.content
+        answer = response.choices[0].message.content
 
-        except Exception as e:
-            st.error(f"Erro real: {e}")
-            st.stop()
+    except Exception as e:
+        st.error(f"Erro real: {e}")
+        st.stop()
+
+    # SAVE AI MESSAGE
+    supabase.table("messages").insert({
+        "user_id": user_id,
+        "role": "assistant",
+        "content": answer
+    }).execute()
 
     st.session_state.messages.append({
         "role": "assistant",
