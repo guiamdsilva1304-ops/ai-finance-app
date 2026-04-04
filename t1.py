@@ -4,7 +4,7 @@ from datetime import datetime
 import time
 
 # ========================
-# 🔐 CONFIG (SECURE)
+# 🔐 CONFIG
 # ========================
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
@@ -30,6 +30,9 @@ if "last_request" not in st.session_state:
 
 if "requests_count" not in st.session_state:
     st.session_state.requests_count = 0
+
+if "last_insight" not in st.session_state:
+    st.session_state.last_insight = None
 
 # ========================
 # 🧠 FUNCTIONS
@@ -72,20 +75,8 @@ def get_level(score):
     else:
         return "Nível 4 — Avançado"
 
-
-def generate_auto_insight(income, expenses, savings, history):
-    if savings < 0:
-        return f"⚠️ Você está perdendo R$ {abs(savings)} por mês."
-    if expenses > income * 0.7:
-        return "⚠️ Você está gastando mais do que deveria."
-    if savings < 300:
-        return "⚠️ Sua margem é muito pequena."
-    if len(history) > 3:
-        return "🧠 Você demonstra indecisão."
-    return "✅ Você tem potencial para evoluir."
-
 # ========================
-# 🎨 UI
+# 🎨 UI INPUT
 # ========================
 st.title("💸 Seu Dinheiro")
 
@@ -103,13 +94,6 @@ score, behavior = calculate_behavior(
 )
 
 level = get_level(score)
-
-auto_insight = generate_auto_insight(
-    income,
-    expenses,
-    savings,
-    st.session_state.user_data["history"]
-)
 
 # ========================
 # 🔥 STREAK
@@ -136,9 +120,61 @@ st.write(f"""
 📉 Taxa: {round(expense_ratio*100,1)}%
 """)
 
-st.write(auto_insight)
 st.write(f"🔥 Streak: {st.session_state.streak}")
 st.write(f"📊 {level} | {behavior}")
+
+# ========================
+# 🚨 PROGRESS FEEDBACK
+# ========================
+if savings > 0:
+    st.success(f"Você está acumulando R$ {savings}/mês")
+else:
+    st.error(f"Você está no negativo em R$ {abs(savings)}")
+
+# ========================
+# 🔮 FUTURE PROJECTION
+# ========================
+future = savings * 12
+st.info(f"📅 Em 12 meses: R$ {future}")
+
+# ========================
+# 🧠 DAILY INSIGHT (PROACTIVE)
+# ========================
+if st.session_state.last_insight != today:
+
+    if savings < 0:
+        insight = f"🚨 Hoje você está perdendo R$ {abs(savings)}"
+    elif expense_ratio > 0.7:
+        insight = "⚠️ Você está gastando acima do ideal (70%)"
+    elif savings < 300:
+        insight = "⚠️ Sua margem é muito baixa"
+    else:
+        insight = "✅ Você está em uma boa situação financeira"
+
+    st.warning(insight)
+
+    st.session_state.last_insight = today
+
+# ========================
+# ⚡ ACTION BUTTONS
+# ========================
+st.subheader("⚡ Ações rápidas")
+
+col1, col2, col3 = st.columns(3)
+
+quick_input = None
+
+with col1:
+    if st.button("Economizar"):
+        quick_input = "Como posso economizar dinheiro?"
+
+with col2:
+    if st.button("Investir"):
+        quick_input = "Como investir meu dinheiro?"
+
+with col3:
+    if st.button("Sair das dívidas"):
+        quick_input = "Como sair das dívidas?"
 
 # ========================
 # 💬 CHAT
@@ -147,6 +183,10 @@ for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
 user_input = st.chat_input("Pergunte algo...")
+
+# 👇 priority for quick actions
+if quick_input:
+    user_input = quick_input
 
 if user_input:
 
@@ -157,13 +197,13 @@ if user_input:
         st.stop()
     st.session_state.last_request = now
 
-    # 🔐 LIMIT REQUESTS
+    # 🔐 LIMIT
     st.session_state.requests_count += 1
     if st.session_state.requests_count > 10:
         st.error("Limite atingido.")
         st.stop()
 
-    # 🔐 INPUT FILTER
+    # 🔐 FILTER
     if any(word in user_input.lower() for word in ["ignore", "system", "hack"]):
         st.warning("Entrada inválida.")
         st.stop()
