@@ -25,13 +25,20 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # =========================
-# BACEN API
+# SELIC (ANNUAL FIXED)
 # =========================
-def get_selic_rate():
+def get_selic_annual():
     try:
         url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json"
         data = requests.get(url).json()
-        return float(data[0]["valor"])
+
+        daily_rate = float(data[0]["valor"])
+
+        # Convert daily → annual
+        annual_rate = ((1 + daily_rate / 100) ** 252 - 1) * 100
+
+        return round(annual_rate, 2)
+
     except:
         return None
 
@@ -101,44 +108,48 @@ def financial_score(renda, gastos, trend):
 
 def next_best_action(profile, selic):
     if profile == "sobrevivencia":
-        return "Corte imediato de gastos e organize suas contas."
+        return "Corte imediato de gastos e organização financeira urgente."
 
     if selic and selic > 10:
-        return "Priorize renda fixa (Tesouro Selic, CDB)."
+        return "Priorize renda fixa (Tesouro Selic, CDBs pós-fixados)."
 
     if profile == "crescimento":
-        return "Diversifique (ações + renda fixa)."
+        return "Diversifique entre renda fixa e variável."
 
-    return "Comece com investimentos seguros."
+    return "Comece com investimentos seguros e consistentes."
 
 # =========================
-# AI
+# AI DECISION ENGINE
 # =========================
 def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
     sobra = renda - gastos
 
     context = f"""
-    Você é o iMoney, um sistema inteligente financeiro.
+    Você é o iMoney, um sistema avançado de decisão financeira.
 
-    CENÁRIO:
-    SELIC: {selic}%
+    CENÁRIO MACRO:
+    SELIC anual: {selic}%
 
-    USUÁRIO:
-    Perfil: {profile}
-    Score: {score}
-    Tendência: {trend}
+    PERFIL DO USUÁRIO:
+    - Perfil: {profile}
+    - Score: {score}/100
+    - Tendência: {trend}
 
-    DADOS:
-    Renda: {renda}
-    Gastos: {gastos}
-    Sobra: {sobra}
+    DADOS FINANCEIROS:
+    - Renda: {renda}
+    - Gastos: {gastos}
+    - Sobra: {sobra}
 
-    MELHOR AÇÃO:
+    MELHOR AÇÃO ATUAL:
     {action}
 
-    Seja direto, prático e inteligente.
+    INSTRUÇÕES:
+    - Seja direto e estratégico
+    - Evite explicações genéricas
+    - Dê decisões claras
+    - Pense como um gestor financeiro
 
-    Formato:
+    FORMATO:
     Diagnóstico:
     Decisão:
     Impacto:
@@ -155,7 +166,7 @@ def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
     return response.choices[0].message.content
 
 # =========================
-# AUTH (FIXED)
+# AUTH
 # =========================
 def login():
     st.title("🔐 Login - iMoney")
@@ -165,7 +176,6 @@ def login():
 
     col1, col2 = st.columns(2)
 
-    # LOGIN
     with col1:
         if st.button("Login"):
             try:
@@ -184,7 +194,6 @@ def login():
             except Exception as e:
                 st.error(f"Erro real: {e}")
 
-    # SIGNUP
     with col2:
         if st.button("Criar conta"):
             try:
@@ -193,13 +202,12 @@ def login():
                     "password": password
                 })
 
-                # AUTO LOGIN (melhor UX)
                 if res.user:
                     st.session_state.user = res.user
                     st.success("Conta criada e logado!")
                     st.rerun()
                 else:
-                    st.warning("Verifique seu email para confirmar a conta.")
+                    st.warning("Verifique seu email.")
 
             except Exception as e:
                 st.error(f"Erro real: {e}")
@@ -225,14 +233,14 @@ def app():
     sobra = renda - gastos
     taxa = (gastos / renda) * 100 if renda > 0 else 0
 
-    st.write(f"Renda: R${renda}")
-    st.write(f"Gastos: R${gastos}")
-    st.write(f"Sobra: R${sobra}")
-    st.write(f"Taxa: {taxa:.1f}%")
+    st.write(f"📊 Renda: R${renda}")
+    st.write(f"💸 Gastos: R${gastos}")
+    st.write(f"💰 Sobra: R${sobra}")
+    st.write(f"📉 Taxa de gastos: {taxa:.1f}%")
 
-    selic = get_selic_rate()
+    selic = get_selic_annual()
     if selic:
-        st.write(f"📉 SELIC: {selic}%")
+        st.write(f"📉 SELIC anual: {selic}%")
 
     trend, avg = save_memory(user.id, renda, gastos)
 
@@ -241,10 +249,10 @@ def app():
     action = next_best_action(profile, selic)
 
     st.subheader("🧠 Avaliação Inteligente")
-    st.write(f"Score: {score}")
+    st.write(f"Score: {score}/100")
     st.write(f"Perfil: {profile}")
     st.write(f"Tendência: {trend}")
-    st.write(f"Ação: {action}")
+    st.write(f"Melhor ação: {action}")
 
     for msg in st.session_state.messages:
         st.chat_message(msg["role"]).write(msg["content"])
