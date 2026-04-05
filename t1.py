@@ -1,26 +1,31 @@
 import streamlit as st
 from openai import OpenAI
 from supabase import create_client
-import datetime
 
 # =========================
 # CONFIG
 # =========================
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
 st.set_page_config(page_title="AI Finance", layout="wide")
 
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+supabase = create_client(
+    st.secrets["SUPABASE_URL"],
+    st.secrets["SUPABASE_KEY"]
+)
+
 # =========================
-# LOGIN SYSTEM
+# SESSION STATE
 # =========================
 if "user" not in st.session_state:
     st.session_state.user = None
 
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# =========================
+# LOGIN FUNCTION
+# =========================
 def login():
     st.title("🔐 Login")
 
@@ -39,7 +44,7 @@ def login():
                 st.session_state.user = res.user
                 st.rerun()
             except Exception as e:
-                st.error(f"Erro login: {e}")
+                st.error("Erro no login")
 
     with col2:
         if st.button("Criar conta"):
@@ -48,26 +53,40 @@ def login():
                     "email": email,
                     "password": password
                 })
-                st.success("Conta criada! Confirme o email.")
+                st.success("Conta criada! Verifique seu email.")
             except Exception as e:
-                st.error(f"Erro ao criar conta: {e}")
+                st.error("Erro ao criar conta")
 
+# =========================
+# SHOW LOGIN IF NOT AUTH
+# =========================
 if not st.session_state.user:
     login()
     st.stop()
 
 # =========================
-# LOGOUT
+# USER EMAIL FIX (IMPORTANT)
+# =========================
+user_email = "User"
+try:
+    user_email = st.session_state.user.user_metadata.get("email", "User")
+except:
+    pass
+
+# =========================
+# SIDEBAR
 # =========================
 with st.sidebar:
-    st.write(st.session_state.user.email)
+    st.markdown(f"👤 **{user_email}**")
+
     if st.button("Logout"):
         supabase.auth.sign_out()
         st.session_state.user = None
+        st.session_state.messages = []
         st.rerun()
 
 # =========================
-# FINANCIAL INPUT
+# FINANCIAL DASHBOARD
 # =========================
 st.title("💰 Seu Dinheiro Hoje")
 
@@ -76,7 +95,7 @@ gastos = st.number_input("Gastos mensais (R$)", value=1500)
 meta = st.text_input("Meta", "Guardar dinheiro")
 
 saldo = renda - gastos
-taxa = (gastos / renda) * 100 if renda > 0 else 0
+taxa = (gastos / renda * 100) if renda > 0 else 0
 
 st.write(f"📊 Renda: R${renda}")
 st.write(f"💸 Gastos: R${gastos}")
@@ -84,14 +103,13 @@ st.write(f"📈 Saldo: R${saldo}")
 st.write(f"📉 Taxa: {taxa:.1f}%")
 
 # =========================
-# AI SCORE SYSTEM
+# SCORE SYSTEM
 # =========================
 def calculate_score(renda, gastos):
     if renda == 0:
         return 0
 
     savings_rate = (renda - gastos) / renda
-
     score = 50
 
     if savings_rate > 0.3:
@@ -121,46 +139,29 @@ elif score > 40:
 # =========================
 # FUTURE SIMULATION
 # =========================
-def simulate_future(renda, gastos):
-    savings = renda - gastos
-    months = 6
-    total = 0
-
-    for i in range(months):
-        total += savings
-
-    return total
-
-future = simulate_future(renda, gastos)
+future = (renda - gastos) * 6
 
 # =========================
-# AI EVALUATION BLOCK
+# AI EVALUATION
 # =========================
 st.subheader("🧠 Avaliação da IA")
 
-st.write(f"📊 Score financeiro: {score}/100")
+st.write(f"📊 Score: {score}/100")
 st.write(f"🚦 Nível: {nivel}")
-st.write(f"🔮 Em 6 meses você terá: R${future}")
+st.write(f"🔮 Em 6 meses: R${future}")
 
 # =========================
-# CHAT MEMORY
+# DATABASE FUNCTIONS
 # =========================
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Load previous messages
-def load_messages():
-    res = supabase.table("messages").select("*").eq(
-        "user_id", st.session_state.user.id
-    ).execute()
-    return res.data
-
 def save_message(role, content):
-    supabase.table("messages").insert({
-        "user_id": st.session_state.user.id,
-        "role": role,
-        "content": content
-    }).execute()
+    try:
+        supabase.table("messages").insert({
+            "user_id": st.session_state.user.id,
+            "role": role,
+            "content": content
+        }).execute()
+    except:
+        pass
 
 # =========================
 # SHOW CHAT
@@ -188,23 +189,19 @@ if prompt:
                 {
                     "role": "system",
                     "content": f"""
-Você é um consultor financeiro brasileiro extremamente inteligente.
+Você é um consultor financeiro brasileiro de alto nível.
 
-Dados do usuário:
+Dados:
 Renda: {renda}
 Gastos: {gastos}
 Saldo: {saldo}
 Taxa: {taxa:.1f}%
-
 Score: {score}
 Meta: {meta}
 
-Seu papel:
-- Ser direto
-- Dar planos práticos
-- Pensar como um planejador financeiro real
+Responda sempre em português.
 
-Sempre responda assim:
+Formato obrigatório:
 
 Diagnóstico:
 Problema:
@@ -219,7 +216,7 @@ Previsão futura:
         answer = response.choices[0].message.content
 
     except Exception as e:
-        st.error(f"Erro IA: {e}")
+        st.error("Erro na IA")
         st.stop()
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
