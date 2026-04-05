@@ -15,7 +15,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 client = OpenAI(api_key=OPENAI_KEY)
 
 # =========================
-# SESSION INIT
+# SESSION
 # =========================
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -54,57 +54,75 @@ def save_memory(user_id, renda, gastos):
     return trend, avg
 
 # =========================
-# AI AGENTS
+# SMART ENGINE
 # =========================
-def analyst_agent(renda, gastos):
+def classify_user(renda, gastos, trend):
+    taxa = (gastos / renda) if renda > 0 else 1
+
+    if taxa > 0.9:
+        return "sobrevivencia"
+    elif taxa > 0.75:
+        return "instavel"
+    elif taxa > 0.6:
+        return "equilibrado"
+    else:
+        return "crescimento"
+
+
+def financial_score(renda, gastos, trend):
     sobra = renda - gastos
-    taxa = (gastos / renda) * 100 if renda > 0 else 0
+    taxa = (gastos / renda) if renda > 0 else 1
 
-    return f"""
-    Você é um analista financeiro.
+    score = 100
+    score -= taxa * 70
 
-    Dados:
-    Renda: {renda}
-    Gastos: {gastos}
-    Sobra: {sobra}
-    Taxa de gastos: {taxa:.1f}%
+    if sobra > 0:
+        score += min((sobra / renda) * 30, 20)
 
-    Explique a situação financeira do usuário de forma clara.
-    """
+    if trend == "melhorando":
+        score += 10
+    elif trend == "piorando":
+        score -= 15
 
-
-def strategy_agent():
-    return """
-    Você é um estrategista financeiro.
-
-    Baseado na análise, gere estratégias práticas:
-    - reduzir gastos
-    - aumentar renda
-    - investir melhor
-    """
+    return max(0, min(100, int(score)))
 
 
-def decision_agent(prompt, renda, gastos, trend):
+def next_best_action(profile, renda, gastos):
+    if profile == "sobrevivencia":
+        return "Corte imediato de gastos e renegocie contas."
+    elif profile == "instavel":
+        return "Reduza gastos variáveis e crie uma reserva de emergência."
+    elif profile == "equilibrado":
+        return "Comece a investir 10-20% da sua renda."
+    elif profile == "crescimento":
+        return "Aumente aportes e diversifique investimentos."
+    return "Revise sua situação financeira."
+
+# =========================
+# AI DECISION ENGINE
+# =========================
+def decision_agent(prompt, renda, gastos, trend, profile, score, action):
     sobra = renda - gastos
 
     context = f"""
     Você é o iMoney, um sistema inteligente de decisões financeiras.
 
+    Perfil: {profile}
+    Score: {score}/100
+    Tendência: {trend}
+    Melhor ação: {action}
+
     Dados:
     Renda: {renda}
     Gastos: {gastos}
     Sobra: {sobra}
-    Tendência: {trend}
 
-    Regras:
-    - Se piorando → seja firme
-    - Se melhorando → incentive crescimento
-    - Dê resposta prática
+    Seja direto, prático e personalizado.
 
     Formato:
     Diagnóstico:
-    Ação:
-    Próximo passo:
+    Decisão:
+    Impacto:
     """
 
     response = client.chat.completions.create(
@@ -136,9 +154,8 @@ def login():
                     "password": password
                 })
                 st.session_state.user = res.user
-                st.success("Logado!")
                 st.rerun()
-            except Exception as e:
+            except:
                 st.error("Erro no login")
 
     with col2:
@@ -148,7 +165,7 @@ def login():
                     "email": email,
                     "password": password
                 })
-                st.success("Conta criada! Verifique seu email.")
+                st.success("Conta criada! Verifique o email.")
             except:
                 st.error("Erro ao criar conta")
 
@@ -181,15 +198,21 @@ def app():
     # MEMORY
     trend, avg = save_memory(user.id, renda, gastos)
 
-    st.subheader("📈 Evolução")
+    # SMART ENGINE
+    profile = classify_user(renda, gastos, trend)
+    score = financial_score(renda, gastos, trend)
+    action = next_best_action(profile, renda, gastos)
+
+    st.subheader("🧠 Avaliação Inteligente")
+    st.write(f"Score: {score}/100")
+    st.write(f"Perfil: {profile}")
     st.write(f"Tendência: {trend}")
-    st.write(f"Média de sobra: R${avg:.2f}")
+    st.write(f"Ação recomendada: {action}")
 
     # CHAT HISTORY
     for msg in st.session_state.messages:
         st.chat_message(msg["role"]).write(msg["content"])
 
-    # CHAT INPUT (ONLY ONCE!!!)
     prompt = st.chat_input("Pergunte algo...")
 
     if prompt:
@@ -197,7 +220,15 @@ def app():
         st.chat_message("user").write(prompt)
 
         try:
-            answer = decision_agent(prompt, renda, gastos, trend)
+            answer = decision_agent(
+                prompt,
+                renda,
+                gastos,
+                trend,
+                profile,
+                score,
+                action
+            )
 
             st.session_state.messages.append({
                 "role": "assistant",
@@ -206,7 +237,7 @@ def app():
 
             st.chat_message("assistant").write(answer)
 
-        except Exception as e:
+        except:
             st.error("Erro na IA")
 
 # =========================
