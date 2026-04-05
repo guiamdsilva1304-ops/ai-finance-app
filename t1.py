@@ -25,20 +25,16 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # =========================
-# SAFE USER GETTER (FIXED)
+# 🔐 GET REAL AUTH USER (FIX)
 # =========================
-def get_logged_user():
+def get_user_id():
     try:
         session = supabase.auth.get_session()
         if session and session.session:
-            return session.session.user
+            return session.session.user.id
     except:
         return None
     return None
-
-
-if st.session_state.user is None:
-    st.session_state.user = get_logged_user()
 
 # =========================
 # VALIDATION
@@ -70,7 +66,11 @@ def get_selic_annual():
 # =========================
 def load_memory(user_id):
     try:
-        res = supabase.table("user_memory").select("*").eq("user_id", user_id).execute()
+        res = supabase.table("user_memory") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .execute()
+
         return res.data[0] if res.data else None
     except:
         return None
@@ -178,11 +178,6 @@ def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
     {action}
 
     Seja direto, estratégico e prático.
-
-    Formato:
-    Diagnóstico:
-    Decisão:
-    Impacto:
     """
 
     response = client.chat.completions.create(
@@ -208,44 +203,28 @@ def login():
 
     with col1:
         if st.button("Login"):
-            if not is_valid_email(email):
-                st.error("Email inválido")
-                return
-
             try:
-                res = supabase.auth.sign_in_with_password({
+                supabase.auth.sign_in_with_password({
                     "email": email,
                     "password": password
                 })
 
-                if res.user:
-                    st.session_state.user = res.user
-                    st.success("Login realizado!")
-                    st.rerun()
-                else:
-                    st.error("Credenciais inválidas")
+                st.success("Login realizado!")
+                st.rerun()
 
             except Exception as e:
                 st.error(f"Erro no login: {e}")
 
     with col2:
         if st.button("Criar conta"):
-            if not is_valid_password(password):
-                st.error("Senha mínima: 6 caracteres")
-                return
-
             try:
-                res = supabase.auth.sign_up({
+                supabase.auth.sign_up({
                     "email": email,
                     "password": password
                 })
 
-                if res.user:
-                    st.session_state.user = res.user
-                    st.success("Conta criada!")
-                    st.rerun()
-                else:
-                    st.warning("Verifique seu email")
+                st.success("Conta criada!")
+                st.rerun()
 
             except Exception as e:
                 st.error(f"Erro no cadastro: {e}")
@@ -254,14 +233,13 @@ def login():
 # APP
 # =========================
 def app():
-    user = st.session_state.user
+    user_id = get_user_id()
 
-    if not user or not user.id:
+    if not user_id:
         st.error("Sessão inválida. Faça login novamente.")
-        st.session_state.user = None
         st.rerun()
 
-    st.sidebar.write(f"👤 {user.email}")
+    st.sidebar.write(f"👤 {user_id}")
 
     if st.sidebar.button("Logout"):
         try:
@@ -269,7 +247,6 @@ def app():
         except:
             pass
 
-        st.session_state.user = None
         st.session_state.messages = []
         st.rerun()
 
@@ -281,8 +258,6 @@ def app():
     sobra = renda - gastos
     taxa = (gastos / renda) * 100 if renda > 0 else 0
 
-    st.write(f"📊 Renda: R${renda}")
-    st.write(f"💸 Gastos: R${gastos}")
     st.write(f"💰 Sobra: R${sobra}")
     st.write(f"📉 Taxa: {taxa:.1f}%")
 
@@ -290,7 +265,7 @@ def app():
     if selic:
         st.write(f"📉 SELIC anual: {selic}%")
 
-    trend, avg = save_memory(user.id, renda, gastos)
+    trend, avg = save_memory(user_id, renda, gastos)
 
     profile = classify_user(renda, gastos)
     score = financial_score(renda, gastos, trend)
@@ -311,32 +286,28 @@ def app():
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
 
-        try:
-            answer = decision_agent(
-                prompt,
-                renda,
-                gastos,
-                trend,
-                profile,
-                score,
-                action,
-                selic
-            )
+        answer = decision_agent(
+            prompt,
+            renda,
+            gastos,
+            trend,
+            profile,
+            score,
+            action,
+            selic
+        )
 
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": answer
-            })
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": answer
+        })
 
-            st.chat_message("assistant").write(answer)
-
-        except Exception as e:
-            st.error(f"Erro na IA: {e}")
+        st.chat_message("assistant").write(answer)
 
 # =========================
 # ROUTER
 # =========================
-if st.session_state.user is None:
+if get_user_id() is None:
     login()
 else:
     app()
