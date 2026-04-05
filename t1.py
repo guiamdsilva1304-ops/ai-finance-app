@@ -1,6 +1,7 @@
 import streamlit as st
 from supabase import create_client
 from openai import OpenAI
+import requests
 
 # =========================
 # CONFIG
@@ -24,7 +25,18 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # =========================
-# MEMORY SYSTEM
+# BACEN API (SELIC)
+# =========================
+def get_selic_rate():
+    try:
+        url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json"
+        data = requests.get(url).json()
+        return float(data[0]["valor"])
+    except:
+        return None
+
+# =========================
+# MEMORY
 # =========================
 def load_memory(user_id):
     res = supabase.table("user_memory").select("*").eq("user_id", user_id).execute()
@@ -56,7 +68,7 @@ def save_memory(user_id, renda, gastos):
 # =========================
 # SMART ENGINE
 # =========================
-def classify_user(renda, gastos, trend):
+def classify_user(renda, gastos):
     taxa = (gastos / renda) if renda > 0 else 1
 
     if taxa > 0.9:
@@ -87,39 +99,49 @@ def financial_score(renda, gastos, trend):
     return max(0, min(100, int(score)))
 
 
-def next_best_action(profile, renda, gastos):
+def next_best_action(profile, selic):
     if profile == "sobrevivencia":
-        return "Corte imediato de gastos e renegocie contas."
-    elif profile == "instavel":
-        return "Reduza gastos variáveis e crie uma reserva de emergência."
-    elif profile == "equilibrado":
-        return "Comece a investir 10-20% da sua renda."
-    elif profile == "crescimento":
-        return "Aumente aportes e diversifique investimentos."
-    return "Revise sua situação financeira."
+        return "Corte imediato de gastos e organize suas contas."
+
+    if selic and selic > 10:
+        return "Priorize renda fixa (Tesouro Selic, CDB)."
+
+    if profile == "crescimento":
+        return "Diversifique (ações + renda fixa)."
+
+    return "Comece com investimentos seguros."
 
 # =========================
-# AI DECISION ENGINE
+# AI DECISION
 # =========================
-def decision_agent(prompt, renda, gastos, trend, profile, score, action):
+def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
     sobra = renda - gastos
 
     context = f"""
-    Você é o iMoney, um sistema inteligente de decisões financeiras.
+    Você é o iMoney, um sistema inteligente financeiro.
 
+    CENÁRIO:
+    SELIC: {selic}%
+
+    USUÁRIO:
     Perfil: {profile}
-    Score: {score}/100
+    Score: {score}
     Tendência: {trend}
-    Melhor ação: {action}
 
-    Dados:
+    DADOS:
     Renda: {renda}
     Gastos: {gastos}
     Sobra: {sobra}
 
-    Seja direto, prático e personalizado.
+    MELHOR AÇÃO:
+    {action}
 
-    Formato:
+    REGRAS:
+    - Seja direto
+    - Use o cenário econômico
+    - Dê decisão clara
+
+    FORMATO:
     Diagnóstico:
     Decisão:
     Impacto:
@@ -136,7 +158,7 @@ def decision_agent(prompt, renda, gastos, trend, profile, score, action):
     return response.choices[0].message.content
 
 # =========================
-# AUTH
+# LOGIN
 # =========================
 def login():
     st.title("🔐 Login - iMoney")
@@ -165,12 +187,12 @@ def login():
                     "email": email,
                     "password": password
                 })
-                st.success("Conta criada! Verifique o email.")
+                st.success("Conta criada! Verifique email.")
             except:
                 st.error("Erro ao criar conta")
 
 # =========================
-# MAIN APP
+# APP
 # =========================
 def app():
     user = st.session_state.user
@@ -182,7 +204,7 @@ def app():
         st.session_state.messages = []
         st.rerun()
 
-    st.title("💰 iMoney — Seu Dinheiro Hoje")
+    st.title("💰 iMoney")
 
     renda = st.number_input("Renda mensal (R$)", value=2000)
     gastos = st.number_input("Gastos mensais (R$)", value=1500)
@@ -190,26 +212,27 @@ def app():
     sobra = renda - gastos
     taxa = (gastos / renda) * 100 if renda > 0 else 0
 
-    st.write(f"💵 Renda: R${renda}")
-    st.write(f"💸 Gastos: R${gastos}")
-    st.write(f"📊 Sobra: R${sobra}")
-    st.write(f"📉 Taxa: {taxa:.1f}%")
+    st.write(f"Renda: R${renda}")
+    st.write(f"Gastos: R${gastos}")
+    st.write(f"Sobra: R${sobra}")
+    st.write(f"Taxa: {taxa:.1f}%")
 
-    # MEMORY
+    selic = get_selic_rate()
+    if selic:
+        st.write(f"📉 SELIC atual: {selic}%")
+
     trend, avg = save_memory(user.id, renda, gastos)
 
-    # SMART ENGINE
-    profile = classify_user(renda, gastos, trend)
+    profile = classify_user(renda, gastos)
     score = financial_score(renda, gastos, trend)
-    action = next_best_action(profile, renda, gastos)
+    action = next_best_action(profile, selic)
 
     st.subheader("🧠 Avaliação Inteligente")
-    st.write(f"Score: {score}/100")
+    st.write(f"Score: {score}")
     st.write(f"Perfil: {profile}")
     st.write(f"Tendência: {trend}")
-    st.write(f"Ação recomendada: {action}")
+    st.write(f"Ação: {action}")
 
-    # CHAT HISTORY
     for msg in st.session_state.messages:
         st.chat_message(msg["role"]).write(msg["content"])
 
@@ -219,26 +242,23 @@ def app():
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
 
-        try:
-            answer = decision_agent(
-                prompt,
-                renda,
-                gastos,
-                trend,
-                profile,
-                score,
-                action
-            )
+        answer = decision_agent(
+            prompt,
+            renda,
+            gastos,
+            trend,
+            profile,
+            score,
+            action,
+            selic
+        )
 
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": answer
-            })
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": answer
+        })
 
-            st.chat_message("assistant").write(answer)
-
-        except:
-            st.error("Erro na IA")
+        st.chat_message("assistant").write(answer)
 
 # =========================
 # ROUTER
