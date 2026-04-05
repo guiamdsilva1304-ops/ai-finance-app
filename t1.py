@@ -25,7 +25,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # =========================
-# BACEN API (SELIC)
+# BACEN API
 # =========================
 def get_selic_rate():
     try:
@@ -112,7 +112,7 @@ def next_best_action(profile, selic):
     return "Comece com investimentos seguros."
 
 # =========================
-# AI DECISION
+# AI
 # =========================
 def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
     sobra = renda - gastos
@@ -136,12 +136,9 @@ def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
     MELHOR AÇÃO:
     {action}
 
-    REGRAS:
-    - Seja direto
-    - Use o cenário econômico
-    - Dê decisão clara
+    Seja direto, prático e inteligente.
 
-    FORMATO:
+    Formato:
     Diagnóstico:
     Decisão:
     Impacto:
@@ -158,7 +155,7 @@ def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
     return response.choices[0].message.content
 
 # =========================
-# LOGIN
+# AUTH (FIXED)
 # =========================
 def login():
     st.title("🔐 Login - iMoney")
@@ -168,6 +165,7 @@ def login():
 
     col1, col2 = st.columns(2)
 
+    # LOGIN
     with col1:
         if st.button("Login"):
             try:
@@ -175,21 +173,36 @@ def login():
                     "email": email,
                     "password": password
                 })
-                st.session_state.user = res.user
-                st.rerun()
-            except:
-                st.error("Erro no login")
 
+                if res.user:
+                    st.session_state.user = res.user
+                    st.success("Login realizado!")
+                    st.rerun()
+                else:
+                    st.error("Credenciais inválidas.")
+
+            except Exception as e:
+                st.error(f"Erro real: {e}")
+
+    # SIGNUP
     with col2:
         if st.button("Criar conta"):
             try:
-                supabase.auth.sign_up({
+                res = supabase.auth.sign_up({
                     "email": email,
                     "password": password
                 })
-                st.success("Conta criada! Verifique email.")
-            except:
-                st.error("Erro ao criar conta")
+
+                # AUTO LOGIN (melhor UX)
+                if res.user:
+                    st.session_state.user = res.user
+                    st.success("Conta criada e logado!")
+                    st.rerun()
+                else:
+                    st.warning("Verifique seu email para confirmar a conta.")
+
+            except Exception as e:
+                st.error(f"Erro real: {e}")
 
 # =========================
 # APP
@@ -219,7 +232,7 @@ def app():
 
     selic = get_selic_rate()
     if selic:
-        st.write(f"📉 SELIC atual: {selic}%")
+        st.write(f"📉 SELIC: {selic}%")
 
     trend, avg = save_memory(user.id, renda, gastos)
 
@@ -242,23 +255,27 @@ def app():
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
 
-        answer = decision_agent(
-            prompt,
-            renda,
-            gastos,
-            trend,
-            profile,
-            score,
-            action,
-            selic
-        )
+        try:
+            answer = decision_agent(
+                prompt,
+                renda,
+                gastos,
+                trend,
+                profile,
+                score,
+                action,
+                selic
+            )
 
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": answer
-        })
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": answer
+            })
 
-        st.chat_message("assistant").write(answer)
+            st.chat_message("assistant").write(answer)
+
+        except Exception as e:
+            st.error(f"Erro na IA: {e}")
 
 # =========================
 # ROUTER
