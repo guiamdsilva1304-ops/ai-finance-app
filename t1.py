@@ -15,7 +15,7 @@ supabase = create_client(
 )
 
 # =========================
-# SESSION STATE
+# SESSION
 # =========================
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -24,7 +24,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # =========================
-# LOGIN FUNCTION
+# LOGIN
 # =========================
 def login():
     st.title("🔐 Login")
@@ -43,7 +43,7 @@ def login():
                 })
                 st.session_state.user = res.user
                 st.rerun()
-            except Exception as e:
+            except:
                 st.error("Erro no login")
 
     with col2:
@@ -54,18 +54,15 @@ def login():
                     "password": password
                 })
                 st.success("Conta criada! Verifique seu email.")
-            except Exception as e:
+            except:
                 st.error("Erro ao criar conta")
 
-# =========================
-# SHOW LOGIN IF NOT AUTH
-# =========================
 if not st.session_state.user:
     login()
     st.stop()
 
 # =========================
-# USER EMAIL FIX (IMPORTANT)
+# USER INFO (FIXED)
 # =========================
 user_email = "User"
 try:
@@ -86,10 +83,13 @@ with st.sidebar:
         st.rerun()
 
 # =========================
-# FINANCIAL DASHBOARD
+# TITLE
 # =========================
-st.title("💰 Seu Dinheiro Hoje")
+st.title("🧠 Melhor decisão para o seu dinheiro")
 
+# =========================
+# INPUTS
+# =========================
 renda = st.number_input("Renda mensal (R$)", value=2000)
 gastos = st.number_input("Gastos mensais (R$)", value=1500)
 meta = st.text_input("Meta", "Guardar dinheiro")
@@ -97,13 +97,26 @@ meta = st.text_input("Meta", "Guardar dinheiro")
 saldo = renda - gastos
 taxa = (gastos / renda * 100) if renda > 0 else 0
 
+# =========================
+# EMOTIONAL FEEDBACK
+# =========================
+if saldo < 0:
+    st.error("⚠️ Você está perdendo dinheiro todo mês")
+elif taxa > 70:
+    st.warning("⚠️ Seu nível de gasto está alto")
+else:
+    st.success("✅ Você está no caminho certo")
+
+# =========================
+# SUMMARY
+# =========================
 st.write(f"📊 Renda: R${renda}")
 st.write(f"💸 Gastos: R${gastos}")
 st.write(f"📈 Saldo: R${saldo}")
 st.write(f"📉 Taxa: {taxa:.1f}%")
 
 # =========================
-# SCORE SYSTEM
+# SCORE
 # =========================
 def calculate_score(renda, gastos):
     if renda == 0:
@@ -128,56 +141,68 @@ def calculate_score(renda, gastos):
 
 score = calculate_score(renda, gastos)
 
-nivel = "Crítico"
-if score > 80:
-    nivel = "Excelente"
-elif score > 60:
-    nivel = "Bom"
-elif score > 40:
-    nivel = "Atenção"
+st.subheader("📊 Seu nível financeiro")
+st.write(f"Score: {score}/100")
 
 # =========================
-# FUTURE SIMULATION
+# BEST DECISION BUTTON (CORE FEATURE)
 # =========================
-future = (renda - gastos) * 6
+if st.button("📌 Melhor decisão agora"):
 
-# =========================
-# AI EVALUATION
-# =========================
-st.subheader("🧠 Avaliação da IA")
-
-st.write(f"📊 Score: {score}/100")
-st.write(f"🚦 Nível: {nivel}")
-st.write(f"🔮 Em 6 meses: R${future}")
-
-# =========================
-# DATABASE FUNCTIONS
-# =========================
-def save_message(role, content):
     try:
-        supabase.table("messages").insert({
-            "user_id": st.session_state.user.id,
-            "role": role,
-            "content": content
-        }).execute()
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"""
+Você é um consultor financeiro que toma decisões pelo usuário.
+
+Dados:
+Renda: {renda}
+Gastos: {gastos}
+Saldo: {saldo}
+Taxa: {taxa:.1f}%
+Score: {score}
+Meta: {meta}
+
+Regras:
+- Seja direto
+- Dê UMA decisão clara
+- Nada de teoria
+
+Formato:
+
+Diagnóstico:
+Decisão:
+Justificativa:
+Próximo passo:
+"""
+                }
+            ]
+        )
+
+        decision = response.choices[0].message.content
+
+        st.success("💡 Melhor decisão para você:")
+        st.write(decision)
+
     except:
-        pass
+        st.error("Erro ao gerar decisão")
 
 # =========================
-# SHOW CHAT
+# CHAT
 # =========================
+st.subheader("💬 Tire dúvidas")
+
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# =========================
-# CHAT INPUT (FIXED)
-# =========================
 prompt = st.chat_input("Pergunte algo...")
 
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
-    save_message("user", prompt)
 
     with st.chat_message("user"):
         st.write(prompt)
@@ -189,24 +214,15 @@ if prompt:
                 {
                     "role": "system",
                     "content": f"""
-Você é um consultor financeiro brasileiro de alto nível.
+Você é um consultor financeiro brasileiro.
 
 Dados:
 Renda: {renda}
 Gastos: {gastos}
 Saldo: {saldo}
 Taxa: {taxa:.1f}%
-Score: {score}
-Meta: {meta}
 
-Responda sempre em português.
-
-Formato obrigatório:
-
-Diagnóstico:
-Problema:
-Plano de ação:
-Previsão futura:
+Responda de forma clara, prática e direta.
 """
                 },
                 *st.session_state.messages
@@ -215,12 +231,11 @@ Previsão futura:
 
         answer = response.choices[0].message.content
 
-    except Exception as e:
+    except:
         st.error("Erro na IA")
         st.stop()
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
-    save_message("assistant", answer)
 
     with st.chat_message("assistant"):
         st.write(answer)
