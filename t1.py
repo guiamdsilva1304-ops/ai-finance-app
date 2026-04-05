@@ -1,21 +1,19 @@
 import streamlit as st
+from supabase import create_client, Client
 from openai import OpenAI
-from supabase import create_client
 
 # =========================
-# CONFIG
+# 🔐 CONFIG (SECRETS)
 # =========================
-st.set_page_config(page_title="AI Finance", layout="wide")
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-supabase = create_client(
-    st.secrets["SUPABASE_URL"],
-    st.secrets["SUPABASE_KEY"]
-)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 # =========================
-# SESSION
+# 🧠 SESSION INIT
 # =========================
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -24,9 +22,9 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # =========================
-# LOGIN
+# 🔐 LOGIN / SIGNUP SCREEN
 # =========================
-def login():
+def login_screen():
     st.title("🔐 Login")
 
     email = st.text_input("Email")
@@ -34,6 +32,7 @@ def login():
 
     col1, col2 = st.columns(2)
 
+    # LOGIN
     with col1:
         if st.button("Login"):
             try:
@@ -42,200 +41,150 @@ def login():
                     "password": password
                 })
                 st.session_state.user = res.user
+                st.success("Login realizado!")
                 st.rerun()
-            except:
-                st.error("Erro no login")
 
+            except Exception as e:
+                st.error(f"Erro real no login: {e}")
+
+    # SIGNUP
     with col2:
         if st.button("Criar conta"):
             try:
-                supabase.auth.sign_up({
+                res = supabase.auth.sign_up({
                     "email": email,
                     "password": password
                 })
-                st.success("Conta criada! Verifique seu email.")
-            except:
-                st.error("Erro ao criar conta")
 
-if not st.session_state.user:
-    login()
-    st.stop()
+                # 🔥 AUTO LOGIN AFTER SIGNUP
+                res = supabase.auth.sign_in_with_password({
+                    "email": email,
+                    "password": password
+                })
 
-# =========================
-# USER INFO (FIXED)
-# =========================
-user_email = "User"
-try:
-    user_email = st.session_state.user.user_metadata.get("email", "User")
-except:
-    pass
+                st.session_state.user = res.user
+                st.success("Conta criada e logado!")
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"Erro real no signup: {e}")
 
 # =========================
-# SIDEBAR
+# 🧠 AI RESPONSE
 # =========================
-with st.sidebar:
-    st.markdown(f"👤 **{user_email}**")
+def get_ai_response(prompt, renda, gastos):
+    try:
+        context = f"""
+        Você é um assistente financeiro.
 
-    if st.button("Logout"):
-        supabase.auth.sign_out()
-        st.session_state.user = None
-        st.session_state.messages = []
-        st.rerun()
+        Dados do usuário:
+        - Renda: R${renda}
+        - Gastos: R${gastos}
 
-# =========================
-# TITLE
-# =========================
-st.title("🧠 Melhor decisão para o seu dinheiro")
+        Seja direto, prático e específico.
+        """
 
-# =========================
-# INPUTS
-# =========================
-renda = st.number_input("Renda mensal (R$)", value=2000)
-gastos = st.number_input("Gastos mensais (R$)", value=1500)
-meta = st.text_input("Meta", "Guardar dinheiro")
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {"role": "system", "content": context},
+                {"role": "user", "content": prompt}
+            ]
+        )
 
-saldo = renda - gastos
-taxa = (gastos / renda * 100) if renda > 0 else 0
+        return response.choices[0].message.content
 
-# =========================
-# EMOTIONAL FEEDBACK
-# =========================
-if saldo < 0:
-    st.error("⚠️ Você está perdendo dinheiro todo mês")
-elif taxa > 70:
-    st.warning("⚠️ Seu nível de gasto está alto")
-else:
-    st.success("✅ Você está no caminho certo")
+    except Exception as e:
+        return f"Erro IA: {e}"
 
 # =========================
-# SUMMARY
+# 💰 FINANCIAL SCORE
 # =========================
-st.write(f"📊 Renda: R${renda}")
-st.write(f"💸 Gastos: R${gastos}")
-st.write(f"📈 Saldo: R${saldo}")
-st.write(f"📉 Taxa: {taxa:.1f}%")
-
-# =========================
-# SCORE
-# =========================
-def calculate_score(renda, gastos):
+def financial_analysis(renda, gastos):
     if renda == 0:
-        return 0
+        return 0, "Sem dados"
 
-    savings_rate = (renda - gastos) / renda
-    score = 50
+    taxa = gastos / renda
 
-    if savings_rate > 0.3:
-        score += 30
-    elif savings_rate > 0.2:
-        score += 20
-    elif savings_rate > 0.1:
-        score += 10
+    if taxa <= 0.5:
+        score = 90
+        nivel = "Excelente"
+    elif taxa <= 0.7:
+        score = 70
+        nivel = "Bom"
+    elif taxa <= 0.9:
+        score = 50
+        nivel = "Atenção"
     else:
-        score -= 20
+        score = 30
+        nivel = "Crítico"
 
-    if gastos / renda > 0.8:
-        score -= 20
-
-    return max(0, min(100, score))
-
-score = calculate_score(renda, gastos)
-
-st.subheader("📊 Seu nível financeiro")
-st.write(f"Score: {score}/100")
+    return score, nivel
 
 # =========================
-# BEST DECISION BUTTON (CORE FEATURE)
+# 🏠 MAIN APP
 # =========================
-if st.button("📌 Melhor decisão agora"):
+def main_app():
+    user = st.session_state.user
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"""
-Você é um consultor financeiro que toma decisões pelo usuário.
+    # SIDEBAR
+    with st.sidebar:
+        st.write(f"👤 {user.email}")
 
-Dados:
-Renda: {renda}
-Gastos: {gastos}
-Saldo: {saldo}
-Taxa: {taxa:.1f}%
-Score: {score}
-Meta: {meta}
+        if st.button("Logout"):
+            st.session_state.user = None
+            st.session_state.messages = []
+            st.rerun()
 
-Regras:
-- Seja direto
-- Dê UMA decisão clara
-- Nada de teoria
+    st.title("💰 Seu Dinheiro Hoje")
 
-Formato:
+    renda = st.number_input("Renda mensal (R$)", value=2000)
+    gastos = st.number_input("Gastos mensais (R$)", value=1500)
+    meta = st.text_input("Meta", "Guardar dinheiro")
 
-Diagnóstico:
-Decisão:
-Justificativa:
-Próximo passo:
-"""
-                }
-            ]
-        )
+    sobra = renda - gastos
+    taxa = (gastos / renda * 100) if renda > 0 else 0
 
-        decision = response.choices[0].message.content
+    st.write(f"📊 Renda: R${renda}")
+    st.write(f"💸 Gastos: R${gastos}")
+    st.write(f"📈 Sobra: R${sobra}")
+    st.write(f"📉 Taxa: {taxa:.1f}%")
 
-        st.success("💡 Melhor decisão para você:")
-        st.write(decision)
+    # =========================
+    # 🧠 AI EVALUATION
+    # =========================
+    score, nivel = financial_analysis(renda, gastos)
 
-    except:
-        st.error("Erro ao gerar decisão")
+    st.subheader("🧠 Avaliação da IA")
+    st.write(f"Score financeiro: {score}/100")
+    st.write(f"Nível: {nivel}")
+
+    if taxa > 70:
+        st.warning("Você está gastando demais.")
+
+    # =========================
+    # 💬 CHAT
+    # =========================
+    st.subheader("💬 Assistente Financeiro")
+
+    for msg in st.session_state.messages:
+        st.chat_message(msg["role"]).write(msg["content"])
+
+    prompt = st.chat_input("Pergunte algo...")
+
+    if prompt:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.chat_message("user").write(prompt)
+
+        answer = get_ai_response(prompt, renda, gastos)
+
+        st.session_state.messages.append({"role": "assistant", "content": answer})
+        st.chat_message("assistant").write(answer)
 
 # =========================
-# CHAT
+# 🚀 APP ROUTER
 # =========================
-st.subheader("💬 Tire dúvidas")
-
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
-
-prompt = st.chat_input("Pergunte algo...")
-
-if prompt:
-    st.session_state.messages.append({"role": "user", "content": prompt})
-
-    with st.chat_message("user"):
-        st.write(prompt)
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"""
-Você é um consultor financeiro brasileiro.
-
-Dados:
-Renda: {renda}
-Gastos: {gastos}
-Saldo: {saldo}
-Taxa: {taxa:.1f}%
-
-Responda de forma clara, prática e direta.
-"""
-                },
-                *st.session_state.messages
-            ]
-        )
-
-        answer = response.choices[0].message.content
-
-    except:
-        st.error("Erro na IA")
-        st.stop()
-
-    st.session_state.messages.append({"role": "assistant", "content": answer})
-
-    with st.chat_message("assistant"):
-        st.write(answer)
+if st.session_state.user is None:
+    login_screen()
+else:
+    main_app()
