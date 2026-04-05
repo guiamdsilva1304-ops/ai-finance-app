@@ -25,13 +25,13 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # =========================
-# SESSION RECOVERY
+# SAFE USER GETTER (FIXED)
 # =========================
 def get_logged_user():
     try:
         session = supabase.auth.get_session()
-        if session and session.user:
-            return session.user
+        if session and session.session:
+            return session.session.user
     except:
         return None
     return None
@@ -66,34 +66,47 @@ def get_selic_annual():
         return None
 
 # =========================
-# MEMORY
+# MEMORY (FIXED)
 # =========================
 def load_memory(user_id):
-    res = supabase.table("user_memory").select("*").eq("user_id", user_id).execute()
-    return res.data[0] if res.data else None
+    try:
+        res = supabase.table("user_memory").select("*").eq("user_id", user_id).execute()
+        return res.data[0] if res.data else None
+    except:
+        return None
 
 
 def save_memory(user_id, renda, gastos):
-    sobra = renda - gastos
-    memory = load_memory(user_id)
+    if not user_id:
+        return "erro", 0
 
-    if memory:
-        prev = memory.get("avg_savings", 0)
-        avg = (prev + sobra) / 2
-        trend = "melhorando" if sobra > prev else "piorando"
-    else:
-        avg = sobra
-        trend = "inicial"
+    try:
+        sobra = renda - gastos
+        memory = load_memory(user_id)
 
-    supabase.table("user_memory").upsert({
-        "user_id": user_id,
-        "last_renda": renda,
-        "last_gastos": gastos,
-        "avg_savings": avg,
-        "trend": trend
-    }).execute()
+        if memory:
+            prev = memory.get("avg_savings", 0) or 0
+            avg = (prev + sobra) / 2
+            trend = "melhorando" if sobra > prev else "piorando"
+        else:
+            avg = sobra
+            trend = "inicial"
 
-    return trend, avg
+        data = {
+            "user_id": user_id,
+            "last_renda": float(renda),
+            "last_gastos": float(gastos),
+            "avg_savings": float(avg),
+            "trend": trend
+        }
+
+        supabase.table("user_memory").upsert(data).execute()
+
+        return trend, avg
+
+    except Exception as e:
+        st.error(f"Erro memória: {e}")
+        return "erro", 0
 
 # =========================
 # SMART ENGINE
@@ -142,7 +155,7 @@ def next_best_action(profile, selic):
     return "Comece com investimentos seguros."
 
 # =========================
-# AI DECISION
+# AI
 # =========================
 def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
     sobra = renda - gastos
@@ -153,20 +166,18 @@ def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
     CENÁRIO:
     SELIC anual: {selic}%
 
-    USUÁRIO:
-    Perfil: {profile}
-    Score: {score}
-    Tendência: {trend}
+    PERFIL:
+    {profile} | Score: {score} | Tendência: {trend}
 
     DADOS:
     Renda: {renda}
     Gastos: {gastos}
     Sobra: {sobra}
 
-    MELHOR AÇÃO:
+    AÇÃO:
     {action}
 
-    Seja direto, prático e estratégico.
+    Seja direto, estratégico e prático.
 
     Formato:
     Diagnóstico:
@@ -189,7 +200,6 @@ def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
 # =========================
 def login():
     st.title("🔐 Login - iMoney")
-    st.caption("Entre ou crie sua conta")
 
     email = st.text_input("Email")
     password = st.text_input("Senha", type="password")
@@ -200,10 +210,6 @@ def login():
         if st.button("Login"):
             if not is_valid_email(email):
                 st.error("Email inválido")
-                return
-
-            if not password:
-                st.error("Digite a senha")
                 return
 
             try:
@@ -217,19 +223,15 @@ def login():
                     st.success("Login realizado!")
                     st.rerun()
                 else:
-                    st.error("Email ou senha incorretos")
+                    st.error("Credenciais inválidas")
 
             except Exception as e:
                 st.error(f"Erro no login: {e}")
 
     with col2:
         if st.button("Criar conta"):
-            if not is_valid_email(email):
-                st.error("Email inválido")
-                return
-
             if not is_valid_password(password):
-                st.error("Senha deve ter pelo menos 6 caracteres")
+                st.error("Senha mínima: 6 caracteres")
                 return
 
             try:
@@ -240,22 +242,24 @@ def login():
 
                 if res.user:
                     st.session_state.user = res.user
-                    st.success("Conta criada e logado!")
+                    st.success("Conta criada!")
                     st.rerun()
                 else:
-                    st.warning("Conta criada. Verifique seu email.")
+                    st.warning("Verifique seu email")
 
             except Exception as e:
-                if "already registered" in str(e):
-                    st.error("Email já cadastrado")
-                else:
-                    st.error(f"Erro no cadastro: {e}")
+                st.error(f"Erro no cadastro: {e}")
 
 # =========================
 # APP
 # =========================
 def app():
     user = st.session_state.user
+
+    if not user or not user.id:
+        st.error("Sessão inválida. Faça login novamente.")
+        st.session_state.user = None
+        st.rerun()
 
     st.sidebar.write(f"👤 {user.email}")
 
