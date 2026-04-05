@@ -226,3 +226,33 @@ if st.session_state.user is None:
     login_screen()
 else:
     main_app()
+def load_memory(user_id):
+    res = supabase.table("user_memory").select("*").eq("user_id", user_id).execute()
+    if res.data:
+        return res.data[0]
+    return None
+
+
+def save_memory(user_id, renda, gastos):
+    sobra = renda - gastos
+
+    memory = load_memory(user_id)
+
+    if memory:
+        prev_savings = memory["avg_savings"] or 0
+        new_avg = (prev_savings + sobra) / 2
+
+        trend = "melhorando" if sobra > prev_savings else "piorando"
+    else:
+        new_avg = sobra
+        trend = "inicial"
+
+    supabase.table("user_memory").upsert({
+        "user_id": user_id,
+        "last_renda": renda,
+        "last_gastos": gastos,
+        "avg_savings": new_avg,
+        "trend": trend
+    }).execute()
+
+    return trend, new_avg
