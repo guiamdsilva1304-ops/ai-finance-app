@@ -252,7 +252,7 @@ Forneça:
 Seja direto, prático e use números reais. Português do Brasil."""
 
     response = claude.messages.create(
-        model="claude-sonnet-4-5-20251001",
+        model="claude-sonnet-4-6",
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -289,7 +289,7 @@ Responda sempre em português, seja direto e use dados concretos. Quando relevan
     msgs = [{"role": m["role"], "content": m["content"]} for m in historico]
 
     response = claude.messages.create(
-        model="claude-sonnet-4-5-20251001",
+        model="claude-sonnet-4-6",
         max_tokens=1000,
         system=system,
         messages=msgs
@@ -608,41 +608,43 @@ def page_app():
         st.markdown("## 💬 Assessor Financeiro IA")
         st.caption("Pergunte sobre investimentos, orçamento, estratégias, metas — contexto completo da sua situação.")
 
-        # Histórico
-        chat_container = st.container()
-        with chat_container:
-            for msg in st.session_state.messages:
-                if msg["role"] == "user":
-                    st.markdown(f'<div class="chat-msg-user">👤 {msg["content"]}</div>', unsafe_allow_html=True)
-                else:
-                    st.markdown(f'<div class="chat-msg-ai">🤖 {msg["content"]}</div>', unsafe_allow_html=True)
-
-        # Quick actions
+        # Quick actions ANTES do histórico
         col_q1, col_q2, col_q3 = st.columns(3)
+        quick_prompt = None
         with col_q1:
             if st.button("📊 Onde investir minha sobra?"):
-                st.session_state.messages.append({"role": "user", "content": f"Tenho R${sobra:,.2f} de sobra mensal. Onde devo investir considerando a SELIC atual de {selic}%?"})
-                st.rerun()
+                quick_prompt = f"Tenho R${sobra:,.2f} de sobra mensal. Onde devo investir considerando a SELIC atual de {selic}%?"
         with col_q2:
             if st.button("✂️ Como cortar gastos?"):
-                st.session_state.messages.append({"role": "user", "content": "Analise meus gastos por categoria e indique onde posso reduzir gastos de forma inteligente."})
-                st.rerun()
+                quick_prompt = "Analise meus gastos por categoria e indique onde posso reduzir gastos de forma inteligente."
         with col_q3:
             if st.button("🎯 Como alcançar minhas metas?"):
-                st.session_state.messages.append({"role": "user", "content": "Com base nas minhas metas e situação atual, qual a melhor estratégia para alcançá-las?"})
-                st.rerun()
+                quick_prompt = "Com base nas minhas metas e situação atual, qual a melhor estratégia para alcançá-las?"
 
-        # Input
+        # Input do chat
         prompt = st.chat_input("Digite sua pergunta financeira...")
-        if prompt:
-            st.session_state.messages.append({"role": "user", "content": prompt})
+        pergunta_final = prompt or quick_prompt
+
+        # Processa pergunta
+        if pergunta_final:
+            st.session_state.messages.append({"role": "user", "content": pergunta_final})
             with st.spinner("Analisando..."):
-                resposta = agente_chat(
-                    st.session_state.messages, renda, gastos_total,
-                    sobra, selic, ipca, score, trend, perfil, gastos_cat, metas
-                )
-            st.session_state.messages.append({"role": "assistant", "content": resposta})
+                try:
+                    resposta = agente_chat(
+                        st.session_state.messages, renda, gastos_total,
+                        sobra, selic, ipca, score, trend, perfil, gastos_cat, metas
+                    )
+                    st.session_state.messages.append({"role": "assistant", "content": resposta})
+                except Exception as e:
+                    st.session_state.messages.append({"role": "assistant", "content": f"Erro ao processar: {e}"})
             st.rerun()
+
+        # Histórico
+        for msg in st.session_state.messages:
+            if msg["role"] == "user":
+                st.markdown(f'<div class="chat-msg-user">👤 {msg["content"]}</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div class="chat-msg-ai">🤖 {msg["content"]}</div>', unsafe_allow_html=True)
 
         if st.session_state.messages and st.button("🗑️ Limpar conversa"):
             st.session_state.messages = []
