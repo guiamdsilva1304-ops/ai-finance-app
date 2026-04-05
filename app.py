@@ -252,7 +252,7 @@ Forneça:
 Seja direto, prático e use números reais. Português do Brasil."""
 
     response = claude.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-5-20251001",
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -289,7 +289,7 @@ Responda sempre em português, seja direto e use dados concretos. Quando relevan
     msgs = [{"role": m["role"], "content": m["content"]} for m in historico]
 
     response = claude.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-5-20251001",
         max_tokens=1000,
         system=system,
         messages=msgs
@@ -313,7 +313,7 @@ Responda SOMENTE com JSON válido:
 }}"""
 
     response = claude.messages.create(
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
         max_tokens=200,
         messages=[{"role": "user", "content": prompt}]
     )
