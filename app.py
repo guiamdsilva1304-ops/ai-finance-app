@@ -36,6 +36,8 @@ defaults = {
     "active_tab": "dashboard",
     "gastos_categorias": {},
     "metas": [],
+    "user_id": None,
+    "user_email": None,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -45,9 +47,15 @@ for k, v in defaults.items():
 # AUTH
 # =========================
 def get_user_id():
+    # Primeiro tenta session_state (mais confiável no Streamlit)
+    if st.session_state.get("user_id"):
+        return st.session_state["user_id"]
+    # Fallback: tenta via supabase
     try:
         session = supabase.auth.get_session()
         if session and session.session:
+            st.session_state["user_id"] = session.session.user.id
+            st.session_state["user_email"] = session.session.user.email
             return session.session.user.id
     except:
         pass
@@ -55,6 +63,8 @@ def get_user_id():
 
 
 def get_user_email():
+    if st.session_state.get("user_email"):
+        return st.session_state["user_email"]
     try:
         session = supabase.auth.get_session()
         if session and session.session:
@@ -471,8 +481,13 @@ def page_login():
                     st.error("Senha muito curta")
                 else:
                     try:
-                        supabase.auth.sign_in_with_password({"email": email, "password": senha})
-                        st.rerun()
+                        res = supabase.auth.sign_in_with_password({"email": email, "password": senha})
+                        if res and res.user:
+                            st.session_state["user_id"] = res.user.id
+                            st.session_state["user_email"] = res.user.email
+                            st.rerun()
+                        else:
+                            st.error("Credenciais inválidas.")
                     except Exception as e:
                         st.error(f"Erro: {e}")
 
