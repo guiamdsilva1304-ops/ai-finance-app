@@ -16,7 +16,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 client = OpenAI(api_key=OPENAI_KEY)
 
 # =========================
-# SESSION
+# SESSION INIT
 # =========================
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -25,7 +25,33 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # =========================
-# SELIC (ANNUAL FIXED)
+# SESSION RECOVERY
+# =========================
+def get_logged_user():
+    try:
+        session = supabase.auth.get_session()
+        if session and session.user:
+            return session.user
+    except:
+        return None
+    return None
+
+
+if st.session_state.user is None:
+    st.session_state.user = get_logged_user()
+
+# =========================
+# VALIDATION
+# =========================
+def is_valid_email(email):
+    return "@" in email and "." in email
+
+
+def is_valid_password(password):
+    return len(password) >= 6
+
+# =========================
+# SELIC (ANNUAL)
 # =========================
 def get_selic_annual():
     try:
@@ -33,12 +59,9 @@ def get_selic_annual():
         data = requests.get(url).json()
 
         daily_rate = float(data[0]["valor"])
-
-        # Convert daily → annual
         annual_rate = ((1 + daily_rate / 100) ** 252 - 1) * 100
 
         return round(annual_rate, 2)
-
     except:
         return None
 
@@ -116,10 +139,10 @@ def next_best_action(profile, selic):
     if profile == "crescimento":
         return "Diversifique entre renda fixa e variável."
 
-    return "Comece com investimentos seguros e consistentes."
+    return "Comece com investimentos seguros."
 
 # =========================
-# AI DECISION ENGINE
+# AI DECISION
 # =========================
 def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
     sobra = renda - gastos
@@ -127,29 +150,25 @@ def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
     context = f"""
     Você é o iMoney, um sistema avançado de decisão financeira.
 
-    CENÁRIO MACRO:
+    CENÁRIO:
     SELIC anual: {selic}%
 
-    PERFIL DO USUÁRIO:
-    - Perfil: {profile}
-    - Score: {score}/100
-    - Tendência: {trend}
+    USUÁRIO:
+    Perfil: {profile}
+    Score: {score}
+    Tendência: {trend}
 
-    DADOS FINANCEIROS:
-    - Renda: {renda}
-    - Gastos: {gastos}
-    - Sobra: {sobra}
+    DADOS:
+    Renda: {renda}
+    Gastos: {gastos}
+    Sobra: {sobra}
 
-    MELHOR AÇÃO ATUAL:
+    MELHOR AÇÃO:
     {action}
 
-    INSTRUÇÕES:
-    - Seja direto e estratégico
-    - Evite explicações genéricas
-    - Dê decisões claras
-    - Pense como um gestor financeiro
+    Seja direto, prático e estratégico.
 
-    FORMATO:
+    Formato:
     Diagnóstico:
     Decisão:
     Impacto:
@@ -170,6 +189,7 @@ def decision_agent(prompt, renda, gastos, trend, profile, score, action, selic):
 # =========================
 def login():
     st.title("🔐 Login - iMoney")
+    st.caption("Entre ou crie sua conta")
 
     email = st.text_input("Email")
     password = st.text_input("Senha", type="password")
@@ -178,6 +198,14 @@ def login():
 
     with col1:
         if st.button("Login"):
+            if not is_valid_email(email):
+                st.error("Email inválido")
+                return
+
+            if not password:
+                st.error("Digite a senha")
+                return
+
             try:
                 res = supabase.auth.sign_in_with_password({
                     "email": email,
@@ -189,13 +217,21 @@ def login():
                     st.success("Login realizado!")
                     st.rerun()
                 else:
-                    st.error("Credenciais inválidas.")
+                    st.error("Email ou senha incorretos")
 
             except Exception as e:
-                st.error(f"Erro real: {e}")
+                st.error(f"Erro no login: {e}")
 
     with col2:
         if st.button("Criar conta"):
+            if not is_valid_email(email):
+                st.error("Email inválido")
+                return
+
+            if not is_valid_password(password):
+                st.error("Senha deve ter pelo menos 6 caracteres")
+                return
+
             try:
                 res = supabase.auth.sign_up({
                     "email": email,
@@ -207,10 +243,13 @@ def login():
                     st.success("Conta criada e logado!")
                     st.rerun()
                 else:
-                    st.warning("Verifique seu email.")
+                    st.warning("Conta criada. Verifique seu email.")
 
             except Exception as e:
-                st.error(f"Erro real: {e}")
+                if "already registered" in str(e):
+                    st.error("Email já cadastrado")
+                else:
+                    st.error(f"Erro no cadastro: {e}")
 
 # =========================
 # APP
@@ -221,6 +260,11 @@ def app():
     st.sidebar.write(f"👤 {user.email}")
 
     if st.sidebar.button("Logout"):
+        try:
+            supabase.auth.sign_out()
+        except:
+            pass
+
         st.session_state.user = None
         st.session_state.messages = []
         st.rerun()
@@ -236,7 +280,7 @@ def app():
     st.write(f"📊 Renda: R${renda}")
     st.write(f"💸 Gastos: R${gastos}")
     st.write(f"💰 Sobra: R${sobra}")
-    st.write(f"📉 Taxa de gastos: {taxa:.1f}%")
+    st.write(f"📉 Taxa: {taxa:.1f}%")
 
     selic = get_selic_annual()
     if selic:
@@ -252,7 +296,7 @@ def app():
     st.write(f"Score: {score}/100")
     st.write(f"Perfil: {profile}")
     st.write(f"Tendência: {trend}")
-    st.write(f"Melhor ação: {action}")
+    st.write(f"Ação recomendada: {action}")
 
     for msg in st.session_state.messages:
         st.chat_message(msg["role"]).write(msg["content"])
