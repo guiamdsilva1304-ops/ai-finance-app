@@ -1,21 +1,21 @@
 import streamlit as st
-from supabase import create_client, Client
+from supabase import create_client
 from openai import OpenAI
 
 # =========================
-# 🔐 CONFIG
+# CONFIG
 # =========================
-st.set_page_config(page_title="iMoney", layout="wide")
+st.set_page_config(page_title="iMoney", page_icon="💰", layout="wide")
 
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+OPENAI_KEY = st.secrets["OPENAI_API_KEY"]
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-client = OpenAI(api_key=OPENAI_API_KEY)
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+client = OpenAI(api_key=OPENAI_KEY)
 
 # =========================
-# 🧠 SESSION
+# SESSION INIT
 # =========================
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -24,11 +24,104 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # =========================
-# 🔐 LOGIN
+# MEMORY SYSTEM
 # =========================
-def login_screen():
-    st.title("💰 iMoney")
-    st.subheader("Pare de pensar. Comece a decidir.")
+def load_memory(user_id):
+    res = supabase.table("user_memory").select("*").eq("user_id", user_id).execute()
+    return res.data[0] if res.data else None
+
+
+def save_memory(user_id, renda, gastos):
+    sobra = renda - gastos
+    memory = load_memory(user_id)
+
+    if memory:
+        prev = memory.get("avg_savings", 0)
+        avg = (prev + sobra) / 2
+        trend = "melhorando" if sobra > prev else "piorando"
+    else:
+        avg = sobra
+        trend = "inicial"
+
+    supabase.table("user_memory").upsert({
+        "user_id": user_id,
+        "last_renda": renda,
+        "last_gastos": gastos,
+        "avg_savings": avg,
+        "trend": trend
+    }).execute()
+
+    return trend, avg
+
+# =========================
+# AI AGENTS
+# =========================
+def analyst_agent(renda, gastos):
+    sobra = renda - gastos
+    taxa = (gastos / renda) * 100 if renda > 0 else 0
+
+    return f"""
+    Você é um analista financeiro.
+
+    Dados:
+    Renda: {renda}
+    Gastos: {gastos}
+    Sobra: {sobra}
+    Taxa de gastos: {taxa:.1f}%
+
+    Explique a situação financeira do usuário de forma clara.
+    """
+
+
+def strategy_agent():
+    return """
+    Você é um estrategista financeiro.
+
+    Baseado na análise, gere estratégias práticas:
+    - reduzir gastos
+    - aumentar renda
+    - investir melhor
+    """
+
+
+def decision_agent(prompt, renda, gastos, trend):
+    sobra = renda - gastos
+
+    context = f"""
+    Você é o iMoney, um sistema inteligente de decisões financeiras.
+
+    Dados:
+    Renda: {renda}
+    Gastos: {gastos}
+    Sobra: {sobra}
+    Tendência: {trend}
+
+    Regras:
+    - Se piorando → seja firme
+    - Se melhorando → incentive crescimento
+    - Dê resposta prática
+
+    Formato:
+    Diagnóstico:
+    Ação:
+    Próximo passo:
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {"role": "system", "content": context},
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    return response.choices[0].message.content
+
+# =========================
+# AUTH
+# =========================
+def login():
+    st.title("🔐 Login - iMoney")
 
     email = st.text_input("Email")
     password = st.text_input("Senha", type="password")
@@ -43,9 +136,10 @@ def login_screen():
                     "password": password
                 })
                 st.session_state.user = res.user
+                st.success("Logado!")
                 st.rerun()
             except Exception as e:
-                st.error(f"Erro no login: {e}")
+                st.error("Erro no login")
 
     with col2:
         if st.button("Criar conta"):
@@ -54,244 +148,71 @@ def login_screen():
                     "email": email,
                     "password": password
                 })
-
-                res = supabase.auth.sign_in_with_password({
-                    "email": email,
-                    "password": password
-                })
-
-                st.session_state.user = res.user
-                st.rerun()
-
-            except Exception as e:
-                st.error(f"Erro no signup: {e}")
+                st.success("Conta criada! Verifique seu email.")
+            except:
+                st.error("Erro ao criar conta")
 
 # =========================
-# 🧠 AGENT 1 — ANALYST
+# MAIN APP
 # =========================
-def analyst_agent(renda, gastos):
-    if renda == 0:
-        return "sem dados"
-
-    taxa = gastos / renda
-
-    if taxa > 1:
-        return "endividado"
-    elif taxa > 0.8:
-        return "critico"
-    elif taxa > 0.6:
-        return "instavel"
-    else:
-        return "estavel"
-
-# =========================
-# 🧠 AGENT 2 — BEHAVIOR
-# =========================
-def behavior_agent():
-    return """
-    Usuário típico:
-    - Medo de errar
-    - Não sabe onde investir
-    - Pesquisa muito e não age
-    - Quer clareza rápida
-    """
-
-# =========================
-# 🧠 AGENT 3 — STRATEGY
-# =========================
-def strategy_agent(analysis):
-    if analysis == "endividado":
-        return "Cortar gastos imediatamente. Não investir."
-    elif analysis == "critico":
-        return "Organizar finanças antes de investir."
-    elif analysis == "instavel":
-        return "Começar com investimentos seguros."
-    else:
-        return "Focar em crescimento e diversificação."
-
-# =========================
-# 🧠 AGENT 4 — DECISION (AI)
-# =========================
-def decision_agent(prompt, renda, gastos, analysis, strategy, trend):
-    sobra = renda - gastos
-
-    context = f"""
-    Você é o iMoney — sistema de decisão financeira.
-
-    ANÁLISE:
-    {analysis}
-
-    ESTRATÉGIA:
-    {strategy}
-
-    EVOLUÇÃO DO USUÁRIO:
-    {trend}
-
-    REGRAS:
-    - Se estiver piorando → seja mais firme
-    - Se estiver melhorando → incentive crescimento
-    - Sempre dar UMA ação clara
-
-    FORMATO:
-    Diagnóstico:
-    Ação:
-    Próximo passo:
-
-    DADOS:
-    Renda: {renda}
-    Gastos: {gastos}
-    Sobra: {sobra}
-    """
-
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {"role": "system", "content": context},
-            {"role": "user", "content": prompt}
-        ]
-    )
-
-    return response.choices[0].message.content
-    📊 ANALISTA:
-    {analysis}
-
-    🧠 COMPORTAMENTO:
-    Usuário inseguro, indeciso, com medo de errar
-
-    ⚡ ESTRATÉGIA:
-    {strategy}
-
-    SUA FUNÇÃO:
-    - NÃO explicar demais
-    - NÃO dar opções
-    - Dar UMA decisão clara
-
-    FORMATO:
-    Diagnóstico:
-    Ação:
-    Próximo passo:
-
-    DADOS:
-    Renda: {renda}
-    Gastos: {gastos}
-    Sobra: {sobra}
-
-    Seja direto e confiante.
-    """
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {"role": "system", "content": context},
-                {"role": "user", "content": prompt}
-            ]
-        )
-
-        return response.choices[0].message.content
-
-    except Exception as e:
-        return f"Erro IA: {e}"
-
-# =========================
-# 🏠 MAIN APP
-# =========================
-def main_app():
+def app():
     user = st.session_state.user
 
-    with st.sidebar:
-        st.write(f"👤 {user.email}")
+    st.sidebar.write(f"👤 {user.email}")
 
-        if st.button("Logout"):
-            st.session_state.user = None
-            st.session_state.messages = []
-            st.rerun()
+    if st.sidebar.button("Logout"):
+        st.session_state.user = None
+        st.session_state.messages = []
+        st.rerun()
 
-    st.title("💰 iMoney")
-    st.caption("Decisões financeiras claras. Sem overthinking.")
+    st.title("💰 iMoney — Seu Dinheiro Hoje")
 
     renda = st.number_input("Renda mensal (R$)", value=2000)
     gastos = st.number_input("Gastos mensais (R$)", value=1500)
 
     sobra = renda - gastos
-    taxa = (gastos / renda * 100) if renda > 0 else 0
+    taxa = (gastos / renda) * 100 if renda > 0 else 0
 
-    st.write(f"📊 Renda: R${renda}")
+    st.write(f"💵 Renda: R${renda}")
     st.write(f"💸 Gastos: R${gastos}")
-    st.write(f"📈 Sobra: R${sobra}")
+    st.write(f"📊 Sobra: R${sobra}")
     st.write(f"📉 Taxa: {taxa:.1f}%")
-    user_id = user.id
 
-trend, avg_savings = save_memory(user_id, renda, gastos)
+    # MEMORY
+    trend, avg = save_memory(user.id, renda, gastos)
 
-st.subheader("📈 Evolução financeira")
-st.write(f"Tendência: {trend}")
-st.write(f"Média de sobra: R${avg_savings}")
+    st.subheader("📈 Evolução")
+    st.write(f"Tendência: {trend}")
+    st.write(f"Média de sobra: R${avg:.2f}")
 
-    # =========================
-    # 🧠 MULTI-AGENT SYSTEM
-    # =========================
-    analysis = analyst_agent(renda, gastos)
-    behavior = behavior_agent()
-    strategy = strategy_agent(analysis)
-
-    st.subheader("🧠 Diagnóstico do sistema")
-    st.write(f"📊 Financeiro: {analysis}")
-    st.write(f"⚡ Estratégia: {strategy}")
-
-    # =========================
-    # 💬 CHAT
-    # =========================
-    st.subheader("💬 Assistente iMoney")
-
+    # CHAT HISTORY
     for msg in st.session_state.messages:
         st.chat_message(msg["role"]).write(msg["content"])
 
+    # CHAT INPUT (ONLY ONCE!!!)
     prompt = st.chat_input("Pergunte algo...")
 
     if prompt:
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
 
-        answer = decision_agent(prompt, renda, gastos, analysis, strategy)
+        try:
+            answer = decision_agent(prompt, renda, gastos, trend)
 
-        st.session_state.messages.append({"role": "assistant", "content": answer})
-        st.chat_message("assistant").write(answer)
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": answer
+            })
+
+            st.chat_message("assistant").write(answer)
+
+        except Exception as e:
+            st.error("Erro na IA")
 
 # =========================
-# 🚀 ROUTER
+# ROUTER
 # =========================
 if st.session_state.user is None:
-    login_screen()
+    login()
 else:
-    main_app()
-def load_memory(user_id):
-    res = supabase.table("user_memory").select("*").eq("user_id", user_id).execute()
-    if res.data:
-        return res.data[0]
-    return None
-
-
-def save_memory(user_id, renda, gastos):
-    sobra = renda - gastos
-
-    memory = load_memory(user_id)
-
-    if memory:
-        prev_savings = memory["avg_savings"] or 0
-        new_avg = (prev_savings + sobra) / 2
-
-        trend = "melhorando" if sobra > prev_savings else "piorando"
-    else:
-        new_avg = sobra
-        trend = "inicial"
-
-    supabase.table("user_memory").upsert({
-        "user_id": user_id,
-        "last_renda": renda,
-        "last_gastos": gastos,
-        "avg_savings": new_avg,
-        "trend": trend
-    }).execute()
-
-    return trend, new_avg
+    app()
