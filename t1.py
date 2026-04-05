@@ -112,14 +112,46 @@ def strategy_agent(analysis):
 # =========================
 # 🧠 AGENT 4 — DECISION (AI)
 # =========================
-def decision_agent(prompt, renda, gastos, analysis, strategy):
+def decision_agent(prompt, renda, gastos, analysis, strategy, trend):
     sobra = renda - gastos
 
     context = f"""
-    Você é o iMoney — um sistema de decisão financeira.
+    Você é o iMoney — sistema de decisão financeira.
 
-    RESULTADO DOS AGENTES:
+    ANÁLISE:
+    {analysis}
 
+    ESTRATÉGIA:
+    {strategy}
+
+    EVOLUÇÃO DO USUÁRIO:
+    {trend}
+
+    REGRAS:
+    - Se estiver piorando → seja mais firme
+    - Se estiver melhorando → incentive crescimento
+    - Sempre dar UMA ação clara
+
+    FORMATO:
+    Diagnóstico:
+    Ação:
+    Próximo passo:
+
+    DADOS:
+    Renda: {renda}
+    Gastos: {gastos}
+    Sobra: {sobra}
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {"role": "system", "content": context},
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    return response.choices[0].message.content
     📊 ANALISTA:
     {analysis}
 
@@ -188,6 +220,13 @@ def main_app():
     st.write(f"💸 Gastos: R${gastos}")
     st.write(f"📈 Sobra: R${sobra}")
     st.write(f"📉 Taxa: {taxa:.1f}%")
+    user_id = user.id
+
+trend, avg_savings = save_memory(user_id, renda, gastos)
+
+st.subheader("📈 Evolução financeira")
+st.write(f"Tendência: {trend}")
+st.write(f"Média de sobra: R${avg_savings}")
 
     # =========================
     # 🧠 MULTI-AGENT SYSTEM
