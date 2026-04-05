@@ -56,15 +56,33 @@ with st.sidebar:
     st.write(f"👤 {st.session_state.user.user.email}")
 
     if st.button("🚪 Logout"):
-        try:
-            supabase.auth.sign_out()
-        except:
-            pass
+        supabase.auth.sign_out()
         st.session_state.clear()
         st.rerun()
 
 # ========================
-# 💰 DASHBOARD
+# 🚀 FIRST SCREEN (HOOK)
+# ========================
+if "started" not in st.session_state:
+    st.session_state.started = False
+
+if not st.session_state.started:
+
+    st.title("💰 Descubra seu Score Financeiro")
+    st.subheader("Em menos de 10 segundos")
+
+    st.write("👉 Veja como está sua vida financeira")
+    st.write("👉 Receba recomendações inteligentes")
+    st.write("👉 Melhore seu dinheiro com IA")
+
+    if st.button("🚀 Começar agora"):
+        st.session_state.started = True
+        st.rerun()
+
+    st.stop()
+
+# ========================
+# 💰 INPUT SCREEN
 # ========================
 st.title("💰 Seu Dinheiro Hoje")
 
@@ -80,9 +98,11 @@ st.write(f"💸 Gastos: R${gastos}")
 st.write(f"📈 Sobra: R${saldo}")
 st.write(f"📉 Taxa: {taxa:.1f}%")
 
+# ========================
+# 🧠 AI SCORE + EVALUATION
+# ========================
 st.subheader("🧠 Avaliação da IA")
 
-# Score logic
 if taxa >= 100:
     score = 20
     nivel = "Crítico"
@@ -96,11 +116,10 @@ else:
     score = 85
     nivel = "Saudável"
 
-# UI
 st.write(f"📊 Score financeiro: {score}/100")
 st.write(f"🚦 Nível: {nivel}")
 
-# AI explanation
+# AUTO AI ANALYSIS (NO CHAT NEEDED)
 try:
     evaluation = client.chat.completions.create(
         model="gpt-4.1",
@@ -108,55 +127,38 @@ try:
         messages=[
             {
                 "role": "system",
-                "content": "You are a financial analyst. Be direct and practical."
+                "content": "You are a financial analyst. Be direct."
             },
             {
                 "role": "user",
                 "content": f"""
-User financial situation:
-
 Income: {renda}
 Expenses: {gastos}
 Balance: {saldo}
-Spending rate: {taxa}%
+Rate: {taxa}%
 
 Give:
-1. Diagnosis
-2. Main problem
-3. 3 practical actions to improve immediately
-
-Be short and clear.
+- Diagnosis
+- Problem
+- 3 actions
 """
             }
         ]
     )
 
     feedback = evaluation.choices[0].message.content
-
     st.info(feedback)
 
 except Exception as e:
-    st.error(f"Erro avaliação IA: {e}")
-# ========================
-# 🤖 PROACTIVE AI INSIGHTS
-# ========================
-if "insight_shown" not in st.session_state:
-
-    if gastos > renda:
-        st.error("🚨 Você está no prejuízo. Corte gastos imediatamente.")
-    elif taxa > 70:
-        st.warning("⚠️ Você está gastando demais da sua renda.")
-    else:
-        st.success("✅ Você está com bom controle financeiro.")
-
-    st.session_state.insight_shown = True
+    st.error(f"Erro IA: {e}")
 
 # ========================
-# 🤖 PERSISTENT CHAT
+# 🤖 CHAT (PERSISTENT)
 # ========================
+st.subheader("💬 Assistente Financeiro")
+
 user_id = st.session_state.user.user.id
 
-# Load messages once
 if "messages_loaded" not in st.session_state:
 
     try:
@@ -173,74 +175,39 @@ if "messages_loaded" not in st.session_state:
 
         st.session_state.messages_loaded = True
 
-    except Exception as e:
-        st.error(f"Erro ao carregar chat: {e}")
+    except:
         st.session_state.messages = []
 
-# Show messages
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
-# ONLY ONE INPUT
 prompt = st.chat_input("Pergunte algo...")
 
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
 
-    # Save user message
-    try:
-        supabase.table("messages").insert({
-            "user_id": user_id,
-            "role": "user",
-            "content": prompt
-        }).execute()
-    except Exception as e:
-        st.error(f"Erro salvar user: {e}")
+    supabase.table("messages").insert({
+        "user_id": user_id,
+        "role": "user",
+        "content": prompt
+    }).execute()
 
-    # AI RESPONSE
-    try:
-        response = client.chat.completions.create(
-            model="gpt-5",
-            temperature=0.7,
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"""
-You are an elite financial advisor.
+    response = client.chat.completions.create(
+        model="gpt-4.1",
+        messages=[
+            {"role": "system", "content": "You are a financial advisor."},
+            *st.session_state.messages[-10:]
+        ]
+    )
 
-Your mission:
-- Improve the user's financial life
-- Be direct and strategic
-- Give actionable steps
-
-User:
-Income: {renda}
-Expenses: {gastos}
-Goal: {meta}
-
-Be practical, not generic.
-"""
-                },
-                *st.session_state.messages[-10:]
-            ]
-        )
-
-        answer = response.choices[0].message.content
-
-    except Exception as e:
-        st.error(f"Erro IA: {e}")
-        st.stop()
+    answer = response.choices[0].message.content
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
     st.chat_message("assistant").write(answer)
 
-    # Save AI response
-    try:
-        supabase.table("messages").insert({
-            "user_id": user_id,
-            "role": "assistant",
-            "content": answer
-        }).execute()
-    except Exception as e:
-        st.error(f"Erro salvar IA: {e}")
+    supabase.table("messages").insert({
+        "user_id": user_id,
+        "role": "assistant",
+        "content": answer
+    }).execute()
