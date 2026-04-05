@@ -67,74 +67,84 @@ def login_screen():
                 st.error(f"Erro no signup: {e}")
 
 # =========================
-# 🧠 SMART FINANCIAL ENGINE
+# 🧠 AGENT 1 — ANALYST
 # =========================
-def financial_analysis(renda, gastos):
+def analyst_agent(renda, gastos):
     if renda == 0:
-        return 0, "Sem dados", "Defina sua renda primeiro."
+        return "sem dados"
 
-    sobra = renda - gastos
     taxa = gastos / renda
 
     if taxa > 1:
-        return 20, "Crítico", "Você está gastando mais do que ganha. Corte custos imediatamente."
-
+        return "endividado"
     elif taxa > 0.8:
-        return 40, "Alerta", "Você está perto do limite. Não invista ainda — reduza gastos."
-
+        return "critico"
     elif taxa > 0.6:
-        return 60, "Atenção", "Você consegue investir pouco, mas precisa otimizar gastos."
-
+        return "instavel"
     else:
-        return 85, "Controle", "Boa base. Agora foque em investir com consistência."
+        return "estavel"
 
 # =========================
-# 🧠 AI — DECISION ENGINE (BASED ON YOUR DATA)
+# 🧠 AGENT 2 — BEHAVIOR
 # =========================
-def get_ai_response(prompt, renda, gastos):
+def behavior_agent():
+    return """
+    Usuário típico:
+    - Medo de errar
+    - Não sabe onde investir
+    - Pesquisa muito e não age
+    - Quer clareza rápida
+    """
+
+# =========================
+# 🧠 AGENT 3 — STRATEGY
+# =========================
+def strategy_agent(analysis):
+    if analysis == "endividado":
+        return "Cortar gastos imediatamente. Não investir."
+    elif analysis == "critico":
+        return "Organizar finanças antes de investir."
+    elif analysis == "instavel":
+        return "Começar com investimentos seguros."
+    else:
+        return "Focar em crescimento e diversificação."
+
+# =========================
+# 🧠 AGENT 4 — DECISION (AI)
+# =========================
+def decision_agent(prompt, renda, gastos, analysis, strategy):
     sobra = renda - gastos
 
     context = f"""
-    Você é o iMoney — um decisor financeiro.
+    Você é o iMoney — um sistema de decisão financeira.
 
-    VOCÊ NÃO ENSINA.
-    VOCÊ DECIDE.
+    RESULTADO DOS AGENTES:
 
-    PERFIL DO USUÁRIO (dados reais):
-    - Confuso sobre onde investir
-    - Medo de errar
-    - Pesquisa muito e age pouco
-    - Quer melhorar de vida
-    - Fica travado na decisão
+    📊 ANALISTA:
+    {analysis}
 
-    PROBLEMAS COMUNS:
-    - "Onde investir?"
-    - "E se eu estiver errado?"
-    - "Não sobra dinheiro"
-    - "Não entendo investimentos"
+    🧠 COMPORTAMENTO:
+    Usuário inseguro, indeciso, com medo de errar
 
-    SUA MISSÃO:
-    - Eliminar dúvida
-    - Dar uma única direção
-    - Forçar ação simples
+    ⚡ ESTRATÉGIA:
+    {strategy}
 
-    NUNCA:
-    - Dar várias opções
-    - Explicar demais
-    - Usar termos técnicos complexos
+    SUA FUNÇÃO:
+    - NÃO explicar demais
+    - NÃO dar opções
+    - Dar UMA decisão clara
 
     FORMATO:
     Diagnóstico:
     Ação:
     Próximo passo:
 
-    DADOS DO USUÁRIO:
+    DADOS:
     Renda: {renda}
     Gastos: {gastos}
     Sobra: {sobra}
 
-    TOM:
-    Direto. Confiante. Sem enrolação.
+    Seja direto e confiante.
     """
 
     try:
@@ -157,7 +167,6 @@ def get_ai_response(prompt, renda, gastos):
 def main_app():
     user = st.session_state.user
 
-    # SIDEBAR
     with st.sidebar:
         st.write(f"👤 {user.email}")
 
@@ -166,46 +175,30 @@ def main_app():
             st.session_state.messages = []
             st.rerun()
 
-    # HEADER
     st.title("💰 iMoney")
     st.caption("Decisões financeiras claras. Sem overthinking.")
 
-    # INPUTS
     renda = st.number_input("Renda mensal (R$)", value=2000)
     gastos = st.number_input("Gastos mensais (R$)", value=1500)
-    meta = st.text_input("Meta", "Guardar dinheiro")
 
     sobra = renda - gastos
     taxa = (gastos / renda * 100) if renda > 0 else 0
 
-    # SUMMARY
     st.write(f"📊 Renda: R${renda}")
     st.write(f"💸 Gastos: R${gastos}")
     st.write(f"📈 Sobra: R${sobra}")
     st.write(f"📉 Taxa: {taxa:.1f}%")
 
     # =========================
-    # 🧠 AI EVALUATION (SMART)
+    # 🧠 MULTI-AGENT SYSTEM
     # =========================
-    score, nivel, recomendacao = financial_analysis(renda, gastos)
+    analysis = analyst_agent(renda, gastos)
+    behavior = behavior_agent()
+    strategy = strategy_agent(analysis)
 
-    st.subheader("🧠 Avaliação iMoney")
-    st.write(f"Score: {score}/100")
-    st.write(f"Nível: {nivel}")
-
-    st.info(f"👉 {recomendacao}")
-
-    # =========================
-    # ⚡ NEXT ACTION (CORE PRODUCT)
-    # =========================
-    st.subheader("⚡ Próxima decisão")
-
-    if sobra <= 0:
-        st.error("Pare de pensar em investir. Corte gastos hoje.")
-    elif sobra < 500:
-        st.warning("Invista pouco, mas comece agora (Tesouro Selic).")
-    else:
-        st.success("Você já pode investir de forma consistente.")
+    st.subheader("🧠 Diagnóstico do sistema")
+    st.write(f"📊 Financeiro: {analysis}")
+    st.write(f"⚡ Estratégia: {strategy}")
 
     # =========================
     # 💬 CHAT
@@ -221,7 +214,7 @@ def main_app():
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
 
-        answer = get_ai_response(prompt, renda, gastos)
+        answer = decision_agent(prompt, renda, gastos, analysis, strategy)
 
         st.session_state.messages.append({"role": "assistant", "content": answer})
         st.chat_message("assistant").write(answer)
