@@ -253,7 +253,7 @@ Seja direto, prático e use números reais. Português do Brasil."""
 
     response = claude.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1500,
+        max_tokens=4096,
         messages=[{"role": "user", "content": prompt}]
     )
     return response.content[0].text
@@ -290,7 +290,7 @@ Responda sempre em português, seja direto e use dados concretos. Quando relevan
 
     response = claude.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1000,
+        max_tokens=4096,
         system=system,
         messages=msgs
     )
@@ -387,6 +387,27 @@ def inject_css():
     .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(29,78,216,0.4); }
 
     div[data-testid="stSidebar"] { background: #111827; border-right: 1px solid #374151; }
+    /* Fix chat overflow */
+    div[data-testid="stChatMessage"] {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    div[data-testid="stChatMessage"] p,
+    div[data-testid="stChatMessage"] li,
+    div[data-testid="stChatMessage"] td {
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
+        white-space: normal !important;
+    }
+    div[data-testid="stChatMessage"] table {
+        width: 100% !important;
+        table-layout: auto !important;
+        display: block !important;
+        overflow-x: auto !important;
+    }
+    div[data-testid="stVerticalBlock"] {
+        max-width: 100% !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
