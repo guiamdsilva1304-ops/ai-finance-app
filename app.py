@@ -756,7 +756,273 @@ def page_app():
 # =========================
 # ROUTER
 # =========================
-if get_user_id() is None:
+query_params = st.query_params
+is_admin_route = query_params.get("page") == "admin"
+
+if is_admin_route:
+    if "admin_auth" not in st.session_state:
+        st.session_state["admin_auth"] = False
+    if st.session_state["admin_auth"]:
+        page_admin()
+    else:
+        page_admin_login()
+elif get_user_id() is None:
     page_login()
 else:
     page_app()
+
+
+# =========================
+# ADMIN DASHBOARD
+# =========================
+def load_admin_stats():
+    """Carrega todas as estatísticas do banco para o admin."""
+    stats = {}
+    try:
+        # Total de usuários (via user_memory)
+        res = supabase.table("user_memory").select("*").execute()
+        users = res.data or []
+        stats["total_users"] = len(users)
+
+        # Usuários ativos (atualizados nos últimos 7 dias)
+        from datetime import timedelta
+        cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
+        ativos = [u for u in users if u.get("updated_at", "") >= cutoff]
+        stats["active_users_7d"] = len(ativos)
+
+        # Médias financeiras
+        rendas = [u["last_renda"] for u in users if u.get("last_renda")]
+        gastos = [u["last_gastos"] for u in users if u.get("last_gastos")]
+        poupancas = [u["avg_savings"] for u in users if u.get("avg_savings")]
+        stats["avg_renda"] = round(sum(rendas) / len(rendas), 2) if rendas else 0
+        stats["avg_gastos"] = round(sum(gastos) / len(gastos), 2) if gastos else 0
+        stats["avg_savings"] = round(sum(poupancas) / len(poupancas), 2) if poupancas else 0
+
+        # Distribuição de tendências
+        trends = [u.get("trend", "inicial") for u in users]
+        stats["trend_dist"] = {t: trends.count(t) for t in set(trends)}
+
+        # Scores financeiros
+        scores = []
+        for u in users:
+            r = u.get("last_renda", 0) or 0
+            g = u.get("last_gastos", 0) or 0
+            t = u.get("trend", "inicial")
+            if r > 0:
+                scores.append(financial_score(r, g, t))
+        stats["avg_score"] = round(sum(scores) / len(scores), 1) if scores else 0
+        stats["scores"] = scores
+
+        # Perfis de usuário
+        perfis = []
+        for u in users:
+            r = u.get("last_renda", 0) or 0
+            g = u.get("last_gastos", 0) or 0
+            if r > 0:
+                perfis.append(classify_user(r, g))
+        stats["perfil_dist"] = {p: perfis.count(p) for p in set(perfis)}
+
+        # Transações
+        res_t = supabase.table("transactions").select("*").execute()
+        transacoes = res_t.data or []
+        stats["total_transactions"] = len(transacoes)
+        stats["total_volume"] = sum(t["valor"] for t in transacoes if t.get("valor"))
+
+        # Categorias mais usadas
+        cats = [t["categoria"] for t in transacoes if t.get("categoria")]
+        stats["cat_dist"] = {c: cats.count(c) for c in set(cats)}
+
+        # Metas
+        res_m = supabase.table("metas").select("*").execute()
+        metas_all = res_m.data or []
+        stats["total_metas"] = len(metas_all)
+        stats["metas_concluidas"] = len([m for m in metas_all if m.get("concluida")])
+
+        # Lista de usuários com dados
+        stats["users_data"] = users
+
+    except Exception as e:
+        st.error(f"Erro ao carregar stats: {e}")
+
+    return stats
+
+
+def page_admin():
+    inject_css()
+
+    st.markdown("""
+    <div style='font-family:Syne,sans-serif;font-size:2rem;font-weight:800;
+    background:linear-gradient(135deg,#f59e0b,#ef4444);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    margin-bottom:0.5rem'>
+    ⚙️ iMoney Admin
+    </div>
+    <p style='color:#6b7280;margin-bottom:2rem'>Dashboard de administração — visão consolidada</p>
+    """, unsafe_allow_html=True)
+
+    if st.button("🔄 Atualizar dados"):
+        st.rerun()
+
+    with st.spinner("Carregando dados..."):
+        s = load_admin_stats()
+
+    if not s:
+        st.error("Não foi possível carregar os dados.")
+        return
+
+    # ── LINHA 1: KPIs principais ──
+    st.markdown("### 👥 Usuários")
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1: metric_card("Total Usuários", str(s.get("total_users", 0)))
+    with c2: metric_card("Ativos (7d)", str(s.get("active_users_7d", 0)))
+    with c3: metric_card("Score Médio", f"{s.get('avg_score', 0)}/100")
+    with c4: metric_card("Renda Média", f"R$ {s.get('avg_renda', 0):,.0f}")
+    with c5: metric_card("Sobra Média", f"R$ {s.get('avg_savings', 0):,.0f}")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── LINHA 2: Transações e Metas ──
+    st.markdown("### 💳 Transações & Metas")
+    c1, c2, c3 = st.columns(3)
+    with c1: metric_card("Total Transações", str(s.get("total_transactions", 0)))
+    with c2: metric_card("Volume Total", f"R$ {s.get('total_volume', 0):,.0f}")
+    with c3: metric_card("Metas Criadas", str(s.get("total_metas", 0)), f"{s.get('metas_concluidas', 0)} concluídas")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── LINHA 3: Gráficos ──
+    col_a, col_b = st.columns(2)
+
+    with col_a:
+        st.markdown("**Distribuição de Perfis**")
+        perfil_dist = s.get("perfil_dist", {})
+        if perfil_dist:
+            fig = go.Figure(go.Pie(
+                labels=list(perfil_dist.keys()),
+                values=list(perfil_dist.values()),
+                hole=0.5,
+                marker=dict(colors=["#ef4444", "#f59e0b", "#3b82f6", "#10b981"]),
+                textinfo="label+percent",
+                textfont=dict(color="white"),
+            ))
+            fig.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                showlegend=False, height=260, margin=dict(t=10,b=10,l=10,r=10)
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Sem dados de perfil ainda.")
+
+    with col_b:
+        st.markdown("**Distribuição de Tendências**")
+        trend_dist = s.get("trend_dist", {})
+        if trend_dist:
+            cores_trend = {"melhorando": "#10b981", "piorando": "#ef4444", "estável": "#f59e0b", "inicial": "#6b7280", "erro": "#374151"}
+            fig2 = go.Figure(go.Bar(
+                x=list(trend_dist.keys()),
+                y=list(trend_dist.values()),
+                marker_color=[cores_trend.get(k, "#6b7280") for k in trend_dist.keys()],
+                text=list(trend_dist.values()),
+                textposition="outside",
+            ))
+            fig2.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#9ca3af"), height=260,
+                margin=dict(t=10,b=30,l=10,r=10),
+                xaxis=dict(gridcolor="#1f2937"),
+                yaxis=dict(gridcolor="#1f2937"),
+            )
+            st.plotly_chart(fig2, use_container_width=True)
+        else:
+            st.info("Sem dados de tendência ainda.")
+
+    # ── Scores histogram ──
+    scores = s.get("scores", [])
+    if scores:
+        st.markdown("**Distribuição de Scores Financeiros**")
+        fig3 = go.Figure(go.Histogram(
+            x=scores, nbinsx=10,
+            marker_color="#1d4ed8",
+            opacity=0.85,
+        ))
+        fig3.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#9ca3af"), height=220,
+            margin=dict(t=10,b=30,l=10,r=10),
+            xaxis=dict(title="Score", gridcolor="#1f2937"),
+            yaxis=dict(title="Usuários", gridcolor="#1f2937"),
+        )
+        st.plotly_chart(fig3, use_container_width=True)
+
+    # ── Categorias de gastos ──
+    cat_dist = s.get("cat_dist", {})
+    if cat_dist:
+        st.markdown("**Categorias de Gastos Mais Registradas**")
+        df_cat = pd.DataFrame(list(cat_dist.items()), columns=["Categoria", "Transações"]).sort_values("Transações", ascending=True)
+        fig4 = go.Figure(go.Bar(
+            x=df_cat["Transações"], y=df_cat["Categoria"],
+            orientation="h",
+            marker_color="#7c3aed",
+            text=df_cat["Transações"], textposition="outside",
+        ))
+        fig4.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#9ca3af"), height=300,
+            margin=dict(t=10,b=10,l=10,r=40),
+            xaxis=dict(gridcolor="#1f2937"),
+            yaxis=dict(gridcolor="#1f2937"),
+        )
+        st.plotly_chart(fig4, use_container_width=True)
+
+    # ── Tabela de usuários ──
+    st.markdown("### 📋 Lista de Usuários")
+    users_data = s.get("users_data", [])
+    if users_data:
+        rows = []
+        for u in users_data:
+            r = u.get("last_renda", 0) or 0
+            g = u.get("last_gastos", 0) or 0
+            t = u.get("trend", "inicial")
+            rows.append({
+                "user_id": str(u.get("user_id", ""))[:8] + "...",
+                "Renda": f"R$ {r:,.0f}",
+                "Gastos": f"R$ {g:,.0f}",
+                "Sobra": f"R$ {r-g:,.0f}",
+                "Score": financial_score(r, g, t) if r > 0 else 0,
+                "Perfil": classify_user(r, g) if r > 0 else "-",
+                "Tendência": t,
+                "Atualizado": u.get("updated_at", "")[:10],
+            })
+        df_users = pd.DataFrame(rows)
+        st.dataframe(df_users, use_container_width=True, hide_index=True)
+    else:
+        st.info("Nenhum usuário com dados ainda.")
+
+    st.markdown("---")
+    if st.button("🚪 Sair do Admin"):
+        st.session_state["admin_auth"] = False
+        st.rerun()
+
+
+def page_admin_login():
+    st.markdown("""
+    <div style='text-align:center;padding:3rem 0 1rem'>
+        <div style='font-family:Syne,sans-serif;font-size:2.5rem;font-weight:800;
+        background:linear-gradient(135deg,#f59e0b,#ef4444);
+        -webkit-background-clip:text;-webkit-text-fill-color:transparent;'>
+        ⚙️ Admin iMoney
+        </div>
+        <p style='color:#6b7280'>Acesso restrito</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col = st.columns([1, 1, 1])[1]
+    with col:
+        senha = st.text_input("Senha de administrador", type="password")
+        if st.button("Entrar", use_container_width=True):
+            admin_pass = st.secrets.get("ADMIN_PASSWORD", "imoney@admin2024")
+            if senha == admin_pass:
+                st.session_state["admin_auth"] = True
+                st.rerun()
+            else:
+                st.error("Senha incorreta.")
