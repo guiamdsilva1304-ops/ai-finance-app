@@ -366,12 +366,16 @@ def inject_css():
         border-radius: 18px 18px 4px 18px;
         padding: 0.8rem 1.2rem; margin: 0.5rem 0;
         max-width: 80%; margin-left: auto;
+        overflow: visible; white-space: pre-wrap;
+        word-wrap: break-word;
     }
     .chat-msg-ai {
         background: #1f2937; color: #f3f4f6;
         border-radius: 18px 18px 18px 4px;
         padding: 0.8rem 1.2rem; margin: 0.5rem 0;
-        max-width: 85%; border: 1px solid #374151;
+        max-width: 100%; border: 1px solid #374151;
+        overflow: visible; white-space: pre-wrap;
+        word-wrap: break-word;
     }
 
     .stButton > button {
@@ -642,9 +646,11 @@ def page_app():
         # Histórico
         for msg in st.session_state.messages:
             if msg["role"] == "user":
-                st.markdown(f'<div class="chat-msg-user">👤 {msg["content"]}</div>', unsafe_allow_html=True)
+                with st.chat_message("user"):
+                    st.markdown(msg["content"])
             else:
-                st.markdown(f'<div class="chat-msg-ai">🤖 {msg["content"]}</div>', unsafe_allow_html=True)
+                with st.chat_message("assistant"):
+                    st.markdown(msg["content"])
 
         if st.session_state.messages and st.button("🗑️ Limpar conversa"):
             st.session_state.messages = []
