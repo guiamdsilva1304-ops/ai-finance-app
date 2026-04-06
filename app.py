@@ -753,23 +753,7 @@ def page_app():
         if not metas:
             st.info("Nenhuma meta cadastrada. Crie sua primeira meta acima!")
 
-# =========================
-# ROUTER
-# =========================
-query_params = st.query_params
-is_admin_route = query_params.get("page") == "admin"
 
-if is_admin_route:
-    if "admin_auth" not in st.session_state:
-        st.session_state["admin_auth"] = False
-    if st.session_state["admin_auth"]:
-        page_admin()
-    else:
-        page_admin_login()
-elif get_user_id() is None:
-    page_login()
-else:
-    page_app()
 
 
 # =========================
@@ -1026,3 +1010,21 @@ def page_admin_login():
                 st.rerun()
             else:
                 st.error("Senha incorreta.")
+
+# =========================
+# ROUTER
+# =========================
+query_params = st.query_params
+is_admin_route = query_params.get("page") == "admin"
+
+if is_admin_route:
+    if "admin_auth" not in st.session_state:
+        st.session_state["admin_auth"] = False
+    if st.session_state["admin_auth"]:
+        page_admin()
+    else:
+        page_admin_login()
+elif get_user_id() is None:
+    page_login()
+else:
+    page_app()
