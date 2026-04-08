@@ -198,28 +198,87 @@ def verify_admin_session() -> bool:
     return True
 
 # =========================
-# DADOS ECONÔMICOS
+# DADOS ECONÔMICOS (AUTO-ATUALIZAÇÃO)
 # =========================
-@st.cache_data(ttl=3600)
-def get_selic_annual():
+
+# Cache com TTL de 4 horas — atualiza automaticamente
+@st.cache_data(ttl=14400, show_spinner=False)
+def get_dados_economicos():
+    """
+    Busca SELIC, IPCA e CDI do Banco Central do Brasil.
+    Atualiza automaticamente a cada 4 horas.
+    Retorna dict com todos os indicadores.
+    """
+    dados = {
+        "selic_anual": 14.65,       # fallback atualizado (abril 2025)
+        "selic_meta": 14.75,        # meta SELIC Copom
+        "ipca_mensal": 0.56,        # fallback
+        "ipca_anual": 4.83,         # fallback
+        "cdi_anual": 14.65,         # fallback
+        "ultima_atualizacao": "fallback",
+        "fonte": "Banco Central do Brasil",
+    }
+
+    # 1. SELIC diária → anual
     try:
         url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json"
-        data = requests.get(url, timeout=5).json()
-        daily_rate = float(data[0]["valor"])
-        annual_rate = ((1 + daily_rate / 100) ** 252 - 1) * 100
-        return round(annual_rate, 2)
+        resp = requests.get(url, timeout=8)
+        resp.raise_for_status()
+        d = resp.json()
+        daily = float(d[0]["valor"])
+        dados["selic_anual"] = round(((1 + daily / 100) ** 252 - 1) * 100, 2)
+        dados["cdi_anual"] = dados["selic_anual"]
+        dados["ultima_atualizacao"] = d[0].get("data", "")
     except:
-        return 10.5  # fallback
+        pass
 
+    # 2. Meta SELIC (série 432)
+    try:
+        url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json"
+        resp = requests.get(url, timeout=8)
+        resp.raise_for_status()
+        d = resp.json()
+        dados["selic_meta"] = round(float(d[0]["valor"]), 2)
+    except:
+        pass
 
-@st.cache_data(ttl=3600)
-def get_ipca():
+    # 3. IPCA mensal (série 433)
     try:
         url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json"
-        data = requests.get(url, timeout=5).json()
-        return float(data[0]["valor"])
+        resp = requests.get(url, timeout=8)
+        resp.raise_for_status()
+        d = resp.json()
+        dados["ipca_mensal"] = round(float(d[0]["valor"]), 2)
     except:
-        return 4.5  # fallback
+        pass
+
+    # 4. IPCA acumulado 12 meses (série 13522)
+    try:
+        url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/1?formato=json"
+        resp = requests.get(url, timeout=8)
+        resp.raise_for_status()
+        d = resp.json()
+        dados["ipca_anual"] = round(float(d[0]["valor"]), 2)
+    except:
+        pass
+
+    return dados
+
+
+def get_selic_annual():
+    """Atalho para compatibilidade — retorna SELIC anual."""
+    return get_dados_economicos()["selic_anual"]
+
+
+def get_ipca():
+    """Atalho para compatibilidade — retorna IPCA mensal."""
+    return get_dados_economicos()["ipca_mensal"]
+
+
+def get_juros_reais():
+    """Calcula juro real: SELIC - IPCA anualizado."""
+    d = get_dados_economicos()
+    return round(d["selic_anual"] - d["ipca_anual"], 2)
 
 # =========================
 # MEMÓRIA / BANCO
@@ -810,9 +869,14 @@ def page_app():
             st.session_state.messages = []
             st.rerun()
 
-    # --- DADOS MACRO ---
-    selic = get_selic_annual()
-    ipca = get_ipca()
+    # --- DADOS MACRO (auto-atualizados) ---
+    eco = get_dados_economicos()
+    selic = eco["selic_anual"]
+    ipca = eco["ipca_mensal"]
+    ipca_anual = eco["ipca_anual"]
+    selic_meta = eco["selic_meta"]
+    juros_reais = get_juros_reais()
+    ultima_atualizacao = eco["ultima_atualizacao"]
 
     # --- MEMÓRIA ---
     trend, avg_savings = save_memory(user_id, renda, gastos_total, gastos_cat)
@@ -837,7 +901,25 @@ def page_app():
         with c3:
             cor_sobra = "🟢" if sobra > 0 else "🔴"
             metric_card("Sobra Mensal", f"{cor_sobra} R$ {abs(sobra):,.0f}", "disponível para investir" if sobra > 0 else "DÉFICIT")
-        with c4: metric_card("SELIC", f"{selic}% a.a.", f"IPCA: {ipca}% a.m.")
+        with c4:
+            metric_card("SELIC", f"{selic}% a.a.", f"Meta: {selic_meta}% | IPCA 12m: {ipca_anual}%")
+
+        # Banner de indicadores econômicos
+        ref_str = f"<span style='color:#6b9e80'>📅 Ref: {ultima_atualizacao}</span>" if ultima_atualizacao != "fallback" else ""
+        cor_jr = "10b981" if juros_reais > 6 else ("f59e0b" if juros_reais > 3 else "ef4444")
+        st.markdown(f"""
+        <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.2);
+        border-radius:12px;padding:10px 20px;display:flex;gap:24px;flex-wrap:wrap;
+        align-items:center;margin-bottom:8px;font-size:0.82rem;'>
+            <span style='color:#6b9e80'>📡 BCB — atualiza a cada 4h</span>
+            <span style='color:#34c17a'>SELIC: <strong>{selic}% a.a.</strong></span>
+            <span style='color:#f0b429'>Meta: <strong>{selic_meta}%</strong></span>
+            <span style='color:#e8f5ee'>IPCA mensal: <strong>{ipca}%</strong></span>
+            <span style='color:#e8f5ee'>IPCA 12m: <strong>{ipca_anual}%</strong></span>
+            <span style='color:#{cor_jr}'>Juro real: <strong>{juros_reais}% a.a.</strong></span>
+            {ref_str}
+        </div>
+        """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
         col_score, col_pie = st.columns([1, 1.5])
