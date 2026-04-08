@@ -489,12 +489,13 @@ Seja direto, prático e use números reais. Português do Brasil."""
     return response.content[0].text
 
 
-def agente_chat(historico, renda, gastos_total, sobra, selic, ipca, score, trend, perfil, gastos_cat, metas):
+def agente_chat(historico, renda, gastos_total, sobra, selic, ipca, score, trend, perfil, gastos_cat, metas, tipo_renda='Salário fixo'):
     system = f"""Você é o iMoney, o assessor financeiro pessoal mais avançado do Brasil. 
 Você combina análise quantitativa rigorosa com linguagem humana e empática.
 
 CONTEXTO DO USUÁRIO (ATUALIZADO):
-- Renda mensal: R$ {renda:,.2f}
+- Tipo de renda: {tipo_renda}
+- Renda mensal (média): R$ {renda:,.2f}
 - Gastos totais: R$ {gastos_total:,.2f}  
 - Sobra mensal: R$ {sobra:,.2f}
 - Score financeiro: {score}/100
@@ -514,7 +515,12 @@ CAPACIDADES:
 - Você entende tributação (IR, IOF), PGBL/VGBL, previdência privada
 - Você pode sugerir estratégias de corte de gastos por categoria
 
-Responda sempre em português, seja direto e use dados concretos. Quando relevante, use emojis para facilitar a leitura."""
+Responda sempre em português, seja direto e use dados concretos. Quando relevante, use emojis para facilitar a leitura.
+Se o usuário tem renda variável ou mista, adapte seus conselhos:
+- Priorize a construção de reserva de emergência (6 meses de gastos)
+- Sugira o método do "cofre mensal": guardar % fixa de cada recebimento
+- Evite sugerir investimentos de longo prazo sem reserva estabelecida
+- Considere sazonalidade e meses fracos no planejamento"""
 
     msgs = [{"role": m["role"], "content": m["content"]} for m in historico]
 
@@ -850,17 +856,75 @@ def page_app():
         """, unsafe_allow_html=True)
 
         st.markdown("### 💼 Dados Financeiros")
-        renda = st.number_input("Renda mensal (R$)", min_value=0.0, max_value=float(MAX_RENDA), value=5000.0, step=100.0, format="%.2f")
+
+        tipo_renda = st.selectbox(
+            "Tipo de renda",
+            ["💼 Salário fixo", "🔀 Freelancer / Autônomo", "🔄 Misto (fixo + variável)"],
+            key="tipo_renda"
+        )
+
+        renda_variavel = 0.0
+        renda_extra = 0.0
+
+        if tipo_renda == "💼 Salário fixo":
+            renda = st.number_input("Salário mensal líquido (R$)", min_value=0.0,
+                max_value=float(MAX_RENDA), value=5000.0, step=100.0, format="%.2f")
+
+        elif tipo_renda == "🔀 Freelancer / Autônomo":
+            st.caption("💡 Use a média dos últimos 3 meses.")
+            col_r1, col_r2 = st.columns(2)
+            with col_r1:
+                renda_min = st.number_input("Renda mínima (R$)", min_value=0.0,
+                    max_value=float(MAX_RENDA), value=2000.0, step=100.0, format="%.2f")
+            with col_r2:
+                renda_max = st.number_input("Renda máxima (R$)", min_value=0.0,
+                    max_value=float(MAX_RENDA), value=8000.0, step=100.0, format="%.2f")
+            renda = st.number_input("Renda média mensal (R$)", min_value=0.0,
+                max_value=float(MAX_RENDA),
+                value=round((renda_min + renda_max) / 2, 2),
+                step=100.0, format="%.2f")
+            renda_variavel = renda_max - renda_min
+            volatilidade = round((renda_variavel / max(renda, 1)) * 100, 0)
+            cor_vol = "#10b981" if volatilidade < 30 else ("#f59e0b" if volatilidade < 70 else "#ef4444")
+            label_vol = "baixa ✅" if volatilidade < 30 else ("média ⚠️" if volatilidade < 70 else "alta 🔴")
+            st.markdown(f"<div style='background:rgba(15,45,26,0.4);border-radius:8px;padding:8px 12px;"
+                f"font-size:0.78rem;margin-top:4px;border-left:3px solid {cor_vol};'>"
+                f"📊 Volatilidade: <strong style='color:{cor_vol}'>{volatilidade:.0f}%</strong> — {label_vol}</div>",
+                unsafe_allow_html=True)
+
+        else:
+            renda_fixa = st.number_input("Renda fixa mensal (R$)", min_value=0.0,
+                max_value=float(MAX_RENDA), value=3000.0, step=100.0, format="%.2f")
+            renda_extra = st.number_input("Renda variável média (R$)", min_value=0.0,
+                max_value=float(MAX_RENDA), value=2000.0, step=100.0, format="%.2f",
+                help="Freelances, bicos, comissões — média mensal")
+            renda = renda_fixa + renda_extra
+            renda_variavel = renda_extra
+            st.markdown(f"<div style='background:rgba(15,45,26,0.4);border-radius:8px;padding:8px 12px;"
+                f"font-size:0.78rem;margin-top:4px;'>💰 Total estimado: "
+                f"<strong style='color:#34c17a'>R$ {renda:,.2f}</strong></div>",
+                unsafe_allow_html=True)
 
         st.markdown("**Gastos por categoria:**")
         gastos_cat = {}
         for cat in CATEGORIAS:
-            val = st.number_input(cat, min_value=0.0, value=0.0, step=50.0, format="%.2f", key=f"gasto_{cat}", label_visibility="visible")
+            val = st.number_input(cat, min_value=0.0, value=0.0, step=50.0,
+                format="%.2f", key=f"gasto_{cat}", label_visibility="visible")
             if val > 0:
                 gastos_cat[cat] = val
 
         gastos_total = sum(gastos_cat.values())
         sobra = renda - gastos_total
+
+        if tipo_renda != "💼 Salário fixo" and gastos_total > 0:
+            meses_reserva = 6 if "Freelancer" in tipo_renda else 3
+            reserva_ideal = gastos_total * meses_reserva
+            st.markdown(f"<div style='background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.25);"
+                f"border-radius:8px;padding:8px 12px;font-size:0.78rem;margin-top:8px;'>"
+                f"🛡️ Reserva de emergência ideal: <strong style='color:#f0b429'>"
+                f"R$ {reserva_ideal:,.0f}</strong> ({meses_reserva} meses)</div>",
+                unsafe_allow_html=True)
+
 
         st.divider()
         if st.button("🚪 Sair", use_container_width=True):
@@ -879,6 +943,7 @@ def page_app():
     ultima_atualizacao = eco["ultima_atualizacao"]
 
     # --- MEMÓRIA ---
+    tipo_renda_str = st.session_state.get("tipo_renda", "💼 Salário fixo")
     trend, avg_savings = save_memory(user_id, renda, gastos_total, gastos_cat)
 
     # --- ENGINE ---
@@ -887,7 +952,7 @@ def page_app():
     metas = load_metas(user_id)
 
     # --- ABAS ---
-    tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "💬 Assessor IA", "📝 Transações", "🎯 Metas"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Dashboard", "💬 Assessor IA", "📝 Transações", "🎯 Metas", "🔀 Renda Variável"])
 
     # ========================
     # TAB 1: DASHBOARD
@@ -996,7 +1061,8 @@ def page_app():
                     try:
                         resposta = agente_chat(
                             st.session_state.messages, renda, gastos_total,
-                            sobra, selic, ipca, score, trend, perfil, gastos_cat, metas
+                            sobra, selic, ipca, score, trend, perfil, gastos_cat, metas,
+                            tipo_renda=tipo_renda_str
                         )
                         st.session_state.messages.append({"role": "assistant", "content": resposta})
                     except Exception as e:
@@ -1091,6 +1157,82 @@ def page_app():
 
         if not metas:
             st.info("Nenhuma meta cadastrada. Crie sua primeira meta acima!")
+
+    # ========================
+    # TAB 5: RENDA VARIÁVEL
+    # ========================
+    with tab5:
+        tipo_atual = st.session_state.get("tipo_renda", "💼 Salário fixo")
+        if tipo_atual == "💼 Salário fixo":
+            st.info("💡 Esta aba é para freelancers e autônomos. Mude seu tipo de renda na barra lateral.")
+        else:
+            st.markdown("## 🔀 Painel do Freelancer / Autônomo")
+            st.caption("Ferramentas pensadas para quem tem renda que varia todo mês.")
+
+            st.markdown("### 🧮 Simulador de Mês Fraco")
+            col1, col2 = st.columns(2)
+            with col1:
+                pct_reducao = st.slider("Redução da renda (%)", 10, 80, 30)
+            with col2:
+                renda_fraca = renda * (1 - pct_reducao / 100)
+                sobra_fraca = renda_fraca - gastos_total
+                cor_sf = "#10b981" if sobra_fraca > 0 else "#ef4444"
+                resultado_sf = ("✅ Sobra R$ " + f"{sobra_fraca:,.0f}") if sobra_fraca > 0 else ("⚠️ Déficit R$ " + f"{abs(sobra_fraca):,.0f}")
+                st.markdown(f"<div style='background:rgba(15,45,26,0.5);border-radius:12px;padding:16px;text-align:center;'>"
+                    f"<div style='color:#6b9e80;font-size:0.75rem;'>Renda no mês fraco</div>"
+                    f"<div style='color:#f0b429;font-size:1.5rem;font-weight:700;'>R$ {renda_fraca:,.0f}</div>"
+                    f"<div style='color:{cor_sf};'>{resultado_sf}</div></div>", unsafe_allow_html=True)
+
+            st.markdown("### 🛡️ Reserva de Emergência")
+            meses_meta = st.radio("Quantos meses de reserva?", [3, 6, 12], index=1, horizontal=True)
+            reserva_necessaria = gastos_total * meses_meta
+            reserva_atual = st.number_input("Quanto já tem guardado? (R$)", min_value=0.0, value=0.0, step=500.0, format="%.2f", key="reserva_input")
+            progresso_res = min(reserva_atual / max(reserva_necessaria, 1), 1.0)
+            falta_res = max(reserva_necessaria - reserva_atual, 0)
+            meses_completar = round(falta_res / max(sobra, 1)) if sobra > 0 else 0
+            st.progress(progresso_res)
+            c1, c2, c3 = st.columns(3)
+            with c1: st.metric("Meta", f"R$ {reserva_necessaria:,.0f}")
+            with c2: st.metric("Atual", f"R$ {reserva_atual:,.0f}")
+            with c3: st.metric("Falta", f"R$ {falta_res:,.0f}", delta=f"{meses_completar} meses" if meses_completar > 0 else "✅ Completa!")
+
+            st.markdown("### 💰 Método Cofre Mensal")
+            st.caption("Defina uma % para guardar de cada recebimento, independente do valor.")
+            pct_cofre = st.slider("% de cada recebimento para guardar", 5, 50, 20)
+            sim_receb = st.number_input("Simule um recebimento (R$)", min_value=0.0, value=3000.0, step=100.0, format="%.2f", key="sim_receb")
+            guardar_val = sim_receb * (pct_cofre / 100)
+            usar_val = sim_receb - guardar_val
+            c1, c2 = st.columns(2)
+            with c1: st.markdown(f"<div style='background:rgba(26,158,92,0.1);border:1px solid #1a9e5c;border-radius:12px;padding:16px;text-align:center;'>"
+                f"<div style='color:#6b9e80;font-size:0.75rem;'>Guardar ({pct_cofre}%)</div>"
+                f"<div style='color:#34c17a;font-size:1.6rem;font-weight:700;'>R$ {guardar_val:,.0f}</div>"
+                f"<div style='color:#6b9e80;font-size:0.75rem;'>→ reserva/investimento</div></div>", unsafe_allow_html=True)
+            with c2: st.markdown(f"<div style='background:rgba(240,180,41,0.08);border:1px solid #f0b429;border-radius:12px;padding:16px;text-align:center;'>"
+                f"<div style='color:#6b9e80;font-size:0.75rem;'>Usar ({100-pct_cofre}%)</div>"
+                f"<div style='color:#f0b429;font-size:1.6rem;font-weight:700;'>R$ {usar_val:,.0f}</div>"
+                f"<div style='color:#6b9e80;font-size:0.75rem;'>→ gastos e vida</div></div>", unsafe_allow_html=True)
+
+            st.markdown("### 📋 Estimativa de Impostos")
+            regime = st.selectbox("Regime tributário", ["MEI", "Autônomo (carnê-leão)", "Simples Nacional", "Não sei"])
+            if regime == "MEI":
+                st.info("📄 Como MEI você paga o DAS fixo de R$ 75,90/mês (2025). Limite anual: R$ 81.000.")
+            elif regime == "Autônomo (carnê-leão)":
+                base_anual = renda * 12
+                if base_anual <= 24511.92: ir_anual = 0
+                elif base_anual <= 33919.80: ir_anual = base_anual * 0.075 - 1838.39
+                elif base_anual <= 45012.60: ir_anual = base_anual * 0.15 - 4382.38
+                elif base_anual <= 55976.16: ir_anual = base_anual * 0.225 - 7786.02
+                else: ir_anual = base_anual * 0.275 - 10557.13
+                ir_mensal = round(max(ir_anual, 0) / 12, 2)
+                inss_mensal = round(min(renda * 0.11, 908.86), 2)
+                total_imp = ir_mensal + inss_mensal
+                st.markdown(f"💸 IR estimado: **R$ {ir_mensal:,.2f}/mês** | INSS: **R$ {inss_mensal:,.2f}/mês** | Total: **R$ {total_imp:,.2f}/mês**")
+                st.markdown(f"✅ Renda líquida estimada: **R$ {renda - total_imp:,.2f}/mês**")
+            elif regime == "Simples Nacional":
+                st.info("📄 A alíquota depende do seu anexo e faturamento. Consulte seu contador.")
+            else:
+                st.warning("💡 Como autônomo você pode pagar carnê-leão e INSS. Consulte um contador.")
+
 
 
 
