@@ -1099,44 +1099,95 @@ def page_app():
 # ADMIN DASHBOARD
 # =========================
 def load_admin_stats():
-    """Carrega todas as estatísticas do banco para o admin."""
+    """Carrega todas as estatísticas do banco para o admin, incluindo retenção."""
+    from datetime import timedelta
     stats = {}
     try:
-        # Total de usuários (via user_memory)
+        now = datetime.utcnow()
+
+        # ── Usuários ──
         res = supabase.table("user_memory").select("*").execute()
         users = res.data or []
         stats["total_users"] = len(users)
+        stats["users_data"] = users
 
-        # Usuários ativos (atualizados nos últimos 7 dias)
-        from datetime import timedelta
-        cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
-        ativos = [u for u in users if u.get("updated_at", "") >= cutoff]
-        stats["active_users_7d"] = len(ativos)
+        # Cortes de tempo
+        d1  = (now - timedelta(days=1)).isoformat()
+        d7  = (now - timedelta(days=7)).isoformat()
+        d14 = (now - timedelta(days=14)).isoformat()
+        d30 = (now - timedelta(days=30)).isoformat()
 
-        # Médias financeiras
-        rendas = [u["last_renda"] for u in users if u.get("last_renda")]
-        gastos = [u["last_gastos"] for u in users if u.get("last_gastos")]
+        ativos_1d  = [u for u in users if u.get("updated_at","") >= d1]
+        ativos_7d  = [u for u in users if u.get("updated_at","") >= d7]
+        ativos_30d = [u for u in users if u.get("updated_at","") >= d30]
+        stats["active_users_1d"]  = len(ativos_1d)
+        stats["active_users_7d"]  = len(ativos_7d)
+        stats["active_users_30d"] = len(ativos_30d)
+
+        # ── Retenção ──
+        total = stats["total_users"] or 1
+
+        # DAU/MAU ratio (engajamento diário vs mensal)
+        stats["dau_mau"] = round((len(ativos_1d) / max(len(ativos_30d), 1)) * 100, 1)
+
+        # WAU/MAU ratio (semanal vs mensal)
+        stats["wau_mau"] = round((len(ativos_7d) / max(len(ativos_30d), 1)) * 100, 1)
+
+        # Retenção D7 simples: % usuários que voltaram na semana
+        stats["retencao_7d"] = round((len(ativos_7d) / total) * 100, 1)
+
+        # Retenção D30
+        stats["retencao_30d"] = round((len(ativos_30d) / total) * 100, 1)
+
+        # Churn (inativos há mais de 30 dias)
+        stats["churned"] = total - len(ativos_30d)
+        stats["churn_rate"] = round((stats["churned"] / total) * 100, 1)
+
+        # Novos usuários por período
+        novos_7d  = [u for u in users if u.get("updated_at","") >= d7]
+        novos_14d = [u for u in users if u.get("updated_at","") >= d14]
+        stats["novos_7d"]  = len(novos_7d)
+        stats["novos_14d"] = len(novos_14d)
+        stats["crescimento_semanal"] = round(
+            ((len(novos_7d) - (len(novos_14d) - len(novos_7d))) /
+             max(len(novos_14d) - len(novos_7d), 1)) * 100, 1
+        )
+
+        # ── Engajamento por dia (últimos 14 dias) ──
+        engagement_daily = {}
+        for i in range(14):
+            day = (now - timedelta(days=i)).strftime("%d/%m")
+            cutoff_start = (now - timedelta(days=i+1)).isoformat()
+            cutoff_end   = (now - timedelta(days=i)).isoformat()
+            count = len([u for u in users
+                         if cutoff_start <= u.get("updated_at","") < cutoff_end])
+            engagement_daily[day] = count
+        stats["engagement_daily"] = dict(reversed(list(engagement_daily.items())))
+
+        # ── Médias financeiras ──
+        rendas    = [u["last_renda"]  for u in users if u.get("last_renda")]
+        gastos    = [u["last_gastos"] for u in users if u.get("last_gastos")]
         poupancas = [u["avg_savings"] for u in users if u.get("avg_savings")]
-        stats["avg_renda"] = round(sum(rendas) / len(rendas), 2) if rendas else 0
-        stats["avg_gastos"] = round(sum(gastos) / len(gastos), 2) if gastos else 0
+        stats["avg_renda"]   = round(sum(rendas)    / len(rendas),    2) if rendas    else 0
+        stats["avg_gastos"]  = round(sum(gastos)    / len(gastos),    2) if gastos    else 0
         stats["avg_savings"] = round(sum(poupancas) / len(poupancas), 2) if poupancas else 0
 
-        # Distribuição de tendências
-        trends = [u.get("trend", "inicial") for u in users]
+        # ── Tendências ──
+        trends = [u.get("trend","inicial") for u in users]
         stats["trend_dist"] = {t: trends.count(t) for t in set(trends)}
 
-        # Scores financeiros
+        # ── Scores ──
         scores = []
         for u in users:
             r = u.get("last_renda", 0) or 0
             g = u.get("last_gastos", 0) or 0
-            t = u.get("trend", "inicial")
+            t = u.get("trend","inicial")
             if r > 0:
                 scores.append(financial_score(r, g, t))
         stats["avg_score"] = round(sum(scores) / len(scores), 1) if scores else 0
         stats["scores"] = scores
 
-        # Perfis de usuário
+        # ── Perfis ──
         perfis = []
         for u in users:
             r = u.get("last_renda", 0) or 0
@@ -1145,24 +1196,23 @@ def load_admin_stats():
                 perfis.append(classify_user(r, g))
         stats["perfil_dist"] = {p: perfis.count(p) for p in set(perfis)}
 
-        # Transações
+        # ── Transações ──
         res_t = supabase.table("transactions").select("*").execute()
         transacoes = res_t.data or []
         stats["total_transactions"] = len(transacoes)
         stats["total_volume"] = sum(t["valor"] for t in transacoes if t.get("valor"))
-
-        # Categorias mais usadas
         cats = [t["categoria"] for t in transacoes if t.get("categoria")]
         stats["cat_dist"] = {c: cats.count(c) for c in set(cats)}
 
-        # Metas
+        # Transações últimos 7 dias
+        trans_7d = [t for t in transacoes if t.get("date","") >= d7[:10]]
+        stats["trans_7d"] = len(trans_7d)
+
+        # ── Metas ──
         res_m = supabase.table("metas").select("*").execute()
         metas_all = res_m.data or []
         stats["total_metas"] = len(metas_all)
         stats["metas_concluidas"] = len([m for m in metas_all if m.get("concluida")])
-
-        # Lista de usuários com dados
-        stats["users_data"] = users
 
     except Exception as e:
         st.error(f"Erro ao carregar stats: {e}")
@@ -1180,7 +1230,7 @@ def page_admin():
     margin-bottom:0.5rem'>
     ⚙️ iMoney Admin
     </div>
-    <p style='color:#6b7280;margin-bottom:2rem'>Dashboard de administração — visão consolidada</p>
+    <p style='color:#6b7280;margin-bottom:1.5rem'>Dashboard de administração — visão consolidada</p>
     """, unsafe_allow_html=True)
 
     if st.button("🔄 Atualizar dados"):
@@ -1193,71 +1243,265 @@ def page_admin():
         st.error("Não foi possível carregar os dados.")
         return
 
-    # ── LINHA 1: KPIs principais ──
-    st.markdown("### 👥 Usuários")
-    c1, c2, c3, c4, c5 = st.columns(5)
-    with c1: metric_card("Total Usuários", str(s.get("total_users", 0)))
-    with c2: metric_card("Ativos (7d)", str(s.get("active_users_7d", 0)))
-    with c3: metric_card("Score Médio", f"{s.get('avg_score', 0)}/100")
-    with c4: metric_card("Renda Média", f"R$ {s.get('avg_renda', 0):,.0f}")
-    with c5: metric_card("Sobra Média", f"R$ {s.get('avg_savings', 0):,.0f}")
+    # ── ABAS DO ADMIN ──
+    tab_ret, tab_users, tab_engage, tab_financeiro = st.tabs([
+        "📈 Retenção", "👥 Usuários", "💬 Engajamento", "💰 Financeiro"
+    ])
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    # ══════════════════════════════════
+    # ABA 1: RETENÇÃO
+    # ══════════════════════════════════
+    with tab_ret:
+        st.markdown("### 📈 Métricas de Retenção")
+        st.caption("Indicadores usados por investidores para avaliar saúde do produto")
 
-    # ── LINHA 2: Transações e Metas ──
-    st.markdown("### 💳 Transações & Metas")
-    c1, c2, c3 = st.columns(3)
-    with c1: metric_card("Total Transações", str(s.get("total_transactions", 0)))
-    with c2: metric_card("Volume Total", f"R$ {s.get('total_volume', 0):,.0f}")
-    with c3: metric_card("Metas Criadas", str(s.get("total_metas", 0)), f"{s.get('metas_concluidas', 0)} concluídas")
+        # KPIs de retenção
+        c1, c2, c3, c4, c5 = st.columns(5)
+        with c1:
+            ret7 = s.get("retencao_7d", 0)
+            cor = "#10b981" if ret7 >= 40 else ("#f59e0b" if ret7 >= 20 else "#ef4444")
+            metric_card("Retenção D7", f"{ret7}%", "benchmark: >40% = ótimo")
+        with c2:
+            ret30 = s.get("retencao_30d", 0)
+            cor = "#10b981" if ret30 >= 20 else ("#f59e0b" if ret30 >= 10 else "#ef4444")
+            metric_card("Retenção D30", f"{ret30}%", "benchmark: >20% = ótimo")
+        with c3:
+            dau_mau = s.get("dau_mau", 0)
+            cor = "#10b981" if dau_mau >= 20 else ("#f59e0b" if dau_mau >= 10 else "#ef4444")
+            metric_card("DAU/MAU", f"{dau_mau}%", "stickiness do produto")
+        with c4:
+            churn = s.get("churn_rate", 0)
+            cor = "#10b981" if churn <= 5 else ("#f59e0b" if churn <= 15 else "#ef4444")
+            metric_card("Churn Rate", f"{churn}%", f"{s.get('churned',0)} usuários inativos")
+        with c5:
+            cresc = s.get("crescimento_semanal", 0)
+            metric_card("Crescimento", f"{cresc:+.0f}%", "semana vs semana anterior")
 
-    st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── LINHA 3: Gráficos ──
-    col_a, col_b = st.columns(2)
-
-    with col_a:
-        st.markdown("**Distribuição de Perfis**")
-        perfil_dist = s.get("perfil_dist", {})
-        if perfil_dist:
-            fig = go.Figure(go.Pie(
-                labels=list(perfil_dist.keys()),
-                values=list(perfil_dist.values()),
-                hole=0.5,
-                marker=dict(colors=["#ef4444", "#f59e0b", "#3b82f6", "#10b981"]),
-                textinfo="label+percent",
-                textfont=dict(color="white"),
-            ))
-            fig.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                showlegend=False, height=260, margin=dict(t=10,b=10,l=10,r=10)
-            )
-            st.plotly_chart(fig, use_container_width=True)
+        # Gauge de saúde do produto
+        ret7 = s.get("retencao_7d", 0)
+        if ret7 >= 40:
+            saude_cor, saude_label, saude_emoji = "#10b981", "EXCELENTE", "🚀"
+        elif ret7 >= 20:
+            saude_cor, saude_label, saude_emoji = "#f59e0b", "BOM", "📈"
+        elif ret7 >= 10:
+            saude_cor, saude_label, saude_emoji = "#f97316", "REGULAR", "⚠️"
         else:
-            st.info("Sem dados de perfil ainda.")
+            saude_cor, saude_label, saude_emoji = "#ef4444", "CRÍTICO", "🔴"
 
-    with col_b:
-        st.markdown("**Distribuição de Tendências**")
-        trend_dist = s.get("trend_dist", {})
-        if trend_dist:
-            cores_trend = {"melhorando": "#10b981", "piorando": "#ef4444", "estável": "#f59e0b", "inicial": "#6b7280", "erro": "#374151"}
-            fig2 = go.Figure(go.Bar(
-                x=list(trend_dist.keys()),
-                y=list(trend_dist.values()),
-                marker_color=[cores_trend.get(k, "#6b7280") for k in trend_dist.keys()],
-                text=list(trend_dist.values()),
+        st.markdown(f"""
+        <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.2);
+        border-radius:16px;padding:20px 28px;margin-bottom:16px;
+        display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;'>
+            <div>
+                <div style='font-size:0.75rem;color:#6b9e80;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;'>
+                    Saúde Geral do Produto
+                </div>
+                <div style='font-family:Georgia,serif;font-size:2.2rem;font-weight:700;color:{saude_cor};'>
+                    {saude_emoji} {saude_label}
+                </div>
+            </div>
+            <div style='display:flex;gap:28px;flex-wrap:wrap;'>
+                <div style='text-align:center;'>
+                    <div style='font-size:1.6rem;font-weight:700;color:#34c17a;'>{s.get("active_users_1d",0)}</div>
+                    <div style='font-size:0.75rem;color:#6b9e80;'>Ativos hoje</div>
+                </div>
+                <div style='text-align:center;'>
+                    <div style='font-size:1.6rem;font-weight:700;color:#f0b429;'>{s.get("active_users_7d",0)}</div>
+                    <div style='font-size:0.75rem;color:#6b9e80;'>Ativos 7d</div>
+                </div>
+                <div style='text-align:center;'>
+                    <div style='font-size:1.6rem;font-weight:700;color:#e8f5ee;'>{s.get("active_users_30d",0)}</div>
+                    <div style='font-size:0.75rem;color:#6b9e80;'>Ativos 30d</div>
+                </div>
+                <div style='text-align:center;'>
+                    <div style='font-size:1.6rem;font-weight:700;color:#ef4444;'>{s.get("churned",0)}</div>
+                    <div style='font-size:0.75rem;color:#6b9e80;'>Churned</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Gráfico de engajamento diário (14 dias)
+        eng = s.get("engagement_daily", {})
+        if eng:
+            st.markdown("**📊 Usuários Ativos por Dia (últimos 14 dias)**")
+            fig_eng = go.Figure(go.Bar(
+                x=list(eng.keys()),
+                y=list(eng.values()),
+                marker=dict(
+                    color=list(eng.values()),
+                    colorscale=[[0,"#0f2d1a"],[0.5,"#1a9e5c"],[1,"#f0b429"]],
+                    showscale=False,
+                ),
+                text=list(eng.values()),
                 textposition="outside",
+                textfont=dict(color="#9ca3af", size=10),
             ))
-            fig2.update_layout(
+            fig_eng.update_layout(
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#9ca3af"), height=260,
-                margin=dict(t=10,b=30,l=10,r=10),
-                xaxis=dict(gridcolor="#1f2937"),
-                yaxis=dict(gridcolor="#1f2937"),
+                margin=dict(t=30,b=10,l=10,r=10),
+                xaxis=dict(gridcolor="rgba(26,158,92,0.1)"),
+                yaxis=dict(gridcolor="rgba(26,158,92,0.1)", title="usuários"),
             )
-            st.plotly_chart(fig2, use_container_width=True)
-        else:
-            st.info("Sem dados de tendência ainda.")
+            st.plotly_chart(fig_eng, use_container_width=True)
+
+        # Benchmarks de referência
+        st.markdown("**📚 Benchmarks de Mercado**")
+        bench_data = {
+            "Métrica": ["Retenção D7", "Retenção D30", "DAU/MAU", "Churn mensal"],
+            "iMoney": [f"{s.get('retencao_7d',0)}%", f"{s.get('retencao_30d',0)}%",
+                       f"{s.get('dau_mau',0)}%", f"{s.get('churn_rate',0)}%"],
+            "Bom (fintech)": [">40%", ">20%", ">20%", "<5%"],
+            "Ótimo (top app)": [">60%", ">40%", ">50%", "<2%"],
+        }
+        st.dataframe(pd.DataFrame(bench_data), use_container_width=True, hide_index=True)
+
+    # ══════════════════════════════════
+    # ABA 2: USUÁRIOS
+    # ══════════════════════════════════
+    with tab_users:
+        st.markdown("### 👥 Visão de Usuários")
+
+        c1, c2, c3, c4, c5 = st.columns(5)
+        with c1: metric_card("Total", str(s.get("total_users", 0)))
+        with c2: metric_card("Ativos 7d", str(s.get("active_users_7d", 0)))
+        with c3: metric_card("Score Médio", f"{s.get('avg_score', 0)}/100")
+        with c4: metric_card("Renda Média", f"R$ {s.get('avg_renda', 0):,.0f}")
+        with c5: metric_card("Sobra Média", f"R$ {s.get('avg_savings', 0):,.0f}")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_a, col_b = st.columns(2)
+
+        with col_a:
+            st.markdown("**Distribuição de Perfis**")
+            perfil_dist = s.get("perfil_dist", {})
+            if perfil_dist:
+                fig = go.Figure(go.Pie(
+                    labels=list(perfil_dist.keys()),
+                    values=list(perfil_dist.values()),
+                    hole=0.5,
+                    marker=dict(colors=["#ef4444","#f59e0b","#3b82f6","#10b981"]),
+                    textinfo="label+percent",
+                    textfont=dict(color="white"),
+                ))
+                fig.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
+                    showlegend=False,height=260,margin=dict(t=10,b=10,l=10,r=10))
+                st.plotly_chart(fig, use_container_width=True)
+
+        with col_b:
+            st.markdown("**Tendências Financeiras**")
+            trend_dist = s.get("trend_dist", {})
+            if trend_dist:
+                cores_trend = {"melhorando":"#10b981","piorando":"#ef4444","estável":"#f59e0b","inicial":"#6b7280"}
+                fig2 = go.Figure(go.Bar(
+                    x=list(trend_dist.keys()), y=list(trend_dist.values()),
+                    marker_color=[cores_trend.get(k,"#6b7280") for k in trend_dist.keys()],
+                    text=list(trend_dist.values()), textposition="outside",
+                ))
+                fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#9ca3af"),height=260,margin=dict(t=10,b=30,l=10,r=10),
+                    xaxis=dict(gridcolor="#1f2937"),yaxis=dict(gridcolor="#1f2937"))
+                st.plotly_chart(fig2, use_container_width=True)
+
+        # Tabela de usuários
+        st.markdown("**📋 Lista de Usuários**")
+        users_data = s.get("users_data", [])
+        if users_data:
+            rows = []
+            for u in users_data:
+                r = u.get("last_renda", 0) or 0
+                g = u.get("last_gastos", 0) or 0
+                t = u.get("trend","inicial")
+                updated = u.get("updated_at","")[:10]
+                from datetime import timedelta
+                ativo = "🟢 Ativo" if updated >= (datetime.utcnow()-timedelta(days=7)).strftime("%Y-%m-%d") else "🔴 Inativo"
+                rows.append({
+                    "ID": str(u.get("user_id",""))[:8]+"...",
+                    "Status": ativo,
+                    "Renda": f"R$ {r:,.0f}",
+                    "Gastos": f"R$ {g:,.0f}",
+                    "Sobra": f"R$ {r-g:,.0f}",
+                    "Score": financial_score(r,g,t) if r>0 else 0,
+                    "Perfil": classify_user(r,g) if r>0 else "-",
+                    "Tendência": t,
+                    "Última atividade": updated,
+                })
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    # ══════════════════════════════════
+    # ABA 3: ENGAJAMENTO
+    # ══════════════════════════════════
+    with tab_engage:
+        st.markdown("### 💬 Engajamento & Uso")
+
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: metric_card("Transações 7d", str(s.get("trans_7d", 0)))
+        with c2: metric_card("Total Transações", str(s.get("total_transactions", 0)))
+        with c3: metric_card("Volume Total", f"R$ {s.get('total_volume', 0):,.0f}")
+        with c4: metric_card("Metas Criadas", str(s.get("total_metas", 0)), f"{s.get('metas_concluidas',0)} concluídas")
+
+        # Scores histogram
+        scores = s.get("scores", [])
+        if scores:
+            st.markdown("**Distribuição de Scores Financeiros**")
+            fig3 = go.Figure(go.Histogram(
+                x=scores, nbinsx=10,
+                marker_color="#1a9e5c", opacity=0.85,
+            ))
+            fig3.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#9ca3af"),height=220,margin=dict(t=10,b=30,l=10,r=10),
+                xaxis=dict(title="Score",gridcolor="#1f2937"),
+                yaxis=dict(title="Usuários",gridcolor="#1f2937"))
+            st.plotly_chart(fig3, use_container_width=True)
+
+        # Categorias
+        cat_dist = s.get("cat_dist", {})
+        if cat_dist:
+            st.markdown("**Categorias de Gastos Mais Registradas**")
+            df_cat = pd.DataFrame(list(cat_dist.items()), columns=["Categoria","Transações"]).sort_values("Transações",ascending=True)
+            fig4 = go.Figure(go.Bar(
+                x=df_cat["Transações"], y=df_cat["Categoria"],
+                orientation="h", marker_color="#7c3aed",
+                text=df_cat["Transações"], textposition="outside",
+            ))
+            fig4.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#9ca3af"),height=300,margin=dict(t=10,b=10,l=10,r=40),
+                xaxis=dict(gridcolor="#1f2937"),yaxis=dict(gridcolor="#1f2937"))
+            st.plotly_chart(fig4, use_container_width=True)
+
+    # ══════════════════════════════════
+    # ABA 4: FINANCEIRO
+    # ══════════════════════════════════
+    with tab_financeiro:
+        st.markdown("### 💰 Indicadores Financeiros dos Usuários")
+
+        c1, c2, c3 = st.columns(3)
+        with c1: metric_card("Renda Média", f"R$ {s.get('avg_renda',0):,.0f}", "por usuário/mês")
+        with c2: metric_card("Gastos Médios", f"R$ {s.get('avg_gastos',0):,.0f}", "por usuário/mês")
+        with c3: metric_card("Sobra Média", f"R$ {s.get('avg_savings',0):,.0f}", "potencial de investimento")
+
+        # Taxa comprometimento médio
+        avg_r = s.get("avg_renda", 1) or 1
+        avg_g = s.get("avg_gastos", 0)
+        taxa_media = round((avg_g / avg_r) * 100, 1)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.2);
+        border-radius:12px;padding:16px 24px;'>
+            <div style='font-size:0.75rem;color:#6b9e80;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;'>
+                Taxa média de comprometimento da renda
+            </div>
+            <div style='font-size:2rem;font-weight:700;color:{"#ef4444" if taxa_media > 80 else "#f59e0b" if taxa_media > 60 else "#10b981"};'>
+                {taxa_media}%
+            </div>
+            <div style='font-size:0.82rem;color:#6b9e80;margin-top:4px;'>
+                {"⚠️ Base de usuários em situação crítica" if taxa_media > 80 else "📊 Base equilibrada" if taxa_media > 60 else "✅ Base com bom potencial de investimento"}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # ── Scores histogram ──
     scores = s.get("scores", [])
