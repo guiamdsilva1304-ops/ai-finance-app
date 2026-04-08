@@ -557,7 +557,43 @@ def inject_css():
     }
     .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(29,78,216,0.4); }
 
-    div[data-testid="stSidebar"] { background: #111827; border-right: 1px solid #374151; }
+    /* Sidebar com identidade visual iMoney */
+    div[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #07130d 0%, #0a1f12 40%, #0f2d1a 100%) !important;
+        border-right: 1px solid rgba(26,158,92,0.25) !important;
+    }
+
+    /* Textos da sidebar */
+    div[data-testid="stSidebar"] label,
+    div[data-testid="stSidebar"] p,
+    div[data-testid="stSidebar"] span {
+        color: #e8f5ee !important;
+    }
+
+    /* Títulos da sidebar */
+    div[data-testid="stSidebar"] h1,
+    div[data-testid="stSidebar"] h2,
+    div[data-testid="stSidebar"] h3 {
+        color: #f0b429 !important;
+    }
+
+    /* Inputs da sidebar */
+    div[data-testid="stSidebar"] input {
+        background: rgba(15,45,26,0.8) !important;
+        border: 1px solid rgba(26,158,92,0.3) !important;
+        color: #e8f5ee !important;
+        border-radius: 8px !important;
+    }
+
+    /* Botão de logout na sidebar */
+    div[data-testid="stSidebar"] .stButton > button {
+        background: linear-gradient(135deg, #1a9e5c, #34c17a) !important;
+    }
+
+    /* Linha divisória */
+    div[data-testid="stSidebar"] hr {
+        border-color: rgba(26,158,92,0.2) !important;
+    }
     /* Fix chat overflow */
     div[data-testid="stChatMessage"] {
         width: 100% !important;
@@ -722,8 +758,37 @@ def page_app():
 
     # --- SIDEBAR ---
     with st.sidebar:
-        st.markdown(f"<div style='font-family:Syne,sans-serif;font-size:1.3rem;font-weight:800;color:#f9fafb;'>💰 iMoney</div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='color:#6b7280;font-size:0.8rem;margin-bottom:1.5rem'>{email}</div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style='padding:0.5rem 0 1rem;'>
+            <!-- Logo bússola + iMoney -->
+            <div style='display:flex;align-items:center;gap:12px;margin-bottom:6px;'>
+                <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#34c17a"/>
+                            <stop offset="100%" style="stop-color:#f0b429"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="50" cy="50" r="48" fill="#0a1f12" stroke="url(#sg)" stroke-width="3"/>
+                    <circle cx="50" cy="50" r="38" fill="none" stroke="#f0b429" stroke-width="0.6" stroke-dasharray="3,5" opacity="0.4"/>
+                    <polygon points="50,14 45,50 50,46 55,50" fill="#f0b429"/>
+                    <polygon points="50,86 45,50 50,54 55,50" fill="#34c17a"/>
+                    <circle cx="50" cy="50" r="6" fill="#0a1f12" stroke="#f0b429" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="2.5" fill="#f0b429"/>
+                </svg>
+                <div>
+                    <div style='font-family:Georgia,serif;font-size:1.5rem;font-weight:900;
+                    background:linear-gradient(135deg,#34c17a,#f0b429);
+                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                    background-clip:text;line-height:1;'>iMoney</div>
+                    <div style='font-size:0.65rem;letter-spacing:2px;color:#6b9e80;
+                    text-transform:uppercase;margin-top:2px;'>Assessoria com IA</div>
+                </div>
+            </div>
+            <div style='color:#6b9e80;font-size:0.75rem;padding:6px 0 0;
+            border-top:1px solid rgba(26,158,92,0.2);'>👤 {email}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.markdown("### 💼 Dados Financeiros")
         renda = st.number_input("Renda mensal (R$)", min_value=0.0, max_value=float(MAX_RENDA), value=5000.0, step=100.0, format="%.2f")
