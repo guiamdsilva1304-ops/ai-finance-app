@@ -3,6 +3,9 @@ from supabase import create_client
 import anthropic
 import requests
 import json
+import re
+import hashlib
+import time
 from datetime import datetime, date
 import plotly.graph_objects as go
 import plotly.express as px
@@ -29,6 +32,21 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 claude = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
 # =========================
+# SEGURANÇA — CONSTANTES
+# =========================
+MAX_RENDA = 10_000_000          # Limite máximo de renda (R$ 10M)
+MAX_GASTO = 10_000_000          # Limite máximo de gasto
+MAX_MSG_LEN = 2000              # Limite de caracteres por mensagem
+MAX_MESSAGES = 50               # Máximo de mensagens por sessão
+MAX_TRANSACTIONS = 500          # Máximo de transações por usuário
+MAX_METAS = 20                  # Máximo de metas por usuário
+MAX_LOGIN_ATTEMPTS = 5          # Tentativas de login antes de bloquear
+LOGIN_BLOCK_SECONDS = 300       # 5 minutos de bloqueio
+RATE_LIMIT_CHAT = 30            # Máximo de mensagens de chat por hora
+ALLOWED_CATEGORIAS = ["Moradia", "Alimentação", "Transporte", "Saúde", "Educação", "Lazer", "Vestuário", "Outros"]
+ALLOWED_TIPOS = ["gasto", "receita"]
+
+# =========================
 # SESSION INIT
 # =========================
 defaults = {
@@ -47,6 +65,13 @@ for k, v in defaults.items():
 # AUTH
 # =========================
 def get_user_id():
+    # Verifica expiração de sessão (8 horas)
+    login_time = st.session_state.get("login_time", 0)
+    if login_time and time.time() - login_time > 28800:
+        st.session_state["user_id"] = None
+        st.session_state["user_email"] = None
+        st.session_state["login_time"] = 0
+        return None
     # Primeiro tenta session_state (mais confiável no Streamlit)
     if st.session_state.get("user_id"):
         return st.session_state["user_id"]
@@ -74,13 +99,103 @@ def get_user_email():
     return None
 
 # =========================
-# VALIDAÇÕES
+# SEGURANÇA — FUNÇÕES
 # =========================
-def is_valid_email(email):
-    return "@" in email and "." in email
 
-def is_valid_password(password):
-    return len(password) >= 6
+def sanitize_text(text: str, max_len: int = 500) -> str:
+    """Remove caracteres perigosos e limita tamanho."""
+    if not text:
+        return ""
+    # Remove tags HTML/JS
+    text = re.sub(r'<[^>]+>', '', str(text))
+    # Remove caracteres de controle
+    text = re.sub(r'[--]', '', text)
+    # Limita tamanho
+    return text[:max_len].strip()
+
+
+def is_valid_email(email: str) -> bool:
+    """Validação robusta de email com regex."""
+    pattern = r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, str(email).strip())) and len(email) <= 254
+
+
+def is_valid_password(password: str) -> bool:
+    """Senha: mínimo 8 chars, 1 número, 1 letra."""
+    if len(password) < 8:
+        return False
+    has_letter = bool(re.search(r'[a-zA-Z]', password))
+    has_number = bool(re.search(r'[0-9]', password))
+    return has_letter and has_number
+
+
+def is_valid_valor(valor) -> bool:
+    """Valida se valor financeiro é seguro."""
+    try:
+        v = float(valor)
+        return 0 <= v <= MAX_RENDA
+    except:
+        return False
+
+
+def check_rate_limit_login(email: str) -> tuple[bool, int]:
+    """Verifica se o email está bloqueado por tentativas excessivas."""
+    key = f"login_attempts_{hashlib.md5(email.encode()).hexdigest()[:8]}"
+    block_key = f"login_blocked_{hashlib.md5(email.encode()).hexdigest()[:8]}"
+
+    if st.session_state.get(block_key, 0) > time.time():
+        remaining = int(st.session_state[block_key] - time.time())
+        return False, remaining
+
+    attempts = st.session_state.get(key, 0)
+    if attempts >= MAX_LOGIN_ATTEMPTS:
+        st.session_state[block_key] = time.time() + LOGIN_BLOCK_SECONDS
+        st.session_state[key] = 0
+        return False, LOGIN_BLOCK_SECONDS
+
+    return True, 0
+
+
+def increment_login_attempts(email: str):
+    """Incrementa contador de tentativas falhas."""
+    key = f"login_attempts_{hashlib.md5(email.encode()).hexdigest()[:8]}"
+    st.session_state[key] = st.session_state.get(key, 0) + 1
+
+
+def reset_login_attempts(email: str):
+    """Reseta contador após login bem-sucedido."""
+    key = f"login_attempts_{hashlib.md5(email.encode()).hexdigest()[:8]}"
+    st.session_state[key] = 0
+
+
+def check_chat_rate_limit(user_id: str) -> bool:
+    """Limita mensagens de chat por hora."""
+    key = f"chat_count_{user_id}"
+    key_time = f"chat_time_{user_id}"
+    now = time.time()
+
+    if now - st.session_state.get(key_time, 0) > 3600:
+        st.session_state[key] = 0
+        st.session_state[key_time] = now
+
+    count = st.session_state.get(key, 0)
+    if count >= RATE_LIMIT_CHAT:
+        return False
+
+    st.session_state[key] = count + 1
+    return True
+
+
+def verify_admin_session() -> bool:
+    """Verifica se a sessão admin é válida e não expirou."""
+    if not st.session_state.get("admin_auth"):
+        return False
+    # Sessão admin expira em 2 horas
+    admin_time = st.session_state.get("admin_auth_time", 0)
+    if time.time() - admin_time > 7200:
+        st.session_state["admin_auth"] = False
+        return False
+    return True
 
 # =========================
 # DADOS ECONÔMICOS
@@ -151,18 +266,46 @@ def load_transactions(user_id):
 
 
 def save_transaction(user_id, descricao, valor, categoria, tipo):
+    # Validações de segurança
+    if not user_id:
+        return False
+    if not is_valid_valor(valor):
+        st.error("Valor inválido.")
+        return False
+    if categoria not in ALLOWED_CATEGORIAS:
+        st.error("Categoria inválida.")
+        return False
+    if tipo not in ALLOWED_TIPOS:
+        st.error("Tipo inválido.")
+        return False
+
+    # Sanitiza inputs de texto
+    descricao_clean = sanitize_text(descricao, max_len=200)
+    if not descricao_clean:
+        st.error("Descrição inválida.")
+        return False
+
+    # Verifica limite de transações
+    try:
+        count = supabase.table("transactions").select("id", count="exact").eq("user_id", user_id).execute()
+        if count.count and count.count >= MAX_TRANSACTIONS:
+            st.error("Limite máximo de transações atingido.")
+            return False
+    except:
+        pass
+
     try:
         supabase.table("transactions").insert({
-            "user_id": user_id,
-            "descricao": descricao,
-            "valor": float(valor),
+            "user_id": str(user_id),
+            "descricao": descricao_clean,
+            "valor": round(float(valor), 2),
             "categoria": categoria,
             "tipo": tipo,
             "date": date.today().isoformat(),
         }).execute()
         return True
     except Exception as e:
-        st.error(f"Erro ao salvar: {e}")
+        st.error("Erro ao salvar transação.")
         return False
 
 
@@ -175,18 +318,46 @@ def load_metas(user_id):
 
 
 def save_meta(user_id, nome, valor_alvo, prazo_meses):
+    if not user_id:
+        return False
+
+    # Validações
+    nome_clean = sanitize_text(nome, max_len=100)
+    if not nome_clean:
+        st.error("Nome da meta inválido.")
+        return False
+    if not is_valid_valor(valor_alvo):
+        st.error("Valor alvo inválido.")
+        return False
+    try:
+        prazo = int(prazo_meses)
+        if prazo < 1 or prazo > 600:
+            raise ValueError
+    except:
+        st.error("Prazo inválido.")
+        return False
+
+    # Verifica limite de metas
+    try:
+        count = supabase.table("metas").select("id", count="exact").eq("user_id", user_id).execute()
+        if count.count and count.count >= MAX_METAS:
+            st.error("Limite máximo de metas atingido.")
+            return False
+    except:
+        pass
+
     try:
         supabase.table("metas").insert({
-            "user_id": user_id,
-            "nome": nome,
-            "valor_alvo": float(valor_alvo),
+            "user_id": str(user_id),
+            "nome": nome_clean,
+            "valor_alvo": round(float(valor_alvo), 2),
             "valor_atual": 0.0,
-            "prazo_meses": int(prazo_meses),
+            "prazo_meses": prazo,
             "criada_em": date.today().isoformat(),
         }).execute()
         return True
     except Exception as e:
-        st.error(f"Erro ao salvar meta: {e}")
+        st.error("Erro ao salvar meta.")
         return False
 
 # =========================
@@ -501,35 +672,44 @@ def page_login():
             senha = st.text_input("Senha", type="password", key="login_senha")
             if st.button("Entrar", use_container_width=True):
                 if not is_valid_email(email):
-                    st.error("Email inválido")
-                elif not is_valid_password(senha):
-                    st.error("Senha muito curta")
+                    st.error("Email inválido.")
+                elif not senha:
+                    st.error("Digite sua senha.")
                 else:
-                    try:
-                        res = supabase.auth.sign_in_with_password({"email": email, "password": senha})
-                        if res and res.user:
-                            st.session_state["user_id"] = res.user.id
-                            st.session_state["user_email"] = res.user.email
-                            st.rerun()
-                        else:
-                            st.error("Credenciais inválidas.")
-                    except Exception as e:
-                        st.error(f"Erro: {e}")
+                    # Verifica rate limit
+                    allowed, wait = check_rate_limit_login(email)
+                    if not allowed:
+                        st.error(f"🔒 Muitas tentativas. Aguarde {wait//60}min {wait%60}s.")
+                    else:
+                        try:
+                            res = supabase.auth.sign_in_with_password({"email": email, "password": senha})
+                            if res and res.user:
+                                reset_login_attempts(email)
+                                st.session_state["user_id"] = res.user.id
+                                st.session_state["user_email"] = res.user.email
+                                st.session_state["login_time"] = time.time()
+                                st.rerun()
+                            else:
+                                increment_login_attempts(email)
+                                st.error("Credenciais inválidas.")
+                        except Exception as e:
+                            increment_login_attempts(email)
+                            st.error("Email ou senha incorretos.")
 
         with aba[1]:
             email2 = st.text_input("Email", key="reg_email")
             senha2 = st.text_input("Senha (mín. 6 caracteres)", type="password", key="reg_senha")
             if st.button("Criar conta", use_container_width=True):
                 if not is_valid_email(email2):
-                    st.error("Email inválido")
+                    st.error("Email inválido.")
                 elif not is_valid_password(senha2):
-                    st.error("Senha deve ter mínimo 6 caracteres")
+                    st.error("Senha fraca. Use mínimo 8 caracteres com letras e números.")
                 else:
                     try:
                         supabase.auth.sign_up({"email": email2, "password": senha2})
-                        st.success("Conta criada! Verifique seu email.")
+                        st.success("✅ Conta criada! Verifique seu email para confirmar.")
                     except Exception as e:
-                        st.error(f"Erro: {e}")
+                        st.error("Erro ao criar conta. Tente novamente.")
 
 # =========================
 # PÁGINA: APP PRINCIPAL
@@ -546,7 +726,7 @@ def page_app():
         st.markdown(f"<div style='color:#6b7280;font-size:0.8rem;margin-bottom:1.5rem'>{email}</div>", unsafe_allow_html=True)
 
         st.markdown("### 💼 Dados Financeiros")
-        renda = st.number_input("Renda mensal (R$)", min_value=0.0, value=5000.0, step=100.0, format="%.2f")
+        renda = st.number_input("Renda mensal (R$)", min_value=0.0, max_value=float(MAX_RENDA), value=5000.0, step=100.0, format="%.2f")
 
         st.markdown("**Gastos por categoria:**")
         gastos_cat = {}
@@ -650,19 +830,31 @@ def page_app():
         prompt = st.chat_input("Digite sua pergunta financeira...")
         pergunta_final = prompt or quick_prompt
 
-        # Processa pergunta
+        # Processa pergunta com segurança
         if pergunta_final:
-            st.session_state.messages.append({"role": "user", "content": pergunta_final})
-            with st.spinner("Analisando..."):
-                try:
-                    resposta = agente_chat(
-                        st.session_state.messages, renda, gastos_total,
-                        sobra, selic, ipca, score, trend, perfil, gastos_cat, metas
-                    )
-                    st.session_state.messages.append({"role": "assistant", "content": resposta})
-                except Exception as e:
-                    st.session_state.messages.append({"role": "assistant", "content": f"Erro ao processar: {e}"})
-            st.rerun()
+            # Verifica rate limit
+            if not check_chat_rate_limit(user_id):
+                st.warning(f"⚠️ Limite de {RATE_LIMIT_CHAT} mensagens por hora atingido. Tente mais tarde.")
+            # Verifica tamanho da mensagem
+            elif len(pergunta_final) > MAX_MSG_LEN:
+                st.warning(f"⚠️ Mensagem muito longa. Máximo {MAX_MSG_LEN} caracteres.")
+            # Verifica histórico máximo
+            elif len(st.session_state.messages) >= MAX_MESSAGES * 2:
+                st.warning("⚠️ Sessão longa. Limpe a conversa para continuar.")
+            else:
+                # Sanitiza o prompt
+                prompt_clean = sanitize_text(pergunta_final, max_len=MAX_MSG_LEN)
+                st.session_state.messages.append({"role": "user", "content": prompt_clean})
+                with st.spinner("Analisando..."):
+                    try:
+                        resposta = agente_chat(
+                            st.session_state.messages, renda, gastos_total,
+                            sobra, selic, ipca, score, trend, perfil, gastos_cat, metas
+                        )
+                        st.session_state.messages.append({"role": "assistant", "content": resposta})
+                    except Exception as e:
+                        st.session_state.messages.append({"role": "assistant", "content": "Desculpe, ocorreu um erro. Tente novamente."})
+                st.rerun()
 
         # Histórico
         for msg in st.session_state.messages:
@@ -687,7 +879,7 @@ def page_app():
             t_col1, t_col2 = st.columns(2)
             with t_col1:
                 t_desc = st.text_input("Descrição")
-                t_valor = st.number_input("Valor (R$)", min_value=0.01, value=100.0)
+                t_valor = st.number_input("Valor (R$)", min_value=0.01, max_value=float(MAX_GASTO), value=100.0)
             with t_col2:
                 t_tipo = st.selectbox("Tipo", ["gasto", "receita"])
                 t_cat = st.selectbox("Categoria", CATEGORIAS)
@@ -1007,6 +1199,7 @@ def page_admin_login():
             admin_pass = st.secrets.get("ADMIN_PASSWORD", "imoney@admin2024")
             if senha == admin_pass:
                 st.session_state["admin_auth"] = True
+                st.session_state["admin_auth_time"] = time.time()
                 st.rerun()
             else:
                 st.error("Senha incorreta.")
@@ -1020,7 +1213,7 @@ is_admin_route = query_params.get("page") == "admin"
 if is_admin_route:
     if "admin_auth" not in st.session_state:
         st.session_state["admin_auth"] = False
-    if st.session_state["admin_auth"]:
+    if verify_admin_session():
         page_admin()
     else:
         page_admin_login()
