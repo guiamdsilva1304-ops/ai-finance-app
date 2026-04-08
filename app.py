@@ -210,11 +210,11 @@ def get_dados_economicos():
     Retorna dict com todos os indicadores.
     """
     dados = {
-        "selic_anual": 14.65,       # fallback atualizado (abril 2025)
-        "selic_meta": 14.75,        # meta SELIC Copom
-        "ipca_mensal": 0.56,        # fallback
-        "ipca_anual": 4.83,         # fallback
-        "cdi_anual": 14.65,         # fallback
+        "selic_anual": 14.75,       # fallback (SELIC meta Copom, abril 2026)
+        "selic_meta": 14.75,        # meta SELIC Copom (abril 2026)
+        "ipca_mensal": 0.56,        # fallback (março 2026)
+        "ipca_anual": 5.48,         # fallback (acumulado 12m março 2026)
+        "cdi_anual": 14.75,         # fallback
         "ultima_atualizacao": "fallback",
         "fonte": "Banco Central do Brasil",
     }
@@ -1215,19 +1215,43 @@ def page_app():
             st.markdown("### 📋 Estimativa de Impostos")
             regime = st.selectbox("Regime tributário", ["MEI", "Autônomo (carnê-leão)", "Simples Nacional", "Não sei"])
             if regime == "MEI":
-                st.info("📄 Como MEI você paga o DAS fixo de R$ 75,90/mês (2025). Limite anual: R$ 81.000.")
+                st.info("📄 Como MEI você paga o DAS fixo de **R$ 81,05/mês** em 2026 (5% do salário mínimo de R$ 1.621,00). Limite anual: R$ 81.000 (MEI) ou R$ 130.000 (MEI Individual). Fonte: Portaria Interministerial MPS/MF nº 13/2026.")
             elif regime == "Autônomo (carnê-leão)":
                 base_anual = renda * 12
-                if base_anual <= 24511.92: ir_anual = 0
-                elif base_anual <= 33919.80: ir_anual = base_anual * 0.075 - 1838.39
-                elif base_anual <= 45012.60: ir_anual = base_anual * 0.15 - 4382.38
-                elif base_anual <= 55976.16: ir_anual = base_anual * 0.225 - 7786.02
-                else: ir_anual = base_anual * 0.275 - 10557.13
-                ir_mensal = round(max(ir_anual, 0) / 12, 2)
-                inss_mensal = round(min(renda * 0.11, 908.86), 2)
+                # Tabela IR progressiva mensal 2026 (Receita Federal - mesma de 2025)
+                # Fonte: gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/tabelas/2026
+                # Faixas mensais → convertidas para anual
+                renda_mensal_base = renda  # base de cálculo (sem dedução INSS aqui, simplificado)
+                if renda_mensal_base <= 2428.80:
+                    ir_mensal_bruto = 0
+                elif renda_mensal_base <= 2826.65:
+                    ir_mensal_bruto = renda_mensal_base * 0.075 - 182.16
+                elif renda_mensal_base <= 3751.05:
+                    ir_mensal_bruto = renda_mensal_base * 0.15 - 394.16
+                elif renda_mensal_base <= 4664.68:
+                    ir_mensal_bruto = renda_mensal_base * 0.225 - 675.49
+                else:
+                    ir_mensal_bruto = renda_mensal_base * 0.275 - 908.73
+                # Aplica redutor 2026 (Lei 15.270/2025): isenção até R$5.000
+                if renda_mensal_base <= 5000:
+                    redutor = ir_mensal_bruto  # zera o imposto
+                elif renda_mensal_base <= 7350:
+                    redutor = 978.62 - (0.133145 * renda_mensal_base)
+                else:
+                    redutor = 0
+                ir_mensal_liquido = max(ir_mensal_bruto - redutor, 0)
+                ir_anual = ir_mensal_liquido * 12
+                ir_mensal_liquido_calc = ir_mensal_liquido  # já calculado acima
+                base_anual = renda * 12  # mantém compatibilidade
+                ir_mensal = round(ir_mensal_liquido, 2)
+                inss_mensal = round(min(renda * 0.11, 908.85), 2)  # desconto máximo INSS 2026 (teto R$8.475,55)
                 total_imp = ir_mensal + inss_mensal
-                st.markdown(f"💸 IR estimado: **R$ {ir_mensal:,.2f}/mês** | INSS: **R$ {inss_mensal:,.2f}/mês** | Total: **R$ {total_imp:,.2f}/mês**")
+                st.markdown(f"💸 IR estimado: **R$ {ir_mensal:,.2f}/mês** | INSS (11%): **R$ {inss_mensal:,.2f}/mês** | Total: **R$ {total_imp:,.2f}/mês**")
                 st.markdown(f"✅ Renda líquida estimada: **R$ {renda - total_imp:,.2f}/mês**")
+                if renda <= 5000:
+                    st.success("🎉 Com a Reforma da Renda (Lei 15.270/2025), você está isento de IR em 2026!")
+                elif renda <= 7350:
+                    st.info("📉 Você tem redução parcial do IR em 2026 (Lei 15.270/2025). Quanto mais perto de R$5.000, maior o desconto.")
             elif regime == "Simples Nacional":
                 st.info("📄 A alíquota depende do seu anexo e faturamento. Consulte seu contador.")
             else:
