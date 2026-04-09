@@ -730,7 +730,7 @@ def grafico_gastos(gastos_cat):
         showlegend=False, margin=dict(t=10, b=10, l=10, r=10),
         height=280,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key="chart_gastos")
 
 
 def grafico_projecao(sobra, selic):
@@ -749,7 +749,7 @@ def grafico_projecao(sobra, selic):
         xaxis=dict(title="Meses", gridcolor="#1f2937"),
         yaxis=dict(title="R$", gridcolor="#1f2937", tickprefix="R$"),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key="chart_projecao")
 
 # =========================
 # PÁGINA: LOGIN
@@ -1629,7 +1629,7 @@ def page_admin():
                 xaxis=dict(gridcolor="rgba(26,158,92,0.1)"),
                 yaxis=dict(gridcolor="rgba(26,158,92,0.1)", title="usuários"),
             )
-            st.plotly_chart(fig_eng, use_container_width=True)
+            st.plotly_chart(fig_eng, use_container_width=True, key="admin_engagement_daily")
 
         # Benchmarks de referência
         st.markdown("**📚 Benchmarks de Mercado**")
@@ -1672,7 +1672,7 @@ def page_admin():
                 ))
                 fig.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
                     showlegend=False,height=260,margin=dict(t=10,b=10,l=10,r=10))
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, key="admin_perfis_pie")
 
         with col_b:
             st.markdown("**Tendências Financeiras**")
@@ -1687,7 +1687,7 @@ def page_admin():
                 fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
                     font=dict(color="#9ca3af"),height=260,margin=dict(t=10,b=30,l=10,r=10),
                     xaxis=dict(gridcolor="#1f2937"),yaxis=dict(gridcolor="#1f2937"))
-                st.plotly_chart(fig2, use_container_width=True)
+                st.plotly_chart(fig2, use_container_width=True, key="admin_tendencias_bar")
 
         # Tabela de usuários
         st.markdown("**📋 Lista de Usuários**")
@@ -1738,7 +1738,7 @@ def page_admin():
                 font=dict(color="#9ca3af"),height=220,margin=dict(t=10,b=30,l=10,r=10),
                 xaxis=dict(title="Score",gridcolor="#1f2937"),
                 yaxis=dict(title="Usuários",gridcolor="#1f2937"))
-            st.plotly_chart(fig3, use_container_width=True)
+            st.plotly_chart(fig3, use_container_width=True, key="admin_scores_hist")
 
         # Categorias
         cat_dist = s.get("cat_dist", {})
@@ -1753,7 +1753,7 @@ def page_admin():
             fig4.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#9ca3af"),height=300,margin=dict(t=10,b=10,l=10,r=40),
                 xaxis=dict(gridcolor="#1f2937"),yaxis=dict(gridcolor="#1f2937"))
-            st.plotly_chart(fig4, use_container_width=True)
+            st.plotly_chart(fig4, use_container_width=True, key="admin_categorias_bar")
 
     # ══════════════════════════════════
     # ABA 4: FINANCEIRO
@@ -1802,7 +1802,7 @@ def page_admin():
             xaxis=dict(title="Score", gridcolor="#1f2937"),
             yaxis=dict(title="Usuários", gridcolor="#1f2937"),
         )
-        st.plotly_chart(fig3, use_container_width=True)
+        st.plotly_chart(fig3, use_container_width=True, key="engage_scores_hist")
 
     # ── Categorias de gastos ──
     cat_dist = s.get("cat_dist", {})
@@ -1822,7 +1822,7 @@ def page_admin():
             xaxis=dict(gridcolor="#1f2937"),
             yaxis=dict(gridcolor="#1f2937"),
         )
-        st.plotly_chart(fig4, use_container_width=True)
+        st.plotly_chart(fig4, use_container_width=True, key="engage_cat_bar")
 
     # ── Tabela de usuários ──
     st.markdown("### 📋 Lista de Usuários")
