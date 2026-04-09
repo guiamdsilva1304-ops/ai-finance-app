@@ -755,12 +755,32 @@ def grafico_projecao(sobra, selic):
 # PÁGINA: LOGIN
 # =========================
 def page_login():
+    inject_css()
+
     st.markdown("""
-    <div style="text-align:center; padding: 3rem 0 1rem;">
-        <div style="font-family:'Syne',sans-serif;font-size:3.5rem;font-weight:800;background:linear-gradient(135deg,#1d4ed8,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+    <div style="text-align:center; padding: 3rem 0 1.5rem;">
+        <svg width="60" height="60" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="margin:0 auto 16px;display:block;">
+            <defs>
+                <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#34c17a"/>
+                    <stop offset="100%" style="stop-color:#f0b429"/>
+                </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="48" fill="#0a1f12" stroke="url(#lg)" stroke-width="3"/>
+            <polygon points="50,14 45,50 50,46 55,50" fill="#f0b429"/>
+            <polygon points="50,86 45,50 50,54 55,50" fill="#34c17a"/>
+            <circle cx="50" cy="50" r="6" fill="#0a1f12" stroke="#f0b429" stroke-width="2"/>
+            <circle cx="50" cy="50" r="2.5" fill="#f0b429"/>
+        </svg>
+        <div style="font-family:Georgia,serif;font-size:2.8rem;font-weight:900;
+            background:linear-gradient(135deg,#34c17a,#f0b429);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+            background-clip:text;letter-spacing:-1px;line-height:1;margin-bottom:8px;">
             iMoney
         </div>
-        <p style="color:#6b7280;margin-top:0.5rem">Assessoria financeira inteligente com IA</p>
+        <p style="color:#6b9e80;margin-top:0.3rem;font-size:0.85rem;letter-spacing:2px;text-transform:uppercase;">
+            Assessoria Financeira com IA
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -768,49 +788,146 @@ def page_login():
     with col:
         aba = st.tabs(["🔑 Entrar", "✨ Criar conta"])
 
+        # ── ABA LOGIN ──
         with aba[0]:
-            email = st.text_input("Email", key="login_email")
-            senha = st.text_input("Senha", type="password", key="login_senha")
-            if st.button("Entrar", use_container_width=True):
-                if not is_valid_email(email):
-                    st.error("Email inválido.")
+            email = st.text_input("Email", key="login_email",
+                placeholder="seu@email.com")
+            senha = st.text_input("Senha", type="password", key="login_senha",
+                placeholder="Sua senha")
+
+            if st.button("Entrar", use_container_width=True, key="btn_login"):
+                email = email.strip().lower()
+
+                # Validações básicas
+                if not email:
+                    st.error("Digite seu email.")
+                elif not is_valid_email(email):
+                    st.error("Email inválido. Verifique o formato.")
                 elif not senha:
                     st.error("Digite sua senha.")
                 else:
-                    # Verifica rate limit
+                    # Rate limit
                     allowed, wait = check_rate_limit_login(email)
                     if not allowed:
-                        st.error(f"🔒 Muitas tentativas. Aguarde {wait//60}min {wait%60}s.")
+                        mins, secs = wait // 60, wait % 60
+                        st.error(f"🔒 Muitas tentativas falhas. Aguarde {mins}min {secs}s.")
                     else:
-                        try:
-                            res = supabase.auth.sign_in_with_password({"email": email, "password": senha})
-                            if res and res.user:
-                                reset_login_attempts(email)
-                                st.session_state["user_id"] = res.user.id
-                                st.session_state["user_email"] = res.user.email
-                                st.session_state["login_time"] = time.time()
-                                st.rerun()
-                            else:
+                        with st.spinner("Entrando..."):
+                            try:
+                                res = supabase.auth.sign_in_with_password({
+                                    "email": email,
+                                    "password": senha
+                                })
+                                if res and res.user:
+                                    reset_login_attempts(email)
+                                    st.session_state["user_id"] = res.user.id
+                                    st.session_state["user_email"] = res.user.email
+                                    st.session_state["login_time"] = time.time()
+                                    st.success("✅ Login realizado!")
+                                    time.sleep(0.5)
+                                    st.rerun()
+                                else:
+                                    increment_login_attempts(email)
+                                    st.error("Email ou senha incorretos.")
+                            except Exception as e:
+                                err = str(e).lower()
                                 increment_login_attempts(email)
-                                st.error("Credenciais inválidas.")
-                        except Exception as e:
-                            increment_login_attempts(email)
-                            st.error("Email ou senha incorretos.")
+                                if "invalid" in err or "credentials" in err or "wrong" in err:
+                                    st.error("❌ Email ou senha incorretos.")
+                                elif "email not confirmed" in err:
+                                    st.warning("⚠️ Confirme seu email antes de entrar. Verifique sua caixa de entrada.")
+                                elif "rate" in err or "too many" in err:
+                                    st.error("🔒 Muitas tentativas. Aguarde alguns minutos.")
+                                else:
+                                    st.error(f"Erro ao fazer login. Tente novamente.")
 
+        # ── ABA CADASTRO ──
         with aba[1]:
-            email2 = st.text_input("Email", key="reg_email")
-            senha2 = st.text_input("Senha (mín. 6 caracteres)", type="password", key="reg_senha")
-            if st.button("Criar conta", use_container_width=True):
-                if not is_valid_email(email2):
-                    st.error("Email inválido.")
+            email2 = st.text_input("Email", key="reg_email",
+                placeholder="seu@email.com")
+            senha2 = st.text_input("Senha", type="password", key="reg_senha",
+                placeholder="Mínimo 8 caracteres com letras e números")
+            senha2_conf = st.text_input("Confirme a senha", type="password",
+                key="reg_senha_conf", placeholder="Repita a senha")
+
+            # Indicador de força da senha em tempo real
+            if senha2:
+                tem_letra = bool(re.search(r"[a-zA-Z]", senha2))
+                tem_num = bool(re.search(r"[0-9]", senha2))
+                comprimento = len(senha2) >= 8
+                forca = sum([tem_letra, tem_num, comprimento])
+                cores = ["#ef4444", "#f59e0b", "#10b981"]
+                labels = ["Fraca", "Média", "Forte"]
+                st.markdown(
+                    f"<div style='font-size:0.75rem;color:{cores[forca-1] if forca > 0 else '#6b7280'};margin-top:4px;'>"
+                    f"Senha: {labels[forca-1] if forca > 0 else 'muito curta'} "
+                    f"{'✓' if comprimento else '✗'} 8+ chars "
+                    f"{'✓' if tem_letra else '✗'} letra "
+                    f"{'✓' if tem_num else '✗'} número</div>",
+                    unsafe_allow_html=True
+                )
+
+            if st.button("Criar conta", use_container_width=True, key="btn_register"):
+                email2 = email2.strip().lower()
+
+                # Validações
+                if not email2:
+                    st.error("Digite seu email.")
+                elif not is_valid_email(email2):
+                    st.error("Email inválido. Verifique o formato.")
+                elif not senha2:
+                    st.error("Digite uma senha.")
                 elif not is_valid_password(senha2):
                     st.error("Senha fraca. Use mínimo 8 caracteres com letras e números.")
+                elif senha2 != senha2_conf:
+                    st.error("As senhas não coincidem.")
                 else:
-                    try:
-                        supabase.auth.sign_up({"email": email2, "password": senha2})
-                        st.success("✅ Conta criada! Verifique seu email para confirmar.")
-                    except Exception as e:
-                        st.error("Erro ao criar conta. Tente novamente.")
+                    with st.spinner("Criando conta..."):
+                        try:
+                            res = supabase.auth.sign_up({
+                                "email": email2,
+                                "password": senha2
+                            })
+                            if res and res.user:
+                                # Tenta login direto (caso confirmação de email esteja desativada)
+                                try:
+                                    login_res = supabase.auth.sign_in_with_password({
+                                        "email": email2,
+                                        "password": senha2
+                                    })
+                                    if login_res and login_res.user:
+                                        st.session_state["user_id"] = login_res.user.id
+                                        st.session_state["user_email"] = login_res.user.email
+                                        st.session_state["login_time"] = time.time()
+                                        st.success("✅ Conta criada e login realizado!")
+                                        time.sleep(0.5)
+                                        st.rerun()
+                                    else:
+                                        st.success("✅ Conta criada! Verifique seu email para confirmar e faça login.")
+                                except:
+                                    st.success("✅ Conta criada! Verifique seu email para confirmar e faça login na aba 'Entrar'.")
+                            else:
+                                st.error("Não foi possível criar a conta. Tente novamente.")
+                        except Exception as e:
+                            err = str(e).lower()
+                            if "already registered" in err or "already exists" in err:
+                                st.warning("⚠️ Este email já está cadastrado. Faça login na aba 'Entrar'.")
+                            elif "password" in err and ("weak" in err or "short" in err):
+                                st.error("Senha muito fraca. Use letras, números e mínimo 8 caracteres.")
+                            elif "invalid email" in err:
+                                st.error("Email inválido. Verifique o formato.")
+                            elif "rate" in err or "too many" in err:
+                                st.error("🔒 Muitas tentativas. Aguarde alguns minutos.")
+                            else:
+                                st.error("Erro ao criar conta. Tente novamente em instantes.")
+
+        # Link de recuperação de senha
+        st.markdown(
+            "<div style='text-align:center;margin-top:16px;font-size:0.8rem;color:#6b9e80;'>"
+            "Esqueceu a senha? Entre em contato com o suporte."
+            "</div>",
+            unsafe_allow_html=True
+        )
 
 # =========================
 # PÁGINA: APP PRINCIPAL
