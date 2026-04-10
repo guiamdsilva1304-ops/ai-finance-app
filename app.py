@@ -368,16 +368,18 @@ def save_perfil(user_id, idade, filhos, estado, cidade, ocupacao):
     try:
         data = {
             "user_id": str(user_id),
-            "idade": int(idade) if idade else None,
+            "idade": int(idade) if idade and int(idade) > 0 else None,
             "filhos": int(filhos) if filhos is not None else 0,
-            "estado": sanitize_text(estado, 2),
-            "cidade": sanitize_text(cidade, 100),
-            "ocupacao": sanitize_text(ocupacao, 100),
+            "estado": str(estado).strip()[:2] if estado else None,
+            "cidade": str(cidade).strip()[:100] if cidade else None,
+            "ocupacao": str(ocupacao).strip()[:100] if ocupacao else None,
             "updated_at": datetime.utcnow().isoformat(),
         }
-        supabase.table("user_profiles").upsert(data).execute()
+        # Remove None values para não sobrescrever dados existentes
+        data = {k: v for k, v in data.items() if v is not None or k in ["user_id", "filhos"]}
+        result = supabase.table("user_profiles").upsert(data).execute()
         return True
-    except:
+    except Exception as e:
         return False
 
 
@@ -649,12 +651,39 @@ def inject_css():
         background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
         border: 1px solid #374151;
         border-radius: 16px;
-        padding: 1.2rem 1.5rem;
+        padding: 1.4rem 1.5rem 1.2rem;
         margin-bottom: 1rem;
+        min-height: 110px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
-    .metric-card h3 { color: #9ca3af; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 0.3rem; }
-    .metric-card .value { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; color: #f9fafb; }
-    .metric-card .sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.2rem; }
+    .metric-card h3 {
+        color: #9ca3af;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin: 0 0 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .metric-card .value {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #f9fafb;
+        line-height: 1.2;
+        word-break: break-word;
+    }
+    .metric-card .sub {
+        font-size: 0.75rem;
+        color: #6b9e80;
+        margin-top: 0.3rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
     .score-ring {
         display: flex; align-items: center; gap: 1rem;
@@ -1153,21 +1182,40 @@ def page_app():
         with c4:
             metric_card("SELIC", f"{selic}% a.a.", f"Meta: {selic_meta}% | IPCA 12m: {ipca_anual}%")
 
-        # Banner de indicadores econômicos
-        ref_str = f"<span style='color:#6b9e80'>📅 Ref: {ultima_atualizacao}</span>" if ultima_atualizacao != "fallback" else ""
-        cor_jr = "10b981" if juros_reais > 6 else ("f59e0b" if juros_reais > 3 else "ef4444")
+        # Banner de indicadores econômicos — cards individuais legíveis
+        cor_jr = "#10b981" if juros_reais > 6 else ("#f59e0b" if juros_reais > 3 else "#ef4444")
+        label_jr = "Excelente 🚀" if juros_reais > 6 else ("Moderado 📊" if juros_reais > 3 else "Baixo ⚠️")
+        ref_txt = f"Ref: {ultima_atualizacao}" if ultima_atualizacao != "fallback" else "Fonte: BCB"
         st.markdown(f"""
-        <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.2);
-        border-radius:12px;padding:10px 20px;display:flex;gap:24px;flex-wrap:wrap;
-        align-items:center;margin-bottom:8px;font-size:0.82rem;'>
-            <span style='color:#6b9e80'>📡 BCB — atualiza a cada 4h</span>
-            <span style='color:#34c17a'>SELIC: <strong>{selic}% a.a.</strong></span>
-            <span style='color:#f0b429'>Meta: <strong>{selic_meta}%</strong></span>
-            <span style='color:#e8f5ee'>IPCA mensal: <strong>{ipca}%</strong></span>
-            <span style='color:#e8f5ee'>IPCA 12m: <strong>{ipca_anual}%</strong></span>
-            <span style='color:#{cor_jr}'>Juro real: <strong>{juros_reais}% a.a.</strong></span>
-            {ref_str}
+        <div style='display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;'>
+            <div style='background:rgba(26,158,92,0.1);border:1px solid rgba(26,158,92,0.3);
+            border-radius:12px;padding:12px 14px;'>
+                <div style='color:#6b9e80;font-size:0.68rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;'>SELIC Efetiva</div>
+                <div style='color:#34c17a;font-size:1.15rem;font-weight:700;'>{selic}% a.a.</div>
+            </div>
+            <div style='background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.25);
+            border-radius:12px;padding:12px 14px;'>
+                <div style='color:#6b9e80;font-size:0.68rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;'>Meta SELIC</div>
+                <div style='color:#f0b429;font-size:1.15rem;font-weight:700;'>{selic_meta}% a.a.</div>
+            </div>
+            <div style='background:rgba(232,245,238,0.05);border:1px solid rgba(232,245,238,0.1);
+            border-radius:12px;padding:12px 14px;'>
+                <div style='color:#6b9e80;font-size:0.68rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;'>IPCA Mensal</div>
+                <div style='color:#e8f5ee;font-size:1.15rem;font-weight:700;'>{ipca}%</div>
+            </div>
+            <div style='background:rgba(232,245,238,0.05);border:1px solid rgba(232,245,238,0.1);
+            border-radius:12px;padding:12px 14px;'>
+                <div style='color:#6b9e80;font-size:0.68rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;'>IPCA 12 meses</div>
+                <div style='color:#e8f5ee;font-size:1.15rem;font-weight:700;'>{ipca_anual}%</div>
+            </div>
+            <div style='background:rgba(0,0,0,0.2);border:1px solid {cor_jr}44;
+            border-radius:12px;padding:12px 14px;'>
+                <div style='color:#6b9e80;font-size:0.68rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;'>Juro Real</div>
+                <div style='color:{cor_jr};font-size:1.15rem;font-weight:700;'>{juros_reais}% a.a.</div>
+                <div style='color:#6b9e80;font-size:0.65rem;margin-top:2px;'>{label_jr}</div>
+            </div>
         </div>
+        <div style='color:#4b7a5e;font-size:0.7rem;text-align:right;margin-bottom:8px;'>📡 {ref_txt} — atualiza a cada 4h</div>
         """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1479,34 +1527,47 @@ def page_app():
             col3, col4 = st.columns(2)
 
             with col3:
-                estados_lista = [""] + [f"{uf} — {nome}" for uf, nome in sorted(ESTADOS_BR.items(), key=lambda x: x[1])]
-                estado_salvo = perfil_salvo.get("estado", "")
-                estado_display = f"{estado_salvo} — {ESTADOS_BR.get(estado_salvo, '')}" if estado_salvo else ""
-                estado_idx = estados_lista.index(estado_display) if estado_display in estados_lista else 0
-                estado_sel = st.selectbox("Estado", estados_lista, index=estado_idx)
-                estado_uf = estado_sel.split(" — ")[0] if estado_sel else ""
+                estados_lista = ["— Selecione seu estado —"] + [f"{uf} — {nome}" for uf, nome in sorted(ESTADOS_BR.items(), key=lambda x: x[1])]
+                estado_salvo = perfil_salvo.get("estado", "") or ""
+                estado_display = f"{estado_salvo} — {ESTADOS_BR.get(estado_salvo, '')}" if estado_salvo and estado_salvo in ESTADOS_BR else ""
+                try:
+                    estado_idx = estados_lista.index(estado_display) if estado_display in estados_lista else 0
+                except ValueError:
+                    estado_idx = 0
+                estado_sel = st.selectbox("Estado", estados_lista, index=estado_idx, key="sel_estado")
+                estado_uf = estado_sel.split(" — ")[0].strip() if estado_sel and "—" in estado_sel and estado_sel != "— Selecione seu estado —" else ""
 
             with col4:
-                cidades_disponiveis = [""] + CIDADES_BR.get(estado_uf, []) if estado_uf else ["Selecione um estado primeiro"]
-                cidade_salva = perfil_salvo.get("cidade", "")
-                cidade_idx = cidades_disponiveis.index(cidade_salva) if cidade_salva in cidades_disponiveis else 0
-                cidade_sel = st.selectbox("Cidade", cidades_disponiveis, index=cidade_idx)
+                if estado_uf and estado_uf in CIDADES_BR:
+                    cidades_disponiveis = ["— Selecione sua cidade —"] + CIDADES_BR[estado_uf]
+                    cidade_salva = perfil_salvo.get("cidade", "") or ""
+                    try:
+                        cidade_idx = cidades_disponiveis.index(cidade_salva) if cidade_salva in cidades_disponiveis else 0
+                    except ValueError:
+                        cidade_idx = 0
+                else:
+                    cidades_disponiveis = ["— Selecione um estado primeiro —"]
+                    cidade_idx = 0
+                cidade_sel = st.selectbox("Cidade", cidades_disponiveis, index=cidade_idx, key="sel_cidade")
 
             submitted = st.form_submit_button("💾 Salvar perfil", use_container_width=True)
 
             if submitted:
-                if not estado_uf:
+                cidade_valida = cidade_sel and "Selecione" not in cidade_sel
+                estado_valido = estado_uf and estado_uf in ESTADOS_BR
+                if not estado_valido:
                     st.error("Selecione seu estado.")
-                elif not cidade_sel or cidade_sel == "Selecione um estado primeiro":
+                elif not cidade_valida:
                     st.error("Selecione sua cidade.")
-                elif idade < 1:
+                elif not idade or int(idade) < 1:
                     st.error("Informe sua idade.")
                 else:
-                    if save_perfil(user_id, idade, filhos, estado_uf, cidade_sel, ocupacao):
+                    if save_perfil(user_id, int(idade), int(filhos), estado_uf, cidade_sel, ocupacao):
                         st.success("✅ Perfil salvo com sucesso!")
+                        time.sleep(0.5)
                         st.rerun()
                     else:
-                        st.error("Erro ao salvar. Tente novamente.")
+                        st.error("Erro ao salvar. Verifique se a tabela user_profiles existe no Supabase.")
 
         # Exibe perfil atual
         if perfil_salvo:
