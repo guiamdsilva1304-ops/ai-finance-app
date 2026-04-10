@@ -106,13 +106,10 @@ def sanitize_text(text: str, max_len: int = 500) -> str:
     """Remove caracteres perigosos e limita tamanho."""
     if not text:
         return ""
-    # Remove tags HTML/JS
-    text = re.sub(r'<[^>]+>', '', str(text))
-    # Remove caracteres de controle
-    text = re.sub(r'[--]', '', text)
-    # Limita tamanho
+    text = str(text)
+    text = re.sub(r'<[^>]+>', '', text)
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
     return text[:max_len].strip()
-
 
 def is_valid_email(email: str) -> bool:
     """Validação robusta de email com regex."""
@@ -121,12 +118,8 @@ def is_valid_email(email: str) -> bool:
 
 
 def is_valid_password(password: str) -> bool:
-    """Senha: mínimo 8 chars, 1 número, 1 letra."""
-    if len(password) < 8:
-        return False
-    has_letter = bool(re.search(r'[a-zA-Z]', password))
-    has_number = bool(re.search(r'[0-9]', password))
-    return has_letter and has_number
+    """Senha: mínimo 6 chars (compatível com Supabase default)."""
+    return len(password) >= 6
 
 
 def is_valid_valor(valor) -> bool:
@@ -281,6 +274,49 @@ def get_juros_reais():
     return round(d["selic_anual"] - d["ipca_anual"], 2)
 
 # =========================
+# DADOS DE ESTADOS E CIDADES BR
+# =========================
+ESTADOS_BR = {
+    "AC": "Acre", "AL": "Alagoas", "AP": "Amapá", "AM": "Amazonas",
+    "BA": "Bahia", "CE": "Ceará", "DF": "Distrito Federal", "ES": "Espírito Santo",
+    "GO": "Goiás", "MA": "Maranhão", "MT": "Mato Grosso", "MS": "Mato Grosso do Sul",
+    "MG": "Minas Gerais", "PA": "Pará", "PB": "Paraíba", "PR": "Paraná",
+    "PE": "Pernambuco", "PI": "Piauí", "RJ": "Rio de Janeiro", "RN": "Rio Grande do Norte",
+    "RS": "Rio Grande do Sul", "RO": "Rondônia", "RR": "Roraima", "SC": "Santa Catarina",
+    "SP": "São Paulo", "SE": "Sergipe", "TO": "Tocantins"
+}
+
+CIDADES_BR = {
+    "AC": ["Rio Branco","Cruzeiro do Sul","Sena Madureira","Tarauacá","Feijó"],
+    "AL": ["Maceió","Arapiraca","Palmeira dos Índios","Rio Largo","Penedo"],
+    "AP": ["Macapá","Santana","Laranjal do Jari","Oiapoque","Mazagão"],
+    "AM": ["Manaus","Parintins","Itacoatiara","Manacapuru","Coari"],
+    "BA": ["Salvador","Feira de Santana","Vitória da Conquista","Camaçari","Itabuna","Juazeiro","Ilhéus"],
+    "CE": ["Fortaleza","Caucaia","Juazeiro do Norte","Maracanaú","Sobral","Crato","Itapipoca"],
+    "DF": ["Brasília","Ceilândia","Taguatinga","Samambaia","Planaltina"],
+    "ES": ["Vitória","Serra","Vila Velha","Cariacica","Cachoeiro de Itapemirim"],
+    "GO": ["Goiânia","Aparecida de Goiânia","Anápolis","Rio Verde","Luziânia"],
+    "MA": ["São Luís","Imperatriz","São José de Ribamar","Timon","Caxias"],
+    "MT": ["Cuiabá","Várzea Grande","Rondonópolis","Sinop","Tangará da Serra"],
+    "MS": ["Campo Grande","Dourados","Três Lagoas","Corumbá","Grande Dourados"],
+    "MG": ["Belo Horizonte","Uberlândia","Contagem","Juiz de Fora","Betim","Montes Claros","Ribeirão das Neves","Uberaba"],
+    "PA": ["Belém","Ananindeua","Santarém","Marabá","Castanhal","Parauapebas"],
+    "PB": ["João Pessoa","Campina Grande","Santa Rita","Patos","Bayeux"],
+    "PR": ["Curitiba","Londrina","Maringá","Ponta Grossa","Cascavel","São José dos Pinhais","Foz do Iguaçu"],
+    "PE": ["Recife","Caruaru","Olinda","Petrolina","Paulista","Jaboatão dos Guararapes"],
+    "PI": ["Teresina","Parnaíba","Picos","Piripiri","Floriano"],
+    "RJ": ["Rio de Janeiro","São Gonçalo","Duque de Caxias","Nova Iguaçu","Niterói","Campos dos Goytacazes","Belford Roxo"],
+    "RN": ["Natal","Mossoró","Parnamirim","São Gonçalo do Amarante","Macaíba"],
+    "RS": ["Porto Alegre","Caxias do Sul","Pelotas","Canoas","Santa Maria","Gravataí","Viamão"],
+    "RO": ["Porto Velho","Ji-Paraná","Ariquemes","Vilhena","Cacoal"],
+    "RR": ["Boa Vista","Rorainópolis","Caracaraí","Alto Alegre","Mucajaí"],
+    "SC": ["Florianópolis","Joinville","Blumenau","São José","Chapecó","Criciúma","Itajaí"],
+    "SP": ["São Paulo","Guarulhos","Campinas","São Bernardo do Campo","Santo André","Osasco","Ribeirão Preto","Sorocaba","Mauá","Santos","São José dos Campos","Mogi das Cruzes","Bauru","Jundiaí"],
+    "SE": ["Aracaju","Nossa Senhora do Socorro","Lagarto","Itabaiana","São Cristóvão"],
+    "TO": ["Palmas","Araguaína","Gurupi","Porto Nacional","Paraíso do Tocantins"]
+}
+
+# =========================
 # MEMÓRIA / BANCO
 # =========================
 def load_memory(user_id):
@@ -314,6 +350,35 @@ def save_memory(user_id, renda, gastos_total, gastos_cat: dict):
         return trend, avg
     except Exception as e:
         return "erro", 0
+
+
+def load_perfil(user_id):
+    """Carrega perfil do usuário (idade, filhos, localização)."""
+    try:
+        res = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+        return res.data[0] if res.data else {}
+    except:
+        return {}
+
+
+def save_perfil(user_id, idade, filhos, estado, cidade, ocupacao):
+    """Salva/atualiza perfil do usuário."""
+    if not user_id:
+        return False
+    try:
+        data = {
+            "user_id": str(user_id),
+            "idade": int(idade) if idade else None,
+            "filhos": int(filhos) if filhos is not None else 0,
+            "estado": sanitize_text(estado, 2),
+            "cidade": sanitize_text(cidade, 100),
+            "ocupacao": sanitize_text(ocupacao, 100),
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+        supabase.table("user_profiles").upsert(data).execute()
+        return True
+    except:
+        return False
 
 
 def load_transactions(user_id):
@@ -489,7 +554,7 @@ Seja direto, prático e use números reais. Português do Brasil."""
     return response.content[0].text
 
 
-def agente_chat(historico, renda, gastos_total, sobra, selic, ipca, score, trend, perfil, gastos_cat, metas, tipo_renda='Salário fixo'):
+def agente_chat(historico, renda, gastos_total, sobra, selic, ipca, score, trend, perfil, gastos_cat, metas, tipo_renda='Salário fixo', perfil_usuario=None):
     system = f"""Você é o iMoney, o assessor financeiro pessoal mais avançado do Brasil. 
 Você combina análise quantitativa rigorosa com linguagem humana e empática.
 
@@ -503,6 +568,7 @@ CONTEXTO DO USUÁRIO (ATUALIZADO):
 - Tendência: {trend}
 - Gastos por categoria: {json.dumps(gastos_cat, ensure_ascii=False)}
 - Metas: {json.dumps(metas, ensure_ascii=False)}
+- Perfil pessoal: {json.dumps(perfil_usuario or {}, ensure_ascii=False)}
 
 CENÁRIO MACROECONÔMICO:
 - SELIC: {selic}% a.a.
@@ -846,7 +912,7 @@ def page_login():
             email2 = st.text_input("Email", key="reg_email",
                 placeholder="seu@email.com")
             senha2 = st.text_input("Senha", type="password", key="reg_senha",
-                placeholder="Mínimo 8 caracteres com letras e números")
+                placeholder="Mínimo 6 caracteres")
             senha2_conf = st.text_input("Confirme a senha", type="password",
                 key="reg_senha_conf", placeholder="Repita a senha")
 
@@ -854,7 +920,7 @@ def page_login():
             if senha2:
                 tem_letra = bool(re.search(r"[a-zA-Z]", senha2))
                 tem_num = bool(re.search(r"[0-9]", senha2))
-                comprimento = len(senha2) >= 8
+                comprimento = len(senha2) >= 6
                 forca = sum([tem_letra, tem_num, comprimento])
                 cores = ["#ef4444", "#f59e0b", "#10b981"]
                 labels = ["Fraca", "Média", "Forte"]
@@ -878,7 +944,7 @@ def page_login():
                 elif not senha2:
                     st.error("Digite uma senha.")
                 elif not is_valid_password(senha2):
-                    st.error("Senha fraca. Use mínimo 8 caracteres com letras e números.")
+                    st.error("Senha muito curta. Use mínimo 6 caracteres.")
                 elif senha2 != senha2_conf:
                     st.error("As senhas não coincidem.")
                 else:
@@ -1062,6 +1128,7 @@ def page_app():
     # --- MEMÓRIA ---
     tipo_renda_str = st.session_state.get("tipo_renda", "💼 Salário fixo")
     trend, avg_savings = save_memory(user_id, renda, gastos_total, gastos_cat)
+    perfil_usuario = load_perfil(user_id)
 
     # --- ENGINE ---
     perfil = classify_user(renda, gastos_total)
@@ -1069,7 +1136,7 @@ def page_app():
     metas = load_metas(user_id)
 
     # --- ABAS ---
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Dashboard", "💬 Assessor IA", "📝 Transações", "🎯 Metas", "🔀 Renda Variável"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Dashboard", "💬 Assessor IA", "📝 Transações", "🎯 Metas", "🔀 Renda Variável", "👤 Perfil"])
 
     # ========================
     # TAB 1: DASHBOARD
@@ -1179,7 +1246,8 @@ def page_app():
                         resposta = agente_chat(
                             st.session_state.messages, renda, gastos_total,
                             sobra, selic, ipca, score, trend, perfil, gastos_cat, metas,
-                            tipo_renda=tipo_renda_str
+                            tipo_renda=tipo_renda_str,
+                            perfil_usuario=perfil_usuario
                         )
                         st.session_state.messages.append({"role": "assistant", "content": resposta})
                     except Exception as e:
@@ -1373,6 +1441,90 @@ def page_app():
                 st.info("📄 A alíquota depende do seu anexo e faturamento. Consulte seu contador.")
             else:
                 st.warning("💡 Como autônomo você pode pagar carnê-leão e INSS. Consulte um contador.")
+
+    # ========================
+    # TAB 6: PERFIL DO USUÁRIO
+    # ========================
+    with tab6:
+        st.markdown("## 👤 Meu Perfil")
+        st.caption("Suas informações ajudam o assessor IA a dar recomendações mais precisas.")
+
+        # Carrega perfil salvo
+        perfil_salvo = load_perfil(user_id)
+
+        with st.form("form_perfil"):
+            st.markdown("### 📋 Informações Pessoais")
+            col1, col2 = st.columns(2)
+
+            with col1:
+                idade_val = perfil_salvo.get("idade") or 0
+                idade = st.number_input("Idade", min_value=0, max_value=120,
+                    value=int(idade_val), step=1)
+
+                filhos_val = perfil_salvo.get("filhos") or 0
+                filhos = st.number_input("Número de filhos", min_value=0, max_value=20,
+                    value=int(filhos_val), step=1)
+
+            with col2:
+                ocupacoes = [
+                    "Empregado CLT", "Servidor público", "Empresário/Sócio",
+                    "Freelancer/Autônomo", "Profissional liberal", "Aposentado/Pensionista",
+                    "Estudante", "Desempregado", "Outro"
+                ]
+                ocup_atual = perfil_salvo.get("ocupacao", "Empregado CLT")
+                ocupacao = st.selectbox("Ocupação", ocupacoes,
+                    index=ocupacoes.index(ocup_atual) if ocup_atual in ocupacoes else 0)
+
+            st.markdown("### 📍 Localização")
+            col3, col4 = st.columns(2)
+
+            with col3:
+                estados_lista = [""] + [f"{uf} — {nome}" for uf, nome in sorted(ESTADOS_BR.items(), key=lambda x: x[1])]
+                estado_salvo = perfil_salvo.get("estado", "")
+                estado_display = f"{estado_salvo} — {ESTADOS_BR.get(estado_salvo, '')}" if estado_salvo else ""
+                estado_idx = estados_lista.index(estado_display) if estado_display in estados_lista else 0
+                estado_sel = st.selectbox("Estado", estados_lista, index=estado_idx)
+                estado_uf = estado_sel.split(" — ")[0] if estado_sel else ""
+
+            with col4:
+                cidades_disponiveis = [""] + CIDADES_BR.get(estado_uf, []) if estado_uf else ["Selecione um estado primeiro"]
+                cidade_salva = perfil_salvo.get("cidade", "")
+                cidade_idx = cidades_disponiveis.index(cidade_salva) if cidade_salva in cidades_disponiveis else 0
+                cidade_sel = st.selectbox("Cidade", cidades_disponiveis, index=cidade_idx)
+
+            submitted = st.form_submit_button("💾 Salvar perfil", use_container_width=True)
+
+            if submitted:
+                if not estado_uf:
+                    st.error("Selecione seu estado.")
+                elif not cidade_sel or cidade_sel == "Selecione um estado primeiro":
+                    st.error("Selecione sua cidade.")
+                elif idade < 1:
+                    st.error("Informe sua idade.")
+                else:
+                    if save_perfil(user_id, idade, filhos, estado_uf, cidade_sel, ocupacao):
+                        st.success("✅ Perfil salvo com sucesso!")
+                        st.rerun()
+                    else:
+                        st.error("Erro ao salvar. Tente novamente.")
+
+        # Exibe perfil atual
+        if perfil_salvo:
+            st.markdown("---")
+            st.markdown("### 📊 Seu perfil atual")
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                st.metric("Idade", f"{perfil_salvo.get('idade', '—')} anos")
+            with c2:
+                filhos_n = perfil_salvo.get('filhos', 0)
+                st.metric("Filhos", filhos_n if filhos_n is not None else "—")
+            with c3:
+                uf = perfil_salvo.get('estado', '')
+                st.metric("Estado", ESTADOS_BR.get(uf, uf) if uf else "—")
+            with c4:
+                st.metric("Cidade", perfil_salvo.get('cidade', '—'))
+
+            st.markdown(f"**Ocupação:** {perfil_salvo.get('ocupacao', '—')}")
 
 
 
