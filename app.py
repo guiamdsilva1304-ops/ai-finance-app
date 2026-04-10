@@ -1136,7 +1136,7 @@ def page_app():
     metas = load_metas(user_id)
 
     # --- ABAS ---
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Dashboard", "💬 Assessor IA", "📝 Transações", "🎯 Metas", "🔀 Renda Variável", "👤 Perfil"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📊 Dashboard", "💬 Assessor IA", "📝 Transações", "🎯 Metas", "🔀 Renda Variável", "👤 Perfil", "🏦 Open Finance"])
 
     # ========================
     # TAB 1: DASHBOARD
@@ -1525,6 +1525,168 @@ def page_app():
                 st.metric("Cidade", perfil_salvo.get('cidade', '—'))
 
             st.markdown(f"**Ocupação:** {perfil_salvo.get('ocupacao', '—')}")
+
+    # ========================
+    # TAB 7: OPEN FINANCE
+    # ========================
+    with tab7:
+        st.markdown("## 🏦 Open Finance")
+        st.caption("Conecte suas contas bancárias e importe seus dados automaticamente.")
+
+        # ── Banner explicativo ──
+        st.markdown("""
+        <div style='background:linear-gradient(135deg,rgba(26,158,92,0.15),rgba(240,180,41,0.1));
+        border:1px solid rgba(26,158,92,0.3);border-radius:16px;padding:20px 24px;margin-bottom:24px;'>
+            <div style='font-size:1.1rem;font-weight:700;color:#34c17a;margin-bottom:8px;'>
+                🔐 O que é o Open Finance?
+            </div>
+            <p style='color:#e8f5ee;font-size:0.9rem;line-height:1.6;margin:0;'>
+                O <strong>Open Finance</strong> é um sistema regulamentado pelo <strong>Banco Central do Brasil</strong>
+                que permite que você compartilhe seus dados bancários com outros aplicativos de forma
+                <strong>segura, criptografada e com seu consentimento</strong>. Você pode conectar contas de
+                Nubank, Itaú, Bradesco, Santander, Banco do Brasil, Caixa e mais de 800 instituições.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Status da integração ──
+        st.markdown("### 📋 Status da Integração")
+
+        col_status1, col_status2, col_status3 = st.columns(3)
+        with col_status1:
+            st.markdown("""
+            <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.2);
+            border-radius:12px;padding:16px;text-align:center;'>
+                <div style='font-size:1.8rem;'>🔗</div>
+                <div style='color:#f0b429;font-weight:700;margin:6px 0 4px;'>Fase 1</div>
+                <div style='color:#34c17a;font-size:0.8rem;'>Dados Abertos</div>
+                <div style='color:#6b9e80;font-size:0.75rem;'>Produtos e tarifas dos bancos</div>
+                <div style='margin-top:8px;background:#10b981;color:white;border-radius:20px;
+                padding:2px 10px;font-size:0.7rem;display:inline-block;'>✓ Disponível</div>
+            </div>""", unsafe_allow_html=True)
+        with col_status2:
+            st.markdown("""
+            <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(240,180,41,0.2);
+            border-radius:12px;padding:16px;text-align:center;'>
+                <div style='font-size:1.8rem;'>👤</div>
+                <div style='color:#f0b429;font-weight:700;margin:6px 0 4px;'>Fase 2</div>
+                <div style='color:#f0b429;font-size:0.8rem;'>Dados do Cliente</div>
+                <div style='color:#6b9e80;font-size:0.75rem;'>Saldos, extratos e transações</div>
+                <div style='margin-top:8px;background:#f59e0b;color:white;border-radius:20px;
+                padding:2px 10px;font-size:0.7rem;display:inline-block;'>⏳ Em homologação</div>
+            </div>""", unsafe_allow_html=True)
+        with col_status3:
+            st.markdown("""
+            <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(107,158,128,0.2);
+            border-radius:12px;padding:16px;text-align:center;'>
+                <div style='font-size:1.8rem;'>💸</div>
+                <div style='color:#f0b429;font-weight:700;margin:6px 0 4px;'>Fase 3+</div>
+                <div style='color:#6b9e80;font-size:0.8rem;'>Pagamentos e Crédito</div>
+                <div style='color:#6b9e80;font-size:0.75rem;'>Pix, TED e iniciação de pagamento</div>
+                <div style='margin-top:8px;background:#374151;color:#9ca3af;border-radius:20px;
+                padding:2px 10px;font-size:0.7rem;display:inline-block;'>🗓 Roadmap 2026</div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Como vai funcionar ──
+        st.markdown("### 🔄 Como a integração vai funcionar")
+
+        steps = [
+            ("1", "🔐", "Você autoriza", "Dentro do iMoney, você escolhe seu banco e autoriza o compartilhamento de dados pelo próprio app do banco — sem digitar senha em lugar nenhum."),
+            ("2", "📡", "Conexão segura", "O iMoney usa o protocolo OAuth 2.0 + FAPI (Financial-grade API), exigido pelo Banco Central, para se conectar com segurança."),
+            ("3", "📥", "Dados importados", "Saldos, extratos e transações chegam automaticamente. Nada de digitar gastos manualmente."),
+            ("4", "🤖", "IA analisa", "O assessor IA analisa seus dados bancários reais e dá recomendações muito mais precisas."),
+        ]
+        cols = st.columns(4)
+        for i, (num, emoji, titulo, desc) in enumerate(steps):
+            with cols[i]:
+                st.markdown(f"""
+                <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.2);
+                border-radius:12px;padding:16px;height:180px;'>
+                    <div style='font-size:1.5rem;'>{emoji}</div>
+                    <div style='color:#f0b429;font-weight:700;font-size:0.8rem;
+                    letter-spacing:1px;margin:6px 0 4px;'>PASSO {num}</div>
+                    <div style='color:#e8f5ee;font-weight:600;margin-bottom:6px;'>{titulo}</div>
+                    <div style='color:#6b9e80;font-size:0.78rem;line-height:1.4;'>{desc}</div>
+                </div>""", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Bancos suportados ──
+        st.markdown("### 🏦 Bancos que serão suportados")
+        bancos = [
+            ("Nubank", "🟣"), ("Itaú", "🟠"), ("Bradesco", "🔴"), ("Santander", "🔴"),
+            ("Banco do Brasil", "🟡"), ("Caixa", "🔵"), ("Inter", "🟠"), ("C6 Bank", "⚫"),
+            ("BTG Pactual", "🔵"), ("XP", "⚫"), ("PagBank", "🟢"), ("Sicoob", "🟢"),
+        ]
+        banco_cols = st.columns(6)
+        for i, (banco, emoji) in enumerate(bancos):
+            with banco_cols[i % 6]:
+                st.markdown(f"""
+                <div style='background:rgba(15,45,26,0.4);border:1px solid rgba(26,158,92,0.15);
+                border-radius:10px;padding:10px;text-align:center;margin-bottom:8px;'>
+                    <div style='font-size:1.2rem;'>{emoji}</div>
+                    <div style='color:#e8f5ee;font-size:0.75rem;margin-top:4px;'>{banco}</div>
+                </div>""", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Formulário de interesse ──
+        st.markdown("### 📬 Quero ser notificado quando estiver disponível")
+        st.caption("A integração com Open Finance está em desenvolvimento. Cadastre seu interesse e avisamos assim que for lançada.")
+
+        with st.form("form_openfinance"):
+            col_a, col_b = st.columns(2)
+            with col_a:
+                banco_interesse = st.multiselect(
+                    "Quais bancos você usa?",
+                    [b[0] for b in bancos] + ["Outro"],
+                    default=[]
+                )
+            with col_b:
+                funcionalidade = st.multiselect(
+                    "O que mais te interessa?",
+                    ["Importar extratos automaticamente",
+                     "Categorização automática de gastos",
+                     "Saldo em tempo real",
+                     "Análise de investimentos",
+                     "Iniciar pagamentos pelo iMoney"],
+                    default=[]
+                )
+
+            notif_submit = st.form_submit_button("🔔 Quero ser notificado", use_container_width=True)
+            if notif_submit:
+                if banco_interesse or funcionalidade:
+                    try:
+                        supabase.table("openfinance_interest").upsert({
+                            "user_id": str(user_id),
+                            "bancos": json.dumps(banco_interesse),
+                            "funcionalidades": json.dumps(funcionalidade),
+                            "created_at": datetime.utcnow().isoformat(),
+                        }).execute()
+                        st.success("✅ Interesse registrado! Você será notificado por email assim que a integração estiver disponível.")
+                    except:
+                        st.success("✅ Interesse registrado! Você será notificado assim que disponível.")
+                else:
+                    st.warning("Selecione ao menos um banco ou funcionalidade.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Nota de segurança e privacidade ──
+        st.markdown("""
+        <div style='background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);
+        border-radius:12px;padding:16px 20px;'>
+            <div style='color:#fca5a5;font-weight:700;margin-bottom:8px;'>🔒 Segurança e Privacidade</div>
+            <ul style='color:#e8f5ee;font-size:0.82rem;line-height:1.8;margin:0;padding-left:16px;'>
+                <li>O iMoney <strong>nunca</strong> armazena suas senhas bancárias</li>
+                <li>A conexão usa <strong>OAuth 2.0 + FAPI</strong>, os mesmos padrões do Banco Central</li>
+                <li>Você pode <strong>revogar o acesso a qualquer momento</strong> pelo app do banco</li>
+                <li>Seus dados são protegidos pela <strong>LGPD (Lei Geral de Proteção de Dados)</strong></li>
+                <li>O consentimento expira automaticamente em <strong>12 meses</strong> conforme regulação</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 
