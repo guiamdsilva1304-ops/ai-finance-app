@@ -18,7 +18,7 @@ st.set_page_config(
     page_title="iMoney",
     page_icon="💰",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # collapsed by default — better on mobile
 )
 
 # =========================
@@ -633,128 +633,167 @@ Responda SOMENTE com JSON válido:
         return {"categoria": "Outros", "essencial": False, "percentual_renda": 0, "avaliacao": "OK", "dica": ""}
 
 # =========================
-# CSS CUSTOM
+# CSS CUSTOM — RESPONSIVO
 # =========================
 def inject_css():
     st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
+    /* ── BASE ── */
     html, body, [class*="css"] {
         font-family: 'DM Sans', sans-serif;
+        -webkit-text-size-adjust: 100%;
     }
     h1, h2, h3 { font-family: 'Syne', sans-serif; }
 
-    .main { background: #0a0e1a; }
+    /* ── LAYOUT PRINCIPAL ── */
+    .main .block-container {
+        padding: 1rem 1rem 3rem !important;
+        max-width: 100% !important;
+    }
 
+    /* ── METRIC CARDS ── */
     .metric-card {
         background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
         border: 1px solid #374151;
-        border-radius: 16px;
-        padding: 1.4rem 1.5rem 1.2rem;
-        margin-bottom: 1rem;
-        min-height: 110px;
+        border-radius: 14px;
+        padding: 1rem 1.1rem 0.9rem;
+        margin-bottom: 0.75rem;
+        min-height: 100px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        box-sizing: border-box;
+        width: 100%;
     }
     .metric-card h3 {
         color: #9ca3af;
-        font-size: 0.72rem;
-        letter-spacing: 0.12em;
+        font-size: 0.68rem;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
-        margin: 0 0 0.5rem;
-        white-space: nowrap;
+        margin: 0 0 0.4rem;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .metric-card .value {
         font-family: 'Syne', sans-serif;
-        font-size: 1.6rem;
+        font-size: clamp(1.1rem, 2.5vw, 1.6rem);
         font-weight: 800;
         color: #f9fafb;
         line-height: 1.2;
         word-break: break-word;
     }
     .metric-card .sub {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         color: #6b9e80;
         margin-top: 0.3rem;
-        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
+    /* ── SCORE RING ── */
     .score-ring {
-        display: flex; align-items: center; gap: 1rem;
-        background: #111827; border-radius: 16px; padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: #111827;
+        border-radius: 14px;
+        padding: 0.9rem 1.2rem;
         border: 1px solid #374151;
+        flex-wrap: wrap;
     }
-    .score-number { font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800; }
-
-    .chat-msg-user {
-        background: #1d4ed8; color: white;
-        border-radius: 18px 18px 4px 18px;
-        padding: 0.8rem 1.2rem; margin: 0.5rem 0;
-        max-width: 80%; margin-left: auto;
-        overflow: visible; white-space: pre-wrap;
-        word-wrap: break-word;
-    }
-    .chat-msg-ai {
-        background: #1f2937; color: #f3f4f6;
-        border-radius: 18px 18px 18px 4px;
-        padding: 0.8rem 1.2rem; margin: 0.5rem 0;
-        max-width: 100%; border: 1px solid #374151;
-        overflow: visible; white-space: pre-wrap;
-        word-wrap: break-word;
+    .score-number {
+        font-family: 'Syne', sans-serif;
+        font-size: clamp(2rem, 6vw, 3rem);
+        font-weight: 800;
     }
 
+    /* ── BOTÕES ── */
     .stButton > button {
         background: linear-gradient(135deg, #1d4ed8, #7c3aed);
-        color: white; border: none; border-radius: 10px;
-        font-family: 'Syne', sans-serif; font-weight: 700;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px;
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
         transition: all 0.2s;
+        width: 100%;
+        min-height: 44px;
+        font-size: clamp(0.82rem, 2vw, 0.95rem) !important;
+        padding: 0.6rem 1rem !important;
+        white-space: normal !important;
+        word-break: break-word !important;
     }
-    .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(29,78,216,0.4); }
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(29,78,216,0.4);
+    }
 
-    /* Sidebar com identidade visual iMoney */
+    /* ── TABS ── */
+    div[data-testid="stTabs"] button {
+        font-size: clamp(0.7rem, 2vw, 0.85rem) !important;
+        padding: 0.5rem 0.6rem !important;
+        white-space: nowrap;
+    }
+    div[data-testid="stTabs"] [role="tablist"] {
+        flex-wrap: wrap;
+        gap: 2px;
+    }
+
+    /* ── SIDEBAR ── */
     div[data-testid="stSidebar"] {
         background: linear-gradient(180deg, #07130d 0%, #0a1f12 40%, #0f2d1a 100%) !important;
         border-right: 1px solid rgba(26,158,92,0.25) !important;
+        min-width: 220px !important;
     }
-
-    /* Textos da sidebar */
+    div[data-testid="stSidebar"] > div {
+        padding-top: 1rem !important;
+    }
     div[data-testid="stSidebar"] label,
     div[data-testid="stSidebar"] p,
     div[data-testid="stSidebar"] span {
         color: #e8f5ee !important;
+        font-size: clamp(0.78rem, 2vw, 0.9rem) !important;
     }
-
-    /* Títulos da sidebar */
     div[data-testid="stSidebar"] h1,
     div[data-testid="stSidebar"] h2,
     div[data-testid="stSidebar"] h3 {
         color: #f0b429 !important;
+        font-size: clamp(0.85rem, 2.5vw, 1rem) !important;
     }
-
-    /* Inputs da sidebar */
     div[data-testid="stSidebar"] input {
         background: rgba(15,45,26,0.8) !important;
         border: 1px solid rgba(26,158,92,0.3) !important;
         color: #e8f5ee !important;
         border-radius: 8px !important;
+        font-size: 0.9rem !important;
+        min-height: 40px !important;
     }
-
-    /* Botão de logout na sidebar */
     div[data-testid="stSidebar"] .stButton > button {
         background: linear-gradient(135deg, #1a9e5c, #34c17a) !important;
+        min-height: 40px !important;
     }
-
-    /* Linha divisória */
     div[data-testid="stSidebar"] hr {
         border-color: rgba(26,158,92,0.2) !important;
     }
-    /* Fix chat overflow */
+    div[data-testid="stSidebar"] [data-testid="stNumberInput"] input {
+        font-size: 0.9rem !important;
+    }
+
+    /* ── INPUTS GERAIS ── */
+    input, textarea, select {
+        font-size: 16px !important;
+    }
+    div[data-testid="stTextInput"] input,
+    div[data-testid="stNumberInput"] input {
+        min-height: 44px !important;
+        font-size: 16px !important;
+    }
+
+    /* ── CHAT ── */
     div[data-testid="stChatMessage"] {
         width: 100% !important;
         max-width: 100% !important;
@@ -765,16 +804,91 @@ def inject_css():
         overflow-wrap: break-word !important;
         word-break: break-word !important;
         white-space: normal !important;
+        font-size: clamp(0.82rem, 2vw, 0.95rem) !important;
     }
     div[data-testid="stChatMessage"] table {
         width: 100% !important;
         table-layout: auto !important;
         display: block !important;
         overflow-x: auto !important;
+        font-size: 0.82rem !important;
     }
-    div[data-testid="stVerticalBlock"] {
+    div[data-testid="stChatInput"] textarea {
+        font-size: 16px !important;
+        min-height: 44px !important;
+    }
+
+    /* ── DATAFRAMES ── */
+    div[data-testid="stDataFrame"] {
+        overflow-x: auto !important;
+        width: 100% !important;
+    }
+    div[data-testid="stDataFrame"] table {
+        font-size: clamp(0.7rem, 1.8vw, 0.85rem) !important;
+    }
+
+    /* ── PLOTLY ── */
+    div[data-testid="stPlotlyChart"] {
+        overflow-x: auto !important;
+        width: 100% !important;
+    }
+
+    /* ── COLUNAS — stack em mobile ── */
+    @media (max-width: 640px) {
+        .main .block-container {
+            padding: 0.5rem 0.5rem 4rem !important;
+        }
+        .metric-card {
+            min-height: 80px;
+            padding: 0.8rem 1rem;
+        }
+        .metric-card .value {
+            font-size: 1.2rem;
+        }
+        .score-ring {
+            padding: 0.75rem 1rem;
+        }
+        div[data-testid="stTabs"] button {
+            font-size: 0.65rem !important;
+            padding: 0.4rem 0.4rem !important;
+        }
+        /* Força colunas a stackar em mobile */
+        div[data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 0 !important;
+        }
+        /* Headers menores */
+        h1 { font-size: 1.4rem !important; }
+        h2 { font-size: 1.2rem !important; }
+        h3 { font-size: 1rem !important; }
+        /* Tabelas com scroll */
+        table { display: block !important; overflow-x: auto !important; }
+        /* Banner de indicadores — 2 por linha em mobile */
+        .eco-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+
+    /* ── TABLET (641px - 1024px) ── */
+    @media (min-width: 641px) and (max-width: 1024px) {
+        .main .block-container {
+            padding: 1rem 1rem 3rem !important;
+        }
+        .metric-card .value {
+            font-size: 1.3rem;
+        }
+        div[data-testid="stTabs"] button {
+            font-size: 0.75rem !important;
+        }
+    }
+
+    /* ── GERAL overflow ── */
+    div[data-testid="stVerticalBlock"],
+    div[data-testid="stHorizontalBlock"] {
         max-width: 100% !important;
+        overflow-x: hidden !important;
     }
+    * { box-sizing: border-box; }
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -879,8 +993,9 @@ def page_login():
     </div>
     """, unsafe_allow_html=True)
 
-    col = st.columns([1, 1.2, 1])[1]
-    with col:
+    # Responsive: full width on mobile, centered on desktop
+    col_l, col_m, col_r = st.columns([0.05, 0.9, 0.05])
+    with col_m:
         aba = st.tabs(["🔑 Entrar", "✨ Criar conta"])
 
         # ── ABA LOGIN ──
@@ -1173,21 +1288,31 @@ def page_app():
     with tab1:
         st.markdown("## Visão Geral")
 
-        c1, c2, c3, c4 = st.columns(4)
-        with c1: metric_card("Renda Mensal", f"R$ {renda:,.0f}")
-        with c2: metric_card("Gastos Totais", f"R$ {gastos_total:,.0f}", f"{(gastos_total/renda*100):.1f}% da renda" if renda else "")
-        with c3:
-            cor_sobra = "🟢" if sobra > 0 else "🔴"
-            metric_card("Sobra Mensal", f"{cor_sobra} R$ {abs(sobra):,.0f}", "disponível para investir" if sobra > 0 else "DÉFICIT")
-        with c4:
-            metric_card("SELIC", f"{selic}% a.a.", f"Meta: {selic_meta}% | IPCA 12m: {ipca_anual}%")
+        cor_sobra_txt = "🟢" if sobra > 0 else "🔴"
+        sub_gastos = f"{(gastos_total/renda*100):.1f}% da renda" if renda else ""
+        sub_sobra = "disponível para investir" if sobra > 0 else "DÉFICIT"
+        st.markdown(f"""
+        <div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:4px;'>
+            <div class="metric-card"><h3>Renda Mensal</h3>
+                <div class="value">R$ {renda:,.0f}</div></div>
+            <div class="metric-card"><h3>Gastos Totais</h3>
+                <div class="value">R$ {gastos_total:,.0f}</div>
+                <div class="sub">{sub_gastos}</div></div>
+            <div class="metric-card"><h3>Sobra Mensal</h3>
+                <div class="value">{cor_sobra_txt} R$ {abs(sobra):,.0f}</div>
+                <div class="sub">{sub_sobra}</div></div>
+            <div class="metric-card"><h3>SELIC</h3>
+                <div class="value">{selic}% a.a.</div>
+                <div class="sub">Meta: {selic_meta}% | IPCA 12m: {ipca_anual}%</div></div>
+        </div>
+        """, unsafe_allow_html=True)
 
         # Banner de indicadores econômicos — cards individuais legíveis
         cor_jr = "#10b981" if juros_reais > 6 else ("#f59e0b" if juros_reais > 3 else "#ef4444")
         label_jr = "Excelente 🚀" if juros_reais > 6 else ("Moderado 📊" if juros_reais > 3 else "Baixo ⚠️")
         ref_txt = f"Ref: {ultima_atualizacao}" if ultima_atualizacao != "fallback" else "Fonte: BCB"
         st.markdown(f"""
-        <div style='display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;'>
+        <div class='eco-grid' style='display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;'>
             <div style='background:rgba(26,158,92,0.1);border:1px solid rgba(26,158,92,0.3);
             border-radius:12px;padding:12px 14px;'>
                 <div style='color:#6b9e80;font-size:0.68rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;'>SELIC Efetiva</div>
@@ -1219,24 +1344,31 @@ def page_app():
         """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        col_score, col_pie = st.columns([1, 1.5])
 
-        with col_score:
-            score_card(score, perfil, trend)
-            st.markdown("<br>", unsafe_allow_html=True)
+        # Score + projeções (coluna esquerda)
+        score_card(score, perfil, trend)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-            if sobra > 0:
-                projecao_1a = calcular_projecao(sobra, 12, selic)
-                projecao_3a = calcular_projecao(sobra, 36, selic)
-                metric_card("Projeção 12 meses", f"R$ {projecao_1a:,.0f}", "investindo a sobra mensal")
-                metric_card("Projeção 3 anos", f"R$ {projecao_3a:,.0f}", "com juros compostos")
+        if sobra > 0:
+            projecao_1a = calcular_projecao(sobra, 12, selic)
+            projecao_3a = calcular_projecao(sobra, 36, selic)
+            st.markdown(f"""
+            <div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px;'>
+                <div class="metric-card"><h3>Projeção 12 meses</h3>
+                    <div class="value">R$ {projecao_1a:,.0f}</div>
+                    <div class="sub">investindo a sobra mensal</div></div>
+                <div class="metric-card"><h3>Projeção 3 anos</h3>
+                    <div class="value">R$ {projecao_3a:,.0f}</div>
+                    <div class="sub">com juros compostos</div></div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        with col_pie:
-            if gastos_cat:
-                st.markdown("**Distribuição de Gastos**")
-                grafico_gastos(gastos_cat)
-            else:
-                st.info("Preencha seus gastos por categoria na barra lateral.")
+        # Gráfico de distribuição
+        if gastos_cat:
+            st.markdown("**Distribuição de Gastos**")
+            grafico_gastos(gastos_cat)
+        else:
+            st.info("Preencha seus gastos por categoria na barra lateral.")
 
         if sobra > 0:
             st.markdown("**📈 Projeção de Patrimônio (36 meses)**")
@@ -1914,26 +2046,25 @@ def page_admin():
         st.caption("Indicadores usados por investidores para avaliar saúde do produto")
 
         # KPIs de retenção
-        c1, c2, c3, c4, c5 = st.columns(5)
-        with c1:
-            ret7 = s.get("retencao_7d", 0)
-            cor = "#10b981" if ret7 >= 40 else ("#f59e0b" if ret7 >= 20 else "#ef4444")
-            metric_card("Retenção D7", f"{ret7}%", "benchmark: >40% = ótimo")
-        with c2:
-            ret30 = s.get("retencao_30d", 0)
-            cor = "#10b981" if ret30 >= 20 else ("#f59e0b" if ret30 >= 10 else "#ef4444")
-            metric_card("Retenção D30", f"{ret30}%", "benchmark: >20% = ótimo")
-        with c3:
-            dau_mau = s.get("dau_mau", 0)
-            cor = "#10b981" if dau_mau >= 20 else ("#f59e0b" if dau_mau >= 10 else "#ef4444")
-            metric_card("DAU/MAU", f"{dau_mau}%", "stickiness do produto")
-        with c4:
-            churn = s.get("churn_rate", 0)
-            cor = "#10b981" if churn <= 5 else ("#f59e0b" if churn <= 15 else "#ef4444")
-            metric_card("Churn Rate", f"{churn}%", f"{s.get('churned',0)} usuários inativos")
-        with c5:
-            cresc = s.get("crescimento_semanal", 0)
-            metric_card("Crescimento", f"{cresc:+.0f}%", "semana vs semana anterior")
+        ret7 = s.get("retencao_7d", 0)
+        ret30 = s.get("retencao_30d", 0)
+        dau_mau = s.get("dau_mau", 0)
+        churn = s.get("churn_rate", 0)
+        cresc = s.get("crescimento_semanal", 0)
+        st.markdown(f"""
+        <div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px;'>
+            <div class="metric-card"><h3>Retenção D7</h3>
+                <div class="value">{ret7}%</div><div class="sub">benchmark: >40%</div></div>
+            <div class="metric-card"><h3>Retenção D30</h3>
+                <div class="value">{ret30}%</div><div class="sub">benchmark: >20%</div></div>
+            <div class="metric-card"><h3>DAU/MAU</h3>
+                <div class="value">{dau_mau}%</div><div class="sub">stickiness</div></div>
+            <div class="metric-card"><h3>Churn Rate</h3>
+                <div class="value">{churn}%</div><div class="sub">{s.get("churned",0)} inativos</div></div>
+            <div class="metric-card"><h3>Crescimento</h3>
+                <div class="value">{cresc:+.0f}%</div><div class="sub">sem. vs sem. anterior</div></div>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -2095,11 +2226,15 @@ def page_admin():
     with tab_engage:
         st.markdown("### 💬 Engajamento & Uso")
 
-        c1, c2, c3, c4 = st.columns(4)
-        with c1: metric_card("Transações 7d", str(s.get("trans_7d", 0)))
-        with c2: metric_card("Total Transações", str(s.get("total_transactions", 0)))
-        with c3: metric_card("Volume Total", f"R$ {s.get('total_volume', 0):,.0f}")
-        with c4: metric_card("Metas Criadas", str(s.get("total_metas", 0)), f"{s.get('metas_concluidas',0)} concluídas")
+        st.markdown(f"""
+        <div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px;'>
+            <div class="metric-card"><h3>Transações 7d</h3><div class="value">{s.get("trans_7d", 0)}</div></div>
+            <div class="metric-card"><h3>Total Transações</h3><div class="value">{s.get("total_transactions", 0)}</div></div>
+            <div class="metric-card"><h3>Volume Total</h3><div class="value">R$ {s.get("total_volume", 0):,.0f}</div></div>
+            <div class="metric-card"><h3>Metas Criadas</h3><div class="value">{s.get("total_metas", 0)}</div>
+                <div class="sub">{s.get("metas_concluidas", 0)} concluídas</div></div>
+        </div>
+        """, unsafe_allow_html=True)
 
         # Scores histogram
         scores = s.get("scores", [])
@@ -2136,10 +2271,16 @@ def page_admin():
     with tab_financeiro:
         st.markdown("### 💰 Indicadores Financeiros dos Usuários")
 
-        c1, c2, c3 = st.columns(3)
-        with c1: metric_card("Renda Média", f"R$ {s.get('avg_renda',0):,.0f}", "por usuário/mês")
-        with c2: metric_card("Gastos Médios", f"R$ {s.get('avg_gastos',0):,.0f}", "por usuário/mês")
-        with c3: metric_card("Sobra Média", f"R$ {s.get('avg_savings',0):,.0f}", "potencial de investimento")
+        st.markdown(f"""
+        <div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px;'>
+            <div class="metric-card"><h3>Renda Média</h3>
+                <div class="value">R$ {s.get("avg_renda",0):,.0f}</div><div class="sub">por usuário/mês</div></div>
+            <div class="metric-card"><h3>Gastos Médios</h3>
+                <div class="value">R$ {s.get("avg_gastos",0):,.0f}</div><div class="sub">por usuário/mês</div></div>
+            <div class="metric-card"><h3>Sobra Média</h3>
+                <div class="value">R$ {s.get("avg_savings",0):,.0f}</div><div class="sub">potencial de investimento</div></div>
+        </div>
+        """, unsafe_allow_html=True)
 
         # Taxa comprometimento médio
         avg_r = s.get("avg_renda", 1) or 1
