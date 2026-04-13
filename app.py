@@ -31,6 +31,11 @@ ANTHROPIC_KEY = st.secrets["ANTHROPIC_API_KEY"]
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 claude = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
+# Pluggy keys (optional — só necessário para Open Finance real)
+PLUGGY_CLIENT_ID     = st.secrets.get("PLUGGY_CLIENT_ID", "")
+PLUGGY_CLIENT_SECRET = st.secrets.get("PLUGGY_CLIENT_SECRET", "")
+PLUGGY_API_URL       = "https://api.pluggy.ai"
+
 # =========================
 # SEGURANÇA — CONSTANTES
 # =========================
@@ -415,7 +420,157 @@ def clear_chat_history(user_id):
         return False
 
 
-def load_transactions(user_id):
+# =========================
+# PLUGGY — OPEN FINANCE
+# =========================
+
+@st.cache_data(ttl=6000, show_spinner=False)
+def pluggy_get_api_key():
+    """Autentica com Pluggy e retorna API Key (válida por 2h)."""
+    if not PLUGGY_CLIENT_ID or not PLUGGY_CLIENT_SECRET:
+        return None
+    try:
+        resp = requests.post(
+            f"{PLUGGY_API_URL}/auth",
+            json={"clientId": PLUGGY_CLIENT_ID, "clientSecret": PLUGGY_CLIENT_SECRET},
+            timeout=10
+        )
+        if resp.status_code == 200:
+            return resp.json().get("apiKey")
+    except:
+        pass
+    return None
+
+
+def pluggy_create_connect_token(user_id: str, item_id: str = None) -> str | None:
+    """Cria um connectToken para abrir o Pluggy Connect widget."""
+    api_key = pluggy_get_api_key()
+    if not api_key:
+        return None
+    try:
+        body = {
+            "clientUserId": str(user_id),
+            "webhookUrl": st.secrets.get("PLUGGY_WEBHOOK_URL", ""),
+            "avoidDuplicates": True,
+        }
+        if item_id:
+            body["itemId"] = item_id
+        resp = requests.post(
+            f"{PLUGGY_API_URL}/connect_token",
+            json=body,
+            headers={"X-API-KEY": api_key},
+            timeout=10
+        )
+        if resp.status_code == 200:
+            return resp.json().get("accessToken")
+    except:
+        pass
+    return None
+
+
+def pluggy_get_items(user_id: str) -> list:
+    """Lista todos os bancos conectados do usuário."""
+    try:
+        res = supabase.table("pluggy_connections")             .select("*").eq("user_id", user_id).execute()
+        return res.data or []
+    except:
+        return []
+
+
+def pluggy_fetch_item_data(item_id: str) -> dict:
+    """Busca saldos e transações de um item conectado."""
+    api_key = pluggy_get_api_key()
+    if not api_key:
+        return {}
+    headers = {"X-API-KEY": api_key}
+    data = {"accounts": [], "transactions": [], "item": {}}
+    try:
+        # Item status
+        r = requests.get(f"{PLUGGY_API_URL}/items/{item_id}", headers=headers, timeout=10)
+        if r.status_code == 200:
+            data["item"] = r.json()
+        # Accounts
+        r2 = requests.get(f"{PLUGGY_API_URL}/accounts?itemId={item_id}", headers=headers, timeout=10)
+        if r2.status_code == 200:
+            data["accounts"] = r2.json().get("results", [])
+        # Transactions (últimas 30)
+        for acc in data["accounts"]:
+            r3 = requests.get(
+                f"{PLUGGY_API_URL}/transactions?accountId={acc['id']}&pageSize=30",
+                headers=headers, timeout=10
+            )
+            if r3.status_code == 200:
+                data["transactions"].extend(r3.json().get("results", []))
+    except:
+        pass
+    return data
+
+
+def pluggy_delete_item(item_id: str, user_id: str) -> bool:
+    """Revoga conexão com um banco."""
+    api_key = pluggy_get_api_key()
+    if not api_key:
+        return False
+    try:
+        requests.delete(
+            f"{PLUGGY_API_URL}/items/{item_id}",
+            headers={"X-API-KEY": api_key},
+            timeout=10
+        )
+        supabase.table("pluggy_connections")             .delete().eq("item_id", item_id).eq("user_id", user_id).execute()
+        return True
+    except:
+        return False
+
+
+def pluggy_save_connection(user_id: str, item_id: str, connector_name: str):
+    """Salva conexão bem-sucedida no Supabase."""
+    try:
+        supabase.table("pluggy_connections").upsert({
+            "user_id": str(user_id),
+            "item_id": item_id,
+            "connector_name": connector_name,
+            "status": "connected",
+            "connected_at": datetime.utcnow().isoformat(),
+        }).execute()
+    except:
+        pass
+
+
+def pluggy_import_transactions(user_id: str, transactions: list):
+    """Importa transações do banco para a tabela de transações do iMoney."""
+    imported = 0
+    for t in transactions:
+        try:
+            amount = abs(float(t.get("amount", 0)))
+            tipo = "gasto" if float(t.get("amount", 0)) < 0 else "receita"
+            desc = sanitize_text(t.get("description", "Transação bancária"), 200)
+            category = t.get("category", "Outros")
+            # Mapeia categoria Pluggy → iMoney
+            cat_map = {
+                "Food": "Alimentação", "Transport": "Transporte",
+                "Health": "Saúde", "Education": "Educação",
+                "Housing": "Moradia", "Entertainment": "Lazer",
+                "Clothing": "Vestuário",
+            }
+            cat_imoney = cat_map.get(category, "Outros")
+            date_str = t.get("date", date.today().isoformat())[:10]
+            supabase.table("transactions").insert({
+                "user_id": str(user_id),
+                "descricao": desc,
+                "valor": round(amount, 2),
+                "categoria": cat_imoney,
+                "tipo": tipo,
+                "date": date_str,
+                "source": "pluggy",
+            }).execute()
+            imported += 1
+        except:
+            continue
+    return imported
+
+
+def load_transactions(user_id: str):
     try:
         res = supabase.table("transactions").select("*").eq("user_id", user_id).order("date", desc=True).limit(50).execute()
         return res.data or []
@@ -1772,169 +1927,199 @@ def page_app():
             st.markdown(f"**Ocupação:** {perfil_salvo.get('ocupacao', '—')}")
 
     # ========================
-    # TAB 7: OPEN FINANCE
+    # TAB 7: OPEN FINANCE (PLUGGY)
     # ========================
     with tab7:
         st.markdown("## 🏦 Open Finance")
-        st.caption("Conecte suas contas bancárias e importe seus dados automaticamente.")
+        st.caption("Conecte seus bancos via Pluggy e importe extratos automaticamente.")
 
-        # ── Banner explicativo ──
-        st.markdown("""
-        <div style='background:linear-gradient(135deg,rgba(26,158,92,0.15),rgba(240,180,41,0.1));
-        border:1px solid rgba(26,158,92,0.3);border-radius:16px;padding:20px 24px;margin-bottom:24px;'>
-            <div style='font-size:1.1rem;font-weight:700;color:#34c17a;margin-bottom:8px;'>
-                🔐 O que é o Open Finance?
+        pluggy_ok = bool(PLUGGY_CLIENT_ID and PLUGGY_CLIENT_SECRET)
+
+        if not pluggy_ok:
+            # ── Modo sem chaves: exibe setup guide ──
+            st.info("🔑 Configure as chaves Pluggy nos Secrets do Streamlit para ativar a integração real.")
+            st.markdown("""
+            <div style='background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.25);
+            border-radius:14px;padding:20px 24px;margin-bottom:20px;'>
+            <div style='color:#f0b429;font-weight:700;font-size:1rem;margin-bottom:12px;'>
+                ⚙️ Como ativar o Open Finance Real
             </div>
-            <p style='color:#e8f5ee;font-size:0.9rem;line-height:1.6;margin:0;'>
-                O <strong>Open Finance</strong> é um sistema regulamentado pelo <strong>Banco Central do Brasil</strong>
-                que permite que você compartilhe seus dados bancários com outros aplicativos de forma
-                <strong>segura, criptografada e com seu consentimento</strong>. Você pode conectar contas de
-                Nubank, Itaú, Bradesco, Santander, Banco do Brasil, Caixa e mais de 800 instituições.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+            <ol style='color:#e8f5ee;font-size:0.88rem;line-height:2;margin:0;padding-left:18px;'>
+                <li>Acesse <strong>dashboard.pluggy.ai</strong> e crie uma conta gratuita</li>
+                <li>Vá em <strong>Settings → API Keys</strong> e copie seu CLIENT_ID e CLIENT_SECRET</li>
+                <li>No Streamlit Cloud, vá em <strong>Manage App → Settings → Secrets</strong></li>
+                <li>Adicione as 3 linhas abaixo e salve:</li>
+            </ol>
+            <pre style='background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;
+            margin-top:12px;font-size:0.82rem;color:#34c17a;overflow-x:auto;'>
+PLUGGY_CLIENT_ID = "seu-client-id-aqui"
+PLUGGY_CLIENT_SECRET = "seu-client-secret-aqui"
+PLUGGY_WEBHOOK_URL = "https://seu-app.streamlit.app/webhook"</pre>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # ── Status da integração ──
-        st.markdown("### 📋 Status da Integração")
+        else:
+            # ── Modo com chaves: integração real ──
+            connected_items = pluggy_get_items(user_id)
 
-        col_status1, col_status2, col_status3 = st.columns(3)
-        with col_status1:
-            st.markdown("""
-            <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.2);
-            border-radius:12px;padding:16px;text-align:center;'>
-                <div style='font-size:1.8rem;'>🔗</div>
-                <div style='color:#f0b429;font-weight:700;margin:6px 0 4px;'>Fase 1</div>
-                <div style='color:#34c17a;font-size:0.8rem;'>Dados Abertos</div>
-                <div style='color:#6b9e80;font-size:0.75rem;'>Produtos e tarifas dos bancos</div>
-                <div style='margin-top:8px;background:#10b981;color:white;border-radius:20px;
-                padding:2px 10px;font-size:0.7rem;display:inline-block;'>✓ Disponível</div>
-            </div>""", unsafe_allow_html=True)
-        with col_status2:
-            st.markdown("""
-            <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(240,180,41,0.2);
-            border-radius:12px;padding:16px;text-align:center;'>
-                <div style='font-size:1.8rem;'>👤</div>
-                <div style='color:#f0b429;font-weight:700;margin:6px 0 4px;'>Fase 2</div>
-                <div style='color:#f0b429;font-size:0.8rem;'>Dados do Cliente</div>
-                <div style='color:#6b9e80;font-size:0.75rem;'>Saldos, extratos e transações</div>
-                <div style='margin-top:8px;background:#f59e0b;color:white;border-radius:20px;
-                padding:2px 10px;font-size:0.7rem;display:inline-block;'>⏳ Em homologação</div>
-            </div>""", unsafe_allow_html=True)
-        with col_status3:
-            st.markdown("""
-            <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(107,158,128,0.2);
-            border-radius:12px;padding:16px;text-align:center;'>
-                <div style='font-size:1.8rem;'>💸</div>
-                <div style='color:#f0b429;font-weight:700;margin:6px 0 4px;'>Fase 3+</div>
-                <div style='color:#6b9e80;font-size:0.8rem;'>Pagamentos e Crédito</div>
-                <div style='color:#6b9e80;font-size:0.75rem;'>Pix, TED e iniciação de pagamento</div>
-                <div style='margin-top:8px;background:#374151;color:#9ca3af;border-radius:20px;
-                padding:2px 10px;font-size:0.7rem;display:inline-block;'>🗓 Roadmap 2026</div>
-            </div>""", unsafe_allow_html=True)
+            # ─── BANCOS CONECTADOS ───
+            if connected_items:
+                st.markdown("### ✅ Bancos Conectados")
+                for item in connected_items:
+                    with st.expander(f"🏦 {item.get('connector_name','Banco')} — conectado em {item.get('connected_at','')[:10]}", expanded=False):
+                        col_a, col_b = st.columns([3,1])
+                        with col_a:
+                            item_data = pluggy_fetch_item_data(item["item_id"])
+                            accounts = item_data.get("accounts", [])
+                            if accounts:
+                                st.markdown("**Contas:**")
+                                for acc in accounts:
+                                    saldo = acc.get("balance", 0)
+                                    tipo = acc.get("type", "")
+                                    nome = acc.get("name", acc.get("number", ""))
+                                    cor = "#10b981" if saldo >= 0 else "#ef4444"
+                                    st.markdown(
+                                        f"<div style='background:rgba(15,45,26,0.5);border-radius:8px;"
+                                        f"padding:10px 14px;margin-bottom:6px;display:flex;"
+                                        f"justify-content:space-between;align-items:center;'>"
+                                        f"<span style='color:#e8f5ee;font-size:0.88rem;'>{nome} <span style='color:#6b9e80;'>({tipo})</span></span>"
+                                        f"<span style='color:{cor};font-weight:700;'>R$ {saldo:,.2f}</span>"
+                                        f"</div>",
+                                        unsafe_allow_html=True
+                                    )
+                                # Importar transações
+                                transactions = item_data.get("transactions", [])
+                                if transactions:
+                                    st.caption(f"{len(transactions)} transações disponíveis para importar")
+                                    if st.button("📥 Importar transações", key=f"import_{item['item_id']}"):
+                                        with st.spinner("Importando..."):
+                                            n = pluggy_import_transactions(user_id, transactions)
+                                        st.success(f"✅ {n} transações importadas!")
+                                        st.rerun()
+                            else:
+                                status = item_data.get("item", {}).get("status", "UNKNOWN")
+                                st.warning(f"Status da conexão: {status}")
 
-        st.markdown("<br>", unsafe_allow_html=True)
+                        with col_b:
+                            st.markdown("<br>", unsafe_allow_html=True)
+                            if st.button("🔄 Atualizar", key=f"upd_{item['item_id']}"):
+                                token = pluggy_create_connect_token(user_id, item["item_id"])
+                                if token:
+                                    st.session_state[f"connect_token_{item['item_id']}"] = token
+                                    st.rerun()
+                            if st.button("🗑️ Desconectar", key=f"del_{item['item_id']}"):
+                                if pluggy_delete_item(item["item_id"], user_id):
+                                    st.success("Banco desconectado.")
+                                    st.rerun()
 
-        # ── Como vai funcionar ──
-        st.markdown("### 🔄 Como a integração vai funcionar")
+            # ─── CONECTAR NOVO BANCO ───
+            st.markdown("### ➕ Conectar Banco")
+            st.caption("Clique abaixo para abrir o seletor seguro de instituições financeiras.")
 
-        steps = [
-            ("1", "🔐", "Você autoriza", "Dentro do iMoney, você escolhe seu banco e autoriza o compartilhamento de dados pelo próprio app do banco — sem digitar senha em lugar nenhum."),
-            ("2", "📡", "Conexão segura", "O iMoney usa o protocolo OAuth 2.0 + FAPI (Financial-grade API), exigido pelo Banco Central, para se conectar com segurança."),
-            ("3", "📥", "Dados importados", "Saldos, extratos e transações chegam automaticamente. Nada de digitar gastos manualmente."),
-            ("4", "🤖", "IA analisa", "O assessor IA analisa seus dados bancários reais e dá recomendações muito mais precisas."),
-        ]
-        cols = st.columns(4)
-        for i, (num, emoji, titulo, desc) in enumerate(steps):
-            with cols[i]:
+            token = pluggy_create_connect_token(user_id)
+
+            if token:
+                # Pluggy Connect Widget via iframe + postMessage
                 st.markdown(f"""
-                <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.2);
-                border-radius:12px;padding:16px;height:180px;'>
-                    <div style='font-size:1.5rem;'>{emoji}</div>
-                    <div style='color:#f0b429;font-weight:700;font-size:0.8rem;
-                    letter-spacing:1px;margin:6px 0 4px;'>PASSO {num}</div>
-                    <div style='color:#e8f5ee;font-weight:600;margin-bottom:6px;'>{titulo}</div>
-                    <div style='color:#6b9e80;font-size:0.78rem;line-height:1.4;'>{desc}</div>
-                </div>""", unsafe_allow_html=True)
+                <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.3);
+                border-radius:14px;padding:20px;margin-bottom:16px;'>
+                    <div style='color:#34c17a;font-weight:700;margin-bottom:12px;'>
+                        🔐 Conectar via Pluggy Connect
+                    </div>
+                    <p style='color:#6b9e80;font-size:0.85rem;margin-bottom:16px;'>
+                        Uma janela segura será aberta para você escolher seu banco e autorizar o acesso.
+                        Nenhuma senha é armazenada pelo iMoney.
+                    </p>
+                    <button onclick="openPluggyConnect()" style='
+                        background:linear-gradient(135deg,#1a9e5c,#34c17a);
+                        color:white;border:none;border-radius:10px;
+                        padding:12px 28px;font-size:0.95rem;font-weight:700;
+                        cursor:pointer;width:100%;'>
+                        🏦 Conectar meu banco
+                    </button>
+                </div>
+                <script>
+                function openPluggyConnect() {{
+                    var widget = window.open(
+                        'https://connect.pluggy.ai/?connectToken={token}&lang=pt-BR',
+                        'pluggy_connect',
+                        'width=480,height=700,scrollbars=yes,resizable=yes'
+                    );
+                    window.addEventListener('message', function(e) {{
+                        if (e.data && e.data.event === 'SUCCESS') {{
+                            var itemId = e.data.item && e.data.item.id;
+                            var connName = e.data.item && e.data.item.connector && e.data.item.connector.name;
+                            if (itemId) {{
+                                fetch('/_stcore/stream', {{method:'POST'}});
+                                document.getElementById('pluggy_result').value = itemId + '|' + connName;
+                                document.getElementById('pluggy_form').submit();
+                            }}
+                        }}
+                    }}, false);
+                }}
+                </script>
+                """, unsafe_allow_html=True)
 
+                # Alternativa: input manual do item_id (para casos sem postMessage)
+                with st.expander("📋 Já conectou? Informe o Item ID manualmente"):
+                    st.caption("Após conectar no widget, cole aqui o Item ID retornado.")
+                    col_m1, col_m2 = st.columns([3,1])
+                    with col_m1:
+                        manual_item_id = st.text_input("Item ID (ex: abc123...)", key="manual_item_id",
+                            placeholder="Cole o Item ID retornado pelo Pluggy Connect")
+                        manual_bank = st.text_input("Nome do banco", key="manual_bank",
+                            placeholder="Ex: Nubank, Itaú, Bradesco...")
+                    with col_m2:
+                        st.markdown("<br><br>", unsafe_allow_html=True)
+                        if st.button("✅ Confirmar", key="btn_manual_connect"):
+                            if manual_item_id and manual_bank:
+                                pluggy_save_connection(user_id, manual_item_id.strip(), manual_bank.strip())
+                                st.success(f"✅ {manual_bank} conectado!")
+                                st.rerun()
+                            else:
+                                st.error("Preencha o Item ID e o nome do banco.")
+            else:
+                st.error("Não foi possível gerar token de conexão. Verifique as chaves Pluggy nos secrets.")
+
+        # ─── RESUMO FINANCEIRO CONSOLIDADO ───
+        connected_items = pluggy_get_items(user_id)
+        if connected_items and pluggy_ok:
+            st.markdown("---")
+            st.markdown("### 📊 Visão Consolidada")
+            total_saldo = 0
+            for item in connected_items:
+                data = pluggy_fetch_item_data(item["item_id"])
+                for acc in data.get("accounts", []):
+                    total_saldo += acc.get("balance", 0)
+            cor_saldo = "#10b981" if total_saldo >= 0 else "#ef4444"
+            st.markdown(f"""
+            <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.25);
+            border-radius:14px;padding:20px 24px;text-align:center;'>
+                <div style='color:#6b9e80;font-size:0.75rem;letter-spacing:2px;
+                text-transform:uppercase;margin-bottom:8px;'>Saldo Total Consolidado</div>
+                <div style='font-family:Georgia,serif;font-size:2.5rem;font-weight:700;color:{cor_saldo};'>
+                    R$ {total_saldo:,.2f}
+                </div>
+                <div style='color:#6b9e80;font-size:0.75rem;margin-top:6px;'>
+                    {len(connected_items)} banco(s) conectado(s)
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ─── NOTA DE SEGURANÇA ───
         st.markdown("<br>", unsafe_allow_html=True)
-
-        # ── Bancos suportados ──
-        st.markdown("### 🏦 Bancos que serão suportados")
-        bancos = [
-            ("Nubank", "🟣"), ("Itaú", "🟠"), ("Bradesco", "🔴"), ("Santander", "🔴"),
-            ("Banco do Brasil", "🟡"), ("Caixa", "🔵"), ("Inter", "🟠"), ("C6 Bank", "⚫"),
-            ("BTG Pactual", "🔵"), ("XP", "⚫"), ("PagBank", "🟢"), ("Sicoob", "🟢"),
-        ]
-        banco_cols = st.columns(6)
-        for i, (banco, emoji) in enumerate(bancos):
-            with banco_cols[i % 6]:
-                st.markdown(f"""
-                <div style='background:rgba(15,45,26,0.4);border:1px solid rgba(26,158,92,0.15);
-                border-radius:10px;padding:10px;text-align:center;margin-bottom:8px;'>
-                    <div style='font-size:1.2rem;'>{emoji}</div>
-                    <div style='color:#e8f5ee;font-size:0.75rem;margin-top:4px;'>{banco}</div>
-                </div>""", unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # ── Formulário de interesse ──
-        st.markdown("### 📬 Quero ser notificado quando estiver disponível")
-        st.caption("A integração com Open Finance está em desenvolvimento. Cadastre seu interesse e avisamos assim que for lançada.")
-
-        with st.form("form_openfinance"):
-            col_a, col_b = st.columns(2)
-            with col_a:
-                banco_interesse = st.multiselect(
-                    "Quais bancos você usa?",
-                    [b[0] for b in bancos] + ["Outro"],
-                    default=[]
-                )
-            with col_b:
-                funcionalidade = st.multiselect(
-                    "O que mais te interessa?",
-                    ["Importar extratos automaticamente",
-                     "Categorização automática de gastos",
-                     "Saldo em tempo real",
-                     "Análise de investimentos",
-                     "Iniciar pagamentos pelo iMoney"],
-                    default=[]
-                )
-
-            notif_submit = st.form_submit_button("🔔 Quero ser notificado", use_container_width=True)
-            if notif_submit:
-                if banco_interesse or funcionalidade:
-                    try:
-                        supabase.table("openfinance_interest").upsert({
-                            "user_id": str(user_id),
-                            "bancos": json.dumps(banco_interesse),
-                            "funcionalidades": json.dumps(funcionalidade),
-                            "created_at": datetime.utcnow().isoformat(),
-                        }).execute()
-                        st.success("✅ Interesse registrado! Você será notificado por email assim que a integração estiver disponível.")
-                    except:
-                        st.success("✅ Interesse registrado! Você será notificado assim que disponível.")
-                else:
-                    st.warning("Selecione ao menos um banco ou funcionalidade.")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # ── Nota de segurança e privacidade ──
         st.markdown("""
-        <div style='background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);
-        border-radius:12px;padding:16px 20px;'>
-            <div style='color:#fca5a5;font-weight:700;margin-bottom:8px;'>🔒 Segurança e Privacidade</div>
-            <ul style='color:#e8f5ee;font-size:0.82rem;line-height:1.8;margin:0;padding-left:16px;'>
-                <li>O iMoney <strong>nunca</strong> armazena suas senhas bancárias</li>
-                <li>A conexão usa <strong>OAuth 2.0 + FAPI</strong>, os mesmos padrões do Banco Central</li>
-                <li>Você pode <strong>revogar o acesso a qualquer momento</strong> pelo app do banco</li>
-                <li>Seus dados são protegidos pela <strong>LGPD (Lei Geral de Proteção de Dados)</strong></li>
-                <li>O consentimento expira automaticamente em <strong>12 meses</strong> conforme regulação</li>
-            </ul>
+        <div style='background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.15);
+        border-radius:12px;padding:14px 18px;'>
+            <div style='color:#fca5a5;font-weight:700;margin-bottom:6px;font-size:0.85rem;'>🔒 Segurança & Privacidade</div>
+            <div style='color:#e8f5ee;font-size:0.78rem;line-height:1.7;'>
+                O iMoney <strong>nunca</strong> armazena suas senhas bancárias.
+                A conexão usa <strong>OAuth 2.0 + FAPI</strong> regulamentado pelo Banco Central.
+                Você pode revogar o acesso a qualquer momento pelo app do banco.
+                Dados protegidos pela <strong>LGPD</strong>. Consentimento expira em <strong>12 meses</strong>.
+            </div>
         </div>
         """, unsafe_allow_html=True)
-
-
-
 
 
 # =========================
