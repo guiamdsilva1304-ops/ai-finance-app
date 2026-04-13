@@ -279,6 +279,57 @@ def get_juros_reais():
     d = get_dados_economicos()
     return round(d["selic_anual"] - d["ipca_anual"], 2)
 
+
+# Cache de 1 hora para câmbio
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_cotacoes_cambio():
+    """
+    Busca cotações em tempo real via AwesomeAPI (gratuita, sem chave).
+    Atualiza a cada 1 hora automaticamente.
+    Retorna dict com moedas principais vs BRL.
+    """
+    moedas = {
+        "USD": {"nome": "Dólar Americano",  "emoji": "🇺🇸", "rate": 5.15},
+        "EUR": {"nome": "Euro",              "emoji": "🇪🇺", "rate": 5.70},
+        "GBP": {"nome": "Libra Esterlina",  "emoji": "🇬🇧", "rate": 6.50},
+        "ARS": {"nome": "Peso Argentino",   "emoji": "🇦🇷", "rate": 0.0055},
+        "JPY": {"nome": "Iene Japonês",     "emoji": "🇯🇵", "rate": 0.034},
+        "CAD": {"nome": "Dólar Canadense",  "emoji": "🇨🇦", "rate": 3.75},
+        "AUD": {"nome": "Dólar Australiano","emoji": "🇦🇺", "rate": 3.20},
+        "CHF": {"nome": "Franco Suíço",     "emoji": "🇨🇭", "rate": 5.80},
+        "CNY": {"nome": "Yuan Chinês",      "emoji": "🇨🇳", "rate": 0.71},
+        "BTC": {"nome": "Bitcoin",          "emoji": "₿",   "rate": 520000.0},
+    }
+    try:
+        pares = "USD-BRL,EUR-BRL,GBP-BRL,ARS-BRL,JPY-BRL,CAD-BRL,AUD-BRL,CHF-BRL,CNY-BRL,BTC-BRL"
+        url = f"https://economia.awesomeapi.com.br/last/{pares}"
+        resp = requests.get(url, timeout=8)
+        resp.raise_for_status()
+        data = resp.json()
+        key_map = {
+            "USD": "USDBRL", "EUR": "EURBRL", "GBP": "GBPBRL",
+            "ARS": "ARSBRL", "JPY": "JPYBRL", "CAD": "CADBRL",
+            "AUD": "AUDBRL", "CHF": "CHFBRL", "CNY": "CNYBRL",
+            "BTC": "BTCBRL",
+        }
+        for code, api_key in key_map.items():
+            if api_key in data:
+                moedas[code]["rate"]       = float(data[api_key]["bid"])
+                moedas[code]["high"]       = float(data[api_key]["high"])
+                moedas[code]["low"]        = float(data[api_key]["low"])
+                moedas[code]["pct_change"] = float(data[api_key]["pctChange"])
+                moedas[code]["updated"]    = data[api_key].get("create_date", "")
+    except:
+        pass  # usa fallbacks se API falhar
+    return moedas
+
+
+def converter_para_brl(valor: float, moeda: str) -> float:
+    """Converte valor em moeda estrangeira para BRL."""
+    cotacoes = get_cotacoes_cambio()
+    rate = cotacoes.get(moeda, {}).get("rate", 1.0)
+    return round(valor * rate, 2)
+
 # =========================
 # DADOS DE ESTADOS E CIDADES BR
 # =========================
@@ -367,6 +418,69 @@ def load_perfil(user_id):
         return {}
 
 
+def load_investimentos(user_id):
+    """Carrega investimentos do usuário."""
+    try:
+        res = supabase.table("user_investments").select("*").eq("user_id", user_id).execute()
+        return res.data or []
+    except:
+        return []
+
+
+def save_investimento(user_id, nome, tipo, valor, moeda, pais, corretora, notas):
+    """Salva ou atualiza um investimento."""
+    if not user_id:
+        return False
+    try:
+        # Converte para BRL se moeda estrangeira
+        valor_brl = converter_para_brl(valor, moeda) if moeda != "BRL" else valor
+        supabase.table("user_investments").insert({
+            "user_id": str(user_id),
+            "nome": sanitize_text(nome, 100),
+            "tipo": sanitize_text(tipo, 50),
+            "valor_original": round(float(valor), 2),
+            "moeda": moeda,
+            "valor_brl": round(float(valor_brl), 2),
+            "pais": sanitize_text(pais, 50),
+            "corretora": sanitize_text(corretora, 100),
+            "notas": sanitize_text(notas, 300),
+            "updated_at": datetime.utcnow().isoformat(),
+        }).execute()
+        return True
+    except:
+        return False
+
+
+def delete_investimento(inv_id, user_id):
+    """Remove um investimento."""
+    try:
+        supabase.table("user_investments").delete()             .eq("id", inv_id).eq("user_id", user_id).execute()
+        return True
+    except:
+        return False
+
+
+def calcular_patrimonio_total(user_id):
+    """Calcula patrimônio total em BRL com cotações atualizadas."""
+    invs = load_investimentos(user_id)
+    cotacoes = get_cotacoes_cambio()
+    total = 0.0
+    por_moeda = {}
+    for inv in invs:
+        moeda = inv.get("moeda", "BRL")
+        valor_orig = float(inv.get("valor_original", 0))
+        rate = cotacoes.get(moeda, {}).get("rate", 1.0) if moeda != "BRL" else 1.0
+        valor_atual_brl = valor_orig * rate
+        total += valor_atual_brl
+        por_moeda[moeda] = por_moeda.get(moeda, 0) + valor_atual_brl
+        # Atualiza valor_brl no banco (cotação pode ter mudado)
+        try:
+            supabase.table("user_investments").update({"valor_brl": round(valor_atual_brl, 2)})                 .eq("id", inv["id"]).execute()
+        except:
+            pass
+    return round(total, 2), por_moeda
+
+
 def save_perfil(user_id, idade, filhos, estado, cidade, ocupacao):
     """Salva/atualiza perfil do usuário."""
     if not user_id:
@@ -424,11 +538,19 @@ def clear_chat_history(user_id):
 # PLUGGY — OPEN FINANCE
 # =========================
 
-@st.cache_data(ttl=6000, show_spinner=False)
 def pluggy_get_api_key():
-    """Autentica com Pluggy e retorna API Key (válida por 2h)."""
+    """
+    Autentica com Pluggy e retorna API Key (válida por 2h).
+    SEGURANÇA: a API key é armazenada no session_state (por sessão),
+    nunca em cache global compartilhado entre usuários.
+    """
     if not PLUGGY_CLIENT_ID or not PLUGGY_CLIENT_SECRET:
         return None
+    # Usa chave em cache da sessão atual se ainda válida
+    cached = st.session_state.get("_pluggy_api_key")
+    cached_at = st.session_state.get("_pluggy_api_key_at", 0)
+    if cached and (time.time() - cached_at) < 6900:  # renova antes de 2h
+        return cached
     try:
         resp = requests.post(
             f"{PLUGGY_API_URL}/auth",
@@ -436,24 +558,41 @@ def pluggy_get_api_key():
             timeout=10
         )
         if resp.status_code == 200:
-            return resp.json().get("apiKey")
+            key = resp.json().get("apiKey")
+            # Armazena na sessão — nunca exposto ao frontend
+            st.session_state["_pluggy_api_key"] = key
+            st.session_state["_pluggy_api_key_at"] = time.time()
+            return key
     except:
         pass
     return None
 
 
-def pluggy_create_connect_token(user_id: str, item_id: str = None) -> str | None:
-    """Cria um connectToken para abrir o Pluggy Connect widget."""
+def pluggy_create_connect_token(user_id: str, item_id: str = None):
+    """
+    Cria um connectToken para abrir o Pluggy Connect widget.
+    SEGURANÇA:
+    - user_id validado antes de enviar à Pluggy
+    - clientUserId vincula o token ao usuário autenticado
+    - avoidDuplicates evita conexões duplicadas
+    - Token expira em 30 minutos (gerenciado pela Pluggy)
+    """
+    if not user_id or len(str(user_id)) < 10:
+        return None
     api_key = pluggy_get_api_key()
     if not api_key:
         return None
     try:
         body = {
-            "clientUserId": str(user_id),
+            "clientUserId": str(user_id),  # vincula ao usuário autenticado
             "webhookUrl": st.secrets.get("PLUGGY_WEBHOOK_URL", ""),
             "avoidDuplicates": True,
         }
         if item_id:
+            # Valida que o item pertence ao usuário antes de incluir
+            owned = pluggy_get_items(user_id)
+            if not any(i["item_id"] == item_id for i in owned):
+                return None  # IDOR prevention
             body["itemId"] = item_id
         resp = requests.post(
             f"{PLUGGY_API_URL}/connect_token",
@@ -477,8 +616,16 @@ def pluggy_get_items(user_id: str) -> list:
         return []
 
 
-def pluggy_fetch_item_data(item_id: str) -> dict:
-    """Busca saldos e transações de um item conectado."""
+def pluggy_fetch_item_data(item_id: str, user_id: str = None) -> dict:
+    """
+    Busca saldos e transações de um item conectado.
+    SEGURANÇA: verifica ownership do item antes de buscar dados.
+    """
+    # IDOR prevention — garante que item pertence ao user atual
+    if user_id:
+        owned = pluggy_get_items(user_id)
+        if not any(i["item_id"] == item_id for i in owned):
+            return {}  # não autorizado
     api_key = pluggy_get_api_key()
     if not api_key:
         return {}
@@ -507,7 +654,19 @@ def pluggy_fetch_item_data(item_id: str) -> dict:
 
 
 def pluggy_delete_item(item_id: str, user_id: str) -> bool:
-    """Revoga conexão com um banco."""
+    """
+    Revoga conexão com um banco.
+    SEGURANÇA: dupla verificação de ownership antes de deletar.
+    """
+    if not user_id or not item_id:
+        return False
+    # Verifica no banco local que o item pertence ao usuário
+    try:
+        check = supabase.table("pluggy_connections")             .select("id").eq("item_id", item_id).eq("user_id", user_id).execute()
+        if not check.data:
+            return False  # não autorizado
+    except:
+        return False
     api_key = pluggy_get_api_key()
     if not api_key:
         return False
@@ -1464,6 +1623,9 @@ def page_app():
     tipo_renda_str = st.session_state.get("tipo_renda", "💼 Salário fixo")
     trend, avg_savings = save_memory(user_id, renda, gastos_total, gastos_cat)
     perfil_usuario = load_perfil(user_id)
+    investimentos_usuario = load_investimentos(user_id)
+    patrimonio_total_brl, patrimonio_por_moeda = calcular_patrimonio_total(user_id)
+    cotacoes_cambio = get_cotacoes_cambio()
 
     # --- CARREGA HISTÓRICO DE CHAT (apenas 1x por sessão) ---
     if not st.session_state.get("chat_loaded") and user_id:
@@ -1478,7 +1640,7 @@ def page_app():
     metas = load_metas(user_id)
 
     # --- ABAS ---
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📊 Dashboard", "💬 Assessor IA", "📝 Transações", "🎯 Metas", "🔀 Renda Variável", "👤 Perfil", "🏦 Open Finance"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["📊 Dashboard", "💬 Assessor IA", "📝 Transações", "🎯 Metas", "🔀 Renda Variável", "👤 Perfil", "📈 Investimentos", "🏦 Open Finance"])
 
     # ========================
     # TAB 1: DASHBOARD
@@ -1927,9 +2089,154 @@ def page_app():
             st.markdown(f"**Ocupação:** {perfil_salvo.get('ocupacao', '—')}")
 
     # ========================
-    # TAB 7: OPEN FINANCE (PLUGGY)
+    # TAB 7: INVESTIMENTOS
     # ========================
     with tab7:
+        st.markdown("## 📈 Meus Investimentos")
+        st.caption("Controle todos seus investimentos — Brasil e exterior — com cotações em tempo real.")
+
+        # ── Cotações em tempo real ──
+        st.markdown("### 💱 Cotações em Tempo Real")
+        moedas_display = ["USD","EUR","GBP","ARS","JPY","CAD","BTC"]
+        cols_fx = st.columns(len(moedas_display))
+        for i, cod in enumerate(moedas_display):
+            m = cotacoes_cambio.get(cod, {})
+            rate = m.get("rate", 0)
+            pct = m.get("pct_change", 0)
+            cor = "#10b981" if pct >= 0 else "#ef4444"
+            seta = "▲" if pct >= 0 else "▼"
+            with cols_fx[i]:
+                st.markdown(f"""
+                <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.2);
+                border-radius:10px;padding:10px;text-align:center;'>
+                    <div style='font-size:1.1rem;'>{m.get("emoji","")}</div>
+                    <div style='color:#6b9e80;font-size:0.65rem;margin:2px 0;'>{cod}/BRL</div>
+                    <div style='color:#e8f5ee;font-weight:700;font-size:0.9rem;'>R$ {rate:,.2f}</div>
+                    <div style='color:{cor};font-size:0.68rem;'>{seta} {abs(pct):.2f}%</div>
+                </div>""", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Patrimônio consolidado ──
+        if investimentos_usuario:
+            cor_pat = "#10b981" if patrimonio_total_brl >= 0 else "#ef4444"
+            st.markdown(f"""
+            <div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px;'>
+                <div class="metric-card">
+                    <h3>Patrimônio Total</h3>
+                    <div class="value" style="color:{cor_pat}">R$ {patrimonio_total_brl:,.2f}</div>
+                    <div class="sub">cotações atualizadas</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Investimentos</h3>
+                    <div class="value">{len(investimentos_usuario)}</div>
+                    <div class="sub">ativos cadastrados</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Países</h3>
+                    <div class="value">{len(set(i.get("pais","Brasil") for i in investimentos_usuario))}</div>
+                    <div class="sub">mercados expostos</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Lista de investimentos
+            st.markdown("### 📋 Seus Investimentos")
+            for inv in investimentos_usuario:
+                moeda = inv.get("moeda","BRL")
+                val_orig = float(inv.get("valor_original",0))
+                val_brl = float(inv.get("valor_brl",0))
+                rate_atual = cotacoes_cambio.get(moeda,{}).get("rate",1.0) if moeda != "BRL" else 1.0
+                val_atual = val_orig * rate_atual if moeda != "BRL" else val_orig
+                variacao = val_atual - val_brl
+                cor_var = "#10b981" if variacao >= 0 else "#ef4444"
+                flag = cotacoes_cambio.get(moeda,{}).get("emoji","🌐") if moeda != "BRL" else "🇧🇷"
+
+                with st.expander(f"{flag} **{inv.get('nome','—')}** — R$ {val_atual:,.2f}", expanded=False):
+                    c1, c2, c3 = st.columns(3)
+                    with c1:
+                        st.metric("Tipo", inv.get("tipo","—"))
+                        st.metric("País", inv.get("pais","Brasil"))
+                    with c2:
+                        st.metric("Valor Original", f"{moeda} {val_orig:,.2f}")
+                        st.metric("Corretora", inv.get("corretora","—"))
+                    with c3:
+                        st.metric("Valor em BRL", f"R$ {val_atual:,.2f}",
+                            delta=f"R$ {variacao:+,.2f}" if moeda != "BRL" else None)
+                    if inv.get("notas"):
+                        st.caption(f"📝 {inv['notas']}")
+                    if st.button("🗑️ Remover", key=f"del_inv_{inv['id']}"):
+                        delete_investimento(inv["id"], user_id)
+                        st.rerun()
+
+        # ── Adicionar investimento ──
+        st.markdown("### ➕ Adicionar Investimento")
+        with st.form("form_investimento"):
+            ci1, ci2 = st.columns(2)
+            with ci1:
+                inv_nome = st.text_input("Nome do investimento", placeholder="Ex: Apple AAPL, Tesouro IPCA+, FII KNRI11")
+                inv_tipo = st.selectbox("Tipo", [
+                    "Ações BR (B3)", "Ações EUA", "Ações Europa", "Ações Outros",
+                    "FIIs", "ETF", "Tesouro Direto", "CDB/LCI/LCA",
+                    "Criptomoedas", "Fundos", "Previdência", "Poupança", "Outro"
+                ])
+                inv_corretora = st.text_input("Corretora/Banco", placeholder="Ex: XP, Rico, Nubank, Interactive Brokers")
+            with ci2:
+                inv_moeda = st.selectbox("Moeda", [
+                    "BRL 🇧🇷", "USD 🇺🇸", "EUR 🇪🇺", "GBP 🇬🇧",
+                    "ARS 🇦🇷", "JPY 🇯🇵", "CAD 🇨🇦", "AUD 🇦🇺", "CHF 🇨🇭",
+                    "CNY 🇨🇳", "BTC ₿"
+                ])
+                inv_valor = st.number_input("Valor investido", min_value=0.01, value=1000.0, format="%.2f")
+                inv_pais = st.selectbox("País", [
+                    "Brasil", "Estados Unidos", "Europa", "Reino Unido",
+                    "Japão", "China", "Canadá", "Austrália", "Suíça", "Outro"
+                ])
+            inv_notas = st.text_area("Notas (opcional)", max_chars=300, placeholder="Ex: Comprado em jan/2025, objetivo longo prazo...")
+
+            inv_submit = st.form_submit_button("💾 Salvar Investimento", use_container_width=True)
+            if inv_submit:
+                moeda_code = inv_moeda.split()[0]
+                pais_selecionado = inv_pais
+                if not inv_nome:
+                    st.error("Informe o nome do investimento.")
+                elif inv_valor <= 0:
+                    st.error("Valor deve ser maior que zero.")
+                else:
+                    # Mostra conversão antes de salvar
+                    if moeda_code != "BRL":
+                        val_brl_preview = converter_para_brl(inv_valor, moeda_code)
+                        rate = cotacoes_cambio.get(moeda_code, {}).get("rate", 1.0)
+                        st.info(f"💱 {moeda_code} {inv_valor:,.2f} = R$ {val_brl_preview:,.2f} (cotação: R$ {rate:,.4f})")
+                    if save_investimento(user_id, inv_nome, inv_tipo, inv_valor, moeda_code, pais_selecionado, inv_corretora, inv_notas):
+                        st.success(f"✅ {inv_nome} salvo com sucesso!")
+                        st.rerun()
+                    else:
+                        st.error("Erro ao salvar. Tente novamente.")
+
+        # ── Gráfico por tipo ──
+        if investimentos_usuario:
+            st.markdown("### 📊 Distribuição por Tipo")
+            tipos_dist = {}
+            for inv in investimentos_usuario:
+                t = inv.get("tipo","Outro")
+                tipos_dist[t] = tipos_dist.get(t, 0) + float(inv.get("valor_brl",0))
+            if tipos_dist:
+                fig_inv = go.Figure(go.Pie(
+                    labels=list(tipos_dist.keys()),
+                    values=list(tipos_dist.values()),
+                    hole=0.5,
+                    textinfo="label+percent",
+                    textfont=dict(color="white"),
+                ))
+                fig_inv.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
+                    showlegend=False,height=280,margin=dict(t=10,b=10,l=10,r=10))
+                st.plotly_chart(fig_inv, use_container_width=True, key="inv_tipos_pie")
+
+    # ========================
+    # TAB 8: OPEN FINANCE (PLUGGY)
+    # ========================
+    with tab8:
         st.markdown("## 🏦 Open Finance")
         st.caption("Conecte seus bancos via Pluggy e importe extratos automaticamente.")
 
@@ -1969,7 +2276,7 @@ PLUGGY_WEBHOOK_URL = "https://seu-app.streamlit.app/webhook"</pre>
                     with st.expander(f"🏦 {item.get('connector_name','Banco')} — conectado em {item.get('connected_at','')[:10]}", expanded=False):
                         col_a, col_b = st.columns([3,1])
                         with col_a:
-                            item_data = pluggy_fetch_item_data(item["item_id"])
+                            item_data = pluggy_fetch_item_data(item["item_id"], user_id)
                             accounts = item_data.get("accounts", [])
                             if accounts:
                                 st.markdown("**Contas:**")
@@ -2019,65 +2326,90 @@ PLUGGY_WEBHOOK_URL = "https://seu-app.streamlit.app/webhook"</pre>
             token = pluggy_create_connect_token(user_id)
 
             if token:
-                # Pluggy Connect Widget via iframe + postMessage
+                # ─────────────────────────────────────────────
+                # PLUGGY CONNECT — fluxo correto para Streamlit
+                # O popup com postMessage não funciona no Streamlit
+                # por isolamento de iframe. Fluxo correto:
+                # 1) Usuário clica no link → abre Pluggy Connect
+                # 2) Após autorizar, Pluggy redireciona para callback
+                # 3) Usuário cola o Item ID retornado aqui
+                # ─────────────────────────────────────────────
+                pluggy_url = f"https://connect.pluggy.ai/?connectToken={token}&lang=pt-BR"
+
                 st.markdown(f"""
                 <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.3);
                 border-radius:14px;padding:20px;margin-bottom:16px;'>
-                    <div style='color:#34c17a;font-weight:700;margin-bottom:12px;'>
+                    <div style='color:#34c17a;font-weight:700;margin-bottom:8px;font-size:1rem;'>
                         🔐 Conectar via Pluggy Connect
                     </div>
-                    <p style='color:#6b9e80;font-size:0.85rem;margin-bottom:16px;'>
-                        Uma janela segura será aberta para você escolher seu banco e autorizar o acesso.
-                        Nenhuma senha é armazenada pelo iMoney.
+                    <p style='color:#6b9e80;font-size:0.83rem;margin-bottom:16px;line-height:1.5;'>
+                        Clique no botão abaixo para abrir o portal seguro da Pluggy.
+                        Escolha seu banco, autorize o acesso e copie o <strong style='color:#f0b429;'>Item ID</strong>
+                        exibido na tela de sucesso.
                     </p>
-                    <button onclick="openPluggyConnect()" style='
-                        background:linear-gradient(135deg,#1a9e5c,#34c17a);
-                        color:white;border:none;border-radius:10px;
-                        padding:12px 28px;font-size:0.95rem;font-weight:700;
-                        cursor:pointer;width:100%;'>
-                        🏦 Conectar meu banco
-                    </button>
+                    <a href="{pluggy_url}" target="_blank" rel="noopener noreferrer" style='
+                        display:block;background:linear-gradient(135deg,#1a9e5c,#34c17a);
+                        color:white;border-radius:10px;padding:13px 0;
+                        font-size:0.95rem;font-weight:700;text-align:center;
+                        text-decoration:none;margin-bottom:12px;'>
+                        🏦 Abrir portal de conexão bancária ↗
+                    </a>
+                    <div style='background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.2);
+                    border-radius:8px;padding:10px 14px;font-size:0.78rem;color:#6b9e80;'>
+                        ⏳ Token válido por 30 minutos · 🔒 Nenhuma senha é armazenada pelo iMoney
+                    </div>
                 </div>
-                <script>
-                function openPluggyConnect() {{
-                    var widget = window.open(
-                        'https://connect.pluggy.ai/?connectToken={token}&lang=pt-BR',
-                        'pluggy_connect',
-                        'width=480,height=700,scrollbars=yes,resizable=yes'
-                    );
-                    window.addEventListener('message', function(e) {{
-                        if (e.data && e.data.event === 'SUCCESS') {{
-                            var itemId = e.data.item && e.data.item.id;
-                            var connName = e.data.item && e.data.item.connector && e.data.item.connector.name;
-                            if (itemId) {{
-                                fetch('/_stcore/stream', {{method:'POST'}});
-                                document.getElementById('pluggy_result').value = itemId + '|' + connName;
-                                document.getElementById('pluggy_form').submit();
-                            }}
-                        }}
-                    }}, false);
-                }}
-                </script>
                 """, unsafe_allow_html=True)
 
-                # Alternativa: input manual do item_id (para casos sem postMessage)
-                with st.expander("📋 Já conectou? Informe o Item ID manualmente"):
-                    st.caption("Após conectar no widget, cole aqui o Item ID retornado.")
-                    col_m1, col_m2 = st.columns([3,1])
-                    with col_m1:
-                        manual_item_id = st.text_input("Item ID (ex: abc123...)", key="manual_item_id",
-                            placeholder="Cole o Item ID retornado pelo Pluggy Connect")
-                        manual_bank = st.text_input("Nome do banco", key="manual_bank",
-                            placeholder="Ex: Nubank, Itaú, Bradesco...")
-                    with col_m2:
-                        st.markdown("<br><br>", unsafe_allow_html=True)
-                        if st.button("✅ Confirmar", key="btn_manual_connect"):
-                            if manual_item_id and manual_bank:
+                # Passo 2: usuário cola o Item ID após conectar
+                st.markdown("**Passo 2:** Após autorizar no portal, informe aqui:")
+                col_m1, col_m2 = st.columns([3, 1])
+                with col_m1:
+                    manual_item_id = st.text_input(
+                        "Item ID (exibido na tela de sucesso da Pluggy)",
+                        key="manual_item_id",
+                        placeholder="Ex: a658c848-e475-457b-8565-d1fffba127c4"
+                    )
+                    manual_bank = st.text_input(
+                        "Nome do banco conectado",
+                        key="manual_bank",
+                        placeholder="Ex: Nubank, Itaú, Bradesco..."
+                    )
+                with col_m2:
+                    st.markdown("<br><br>", unsafe_allow_html=True)
+                    if st.button("✅ Confirmar conexão", key="btn_manual_connect"):
+                        # Validação rigorosa do Item ID (UUID format)
+                        import re as _re
+                        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                        if not manual_item_id or not _re.match(uuid_pattern, manual_item_id.strip().lower()):
+                            st.error("Item ID inválido. Deve ser um UUID no formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+                        elif not manual_bank or len(manual_bank.strip()) < 2:
+                            st.error("Informe o nome do banco.")
+                        else:
+                            # Verifica se o item realmente existe na Pluggy e pertence ao user
+                            api_key = pluggy_get_api_key()
+                            item_valid = False
+                            if api_key:
+                                try:
+                                    r = requests.get(
+                                        f"{PLUGGY_API_URL}/items/{manual_item_id.strip()}",
+                                        headers={"X-API-KEY": api_key}, timeout=10
+                                    )
+                                    if r.status_code == 200:
+                                        item_data = r.json()
+                                        # Verifica que o clientUserId bate com o user atual
+                                        if item_data.get("clientUserId") == str(user_id):
+                                            item_valid = True
+                                        else:
+                                            st.error("❌ Este item não pertence à sua conta. Verifique o Item ID.")
+                                    else:
+                                        st.error(f"❌ Item ID não encontrado na Pluggy (status {r.status_code}).")
+                                except Exception as e:
+                                    st.error("Erro ao verificar conexão. Tente novamente.")
+                            if item_valid:
                                 pluggy_save_connection(user_id, manual_item_id.strip(), manual_bank.strip())
-                                st.success(f"✅ {manual_bank} conectado!")
+                                st.success(f"✅ {manual_bank.strip()} conectado com sucesso!")
                                 st.rerun()
-                            else:
-                                st.error("Preencha o Item ID e o nome do banco.")
             else:
                 st.error("Não foi possível gerar token de conexão. Verifique as chaves Pluggy nos secrets.")
 
@@ -2088,7 +2420,7 @@ PLUGGY_WEBHOOK_URL = "https://seu-app.streamlit.app/webhook"</pre>
             st.markdown("### 📊 Visão Consolidada")
             total_saldo = 0
             for item in connected_items:
-                data = pluggy_fetch_item_data(item["item_id"])
+                data = pluggy_fetch_item_data(item["item_id"], user_id)
                 for acc in data.get("accounts", []):
                     total_saldo += acc.get("balance", 0)
             cor_saldo = "#10b981" if total_saldo >= 0 else "#ef4444"
