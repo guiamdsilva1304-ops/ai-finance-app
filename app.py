@@ -56,6 +56,7 @@ defaults = {
     "metas": [],
     "user_id": None,
     "user_email": None,
+    "chat_loaded": False,  # flag para não recarregar histórico toda vez
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -380,6 +381,37 @@ def save_perfil(user_id, idade, filhos, estado, cidade, ocupacao):
         result = supabase.table("user_profiles").upsert(data).execute()
         return True
     except Exception as e:
+        return False
+
+
+def load_chat_history(user_id, limit=100):
+    """Carrega histórico de chat do Supabase."""
+    try:
+        res = supabase.table("chat_history")             .select("*")             .eq("user_id", user_id)             .order("created_at", desc=False)             .limit(limit)             .execute()
+        return [{"role": r["role"], "content": r["content"]} for r in (res.data or [])]
+    except:
+        return []
+
+
+def save_chat_message(user_id, role, content):
+    """Salva uma mensagem no histórico persistente."""
+    try:
+        supabase.table("chat_history").insert({
+            "user_id": str(user_id),
+            "role": role,
+            "content": content[:4000],  # limite de segurança
+            "created_at": datetime.utcnow().isoformat(),
+        }).execute()
+    except:
+        pass
+
+
+def clear_chat_history(user_id):
+    """Apaga todo o histórico de chat do usuário."""
+    try:
+        supabase.table("chat_history")             .delete()             .eq("user_id", user_id)             .execute()
+        return True
+    except:
         return False
 
 
@@ -1257,7 +1289,11 @@ def page_app():
         if st.button("🚪 Sair", use_container_width=True):
             try: supabase.auth.sign_out()
             except: pass
-            st.session_state.messages = []
+            st.session_state["user_id"] = None
+            st.session_state["user_email"] = None
+            st.session_state["login_time"] = 0
+            st.session_state["messages"] = []
+            st.session_state["chat_loaded"] = False
             st.rerun()
 
     # --- DADOS MACRO (auto-atualizados) ---
@@ -1273,6 +1309,13 @@ def page_app():
     tipo_renda_str = st.session_state.get("tipo_renda", "💼 Salário fixo")
     trend, avg_savings = save_memory(user_id, renda, gastos_total, gastos_cat)
     perfil_usuario = load_perfil(user_id)
+
+    # --- CARREGA HISTÓRICO DE CHAT (apenas 1x por sessão) ---
+    if not st.session_state.get("chat_loaded") and user_id:
+        historico_db = load_chat_history(user_id)
+        if historico_db:
+            st.session_state.messages = historico_db
+        st.session_state["chat_loaded"] = True
 
     # --- ENGINE ---
     perfil = classify_user(renda, gastos_total)
@@ -1421,6 +1464,7 @@ def page_app():
                 # Sanitiza o prompt
                 prompt_clean = sanitize_text(pergunta_final, max_len=MAX_MSG_LEN)
                 st.session_state.messages.append({"role": "user", "content": prompt_clean})
+                save_chat_message(user_id, "user", prompt_clean)
                 with st.spinner("Analisando..."):
                     try:
                         resposta = agente_chat(
@@ -1430,8 +1474,10 @@ def page_app():
                             perfil_usuario=perfil_usuario
                         )
                         st.session_state.messages.append({"role": "assistant", "content": resposta})
+                        save_chat_message(user_id, "assistant", resposta)
                     except Exception as e:
-                        st.session_state.messages.append({"role": "assistant", "content": "Desculpe, ocorreu um erro. Tente novamente."})
+                        erro_msg = "Desculpe, ocorreu um erro. Tente novamente."
+                        st.session_state.messages.append({"role": "assistant", "content": erro_msg})
                 st.rerun()
 
         # Histórico
@@ -1443,9 +1489,15 @@ def page_app():
                 with st.chat_message("assistant"):
                     st.markdown(msg["content"])
 
-        if st.session_state.messages and st.button("🗑️ Limpar conversa"):
-            st.session_state.messages = []
-            st.rerun()
+        # Info de persistência
+        if st.session_state.messages:
+            total_msgs = len(st.session_state.messages)
+            st.caption(f"💾 {total_msgs} mensagens salvas · histórico preservado entre sessões")
+            if st.button("🗑️ Limpar conversa", key="btn_clear_chat"):
+                clear_chat_history(user_id)
+                st.session_state.messages = []
+                st.session_state["chat_loaded"] = False
+                st.rerun()
 
     # ========================
     # TAB 3: TRANSAÇÕES
