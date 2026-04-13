@@ -4,3 +4,4 @@ supabase>=2.4.0
 plotly>=5.22.0
 pandas>=2.2.0
 requests>=2.31.0
+pluggy-sdk>=1.0.0
