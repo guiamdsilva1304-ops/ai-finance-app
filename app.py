@@ -2334,8 +2334,17 @@ PLUGGY_WEBHOOK_URL = "https://seu-app.streamlit.app/webhook"</pre>
                 # 2) Após autorizar, Pluggy redireciona para callback
                 # 3) Usuário cola o Item ID retornado aqui
                 # ─────────────────────────────────────────────
-                pluggy_url = f"https://connect.pluggy.ai/?connectToken={token}&lang=pt-BR"
+                # Pluggy Connect URL — formato oficial documentado
+                # Refs: https://docs.pluggy.ai/docs/authentication
+                pluggy_url_v1 = f"https://connect.pluggy.ai/?connectToken={token}&lang=pt-BR"
+                pluggy_url_v2 = f"https://connect.pluggy.ai?token={token}&lang=pt-BR"
+                # Usa v1 (formato com connectToken) conforme documentação
+                pluggy_url = pluggy_url_v1
 
+                # Mostra token truncado para debug (somente primeiros 8 chars)
+                token_preview = f"{token[:8]}...{token[-4:]}" if token and len(token) > 12 else "inválido"
+
+                st.success(f"✅ Token gerado com sucesso! ({token_preview})")
                 st.markdown(f"""
                 <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.3);
                 border-radius:14px;padding:20px;margin-bottom:16px;'>
@@ -2360,6 +2369,8 @@ PLUGGY_WEBHOOK_URL = "https://seu-app.streamlit.app/webhook"</pre>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+                # Link alternativo caso o principal não funcione
+                st.caption(f"Se o botão acima não abrir corretamente, [clique aqui]({pluggy_url_v2}).")
 
                 # Passo 2: usuário cola o Item ID após conectar
                 st.markdown("**Passo 2:** Após autorizar no portal, informe aqui:")
