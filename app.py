@@ -984,259 +984,439 @@ Responda SOMENTE com JSON válido:
 def inject_css():
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@300;400;600&display=swap');
 
-    /* ── BASE ── */
+    /* ═══════════════════════════════════════
+       TOKENS
+    ═══════════════════════════════════════ */
+    :root {
+      --green-50:  #f0fdf4;
+      --green-100: #dcfce7;
+      --green-200: #bbf7d0;
+      --green-400: #4ade80;
+      --green-500: #22c55e;
+      --green-600: #16a34a;
+      --green-700: #15803d;
+      --green-800: #166534;
+      --green-900: #14532d;
+      --dark-bg:   #0a0f0d;
+      --dark-card: #111a14;
+      --dark-card2:#162019;
+      --dark-border:rgba(34,197,94,0.18);
+      --dark-border2:rgba(34,197,94,0.08);
+      --text-primary:#f0fdf4;
+      --text-muted:  #6b9e80;
+      --text-dim:    #374a3c;
+      --gold:        #f0b429;
+      --gold-dim:    rgba(240,180,41,0.15);
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow-green: 0 4px 24px rgba(22,163,74,0.18);
+      --shadow-card:  0 2px 12px rgba(0,0,0,0.4);
+    }
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
     html, body, [class*="css"] {
-        font-family: 'DM Sans', sans-serif;
-        -webkit-text-size-adjust: 100%;
+      font-family: 'Nunito Sans', sans-serif !important;
+      -webkit-text-size-adjust: 100%;
+      background: var(--dark-bg) !important;
     }
-    h1, h2, h3 { font-family: 'Syne', sans-serif; }
+    h1,h2,h3,h4 { font-family: 'Nunito', sans-serif !important; }
+    * { box-sizing: border-box; }
 
-    /* ── LAYOUT PRINCIPAL ── */
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--dark-bg); }
+    ::-webkit-scrollbar-thumb { background: var(--green-800); border-radius: 99px; }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .main, section[data-testid="stMain"] {
+      background: var(--dark-bg) !important;
+    }
     .main .block-container {
-        padding: 1rem 1rem 3rem !important;
-        max-width: 100% !important;
+      padding: 1.25rem 1.25rem 4rem !important;
+      max-width: 100% !important;
     }
 
-    /* ── METRIC CARDS ── */
+    /* ═══════════════════════════════════════
+       METRIC CARDS
+    ═══════════════════════════════════════ */
     .metric-card {
-        background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
-        border: 1px solid #374151;
-        border-radius: 14px;
-        padding: 1rem 1.1rem 0.9rem;
-        margin-bottom: 0.75rem;
-        min-height: 100px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        box-sizing: border-box;
-        width: 100%;
+      background: var(--dark-card);
+      border: 1px solid var(--dark-border);
+      border-radius: var(--radius-md);
+      padding: 1.1rem 1.2rem 1rem;
+      margin-bottom: 0.75rem;
+      min-height: 106px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--green-600), var(--green-400), transparent);
+      opacity: 0.6;
+    }
+    .metric-card:hover {
+      border-color: rgba(34,197,94,0.35);
+      box-shadow: var(--shadow-green);
     }
     .metric-card h3 {
-        color: #9ca3af;
-        font-size: 0.68rem;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        margin: 0 0 0.4rem;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      color: var(--text-muted);
+      font-size: 0.66rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin: 0 0 0.4rem;
+      font-family: 'Nunito Sans', sans-serif !important;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .metric-card .value {
-        font-family: 'Syne', sans-serif;
-        font-size: clamp(1.1rem, 2.5vw, 1.6rem);
-        font-weight: 800;
-        color: #f9fafb;
-        line-height: 1.2;
-        word-break: break-word;
+      font-family: 'Nunito', sans-serif !important;
+      font-size: clamp(1.1rem, 2.2vw, 1.55rem);
+      font-weight: 900;
+      color: var(--text-primary);
+      line-height: 1.15;
+      word-break: break-word;
     }
     .metric-card .sub {
-        font-size: 0.7rem;
-        color: #6b9e80;
-        margin-top: 0.3rem;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      font-size: 0.68rem;
+      color: var(--green-600);
+      margin-top: 0.3rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    /* ── SCORE RING ── */
+    /* ═══════════════════════════════════════
+       SCORE RING
+    ═══════════════════════════════════════ */
     .score-ring {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        background: #111827;
-        border-radius: 14px;
-        padding: 0.9rem 1.2rem;
-        border: 1px solid #374151;
-        flex-wrap: wrap;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--dark-card);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.4rem;
+      border: 1px solid var(--dark-border);
+      flex-wrap: wrap;
     }
     .score-number {
-        font-family: 'Syne', sans-serif;
-        font-size: clamp(2rem, 6vw, 3rem);
-        font-weight: 800;
+      font-family: 'Nunito', sans-serif !important;
+      font-size: clamp(2.2rem, 5vw, 3rem);
+      font-weight: 900;
+      line-height: 1;
     }
 
-    /* ── BOTÕES ── */
+    /* ═══════════════════════════════════════
+       BUTTONS
+    ═══════════════════════════════════════ */
     .stButton > button {
-        background: linear-gradient(135deg, #1d4ed8, #7c3aed);
-        color: white !important;
-        border: none !important;
-        border-radius: 10px;
-        font-family: 'Syne', sans-serif;
-        font-weight: 700;
-        transition: all 0.2s;
-        width: 100%;
-        min-height: 44px;
-        font-size: clamp(0.82rem, 2vw, 0.95rem) !important;
-        padding: 0.6rem 1rem !important;
-        white-space: normal !important;
-        word-break: break-word !important;
+      background: linear-gradient(135deg, var(--green-700), var(--green-500)) !important;
+      color: white !important;
+      border: none !important;
+      border-radius: var(--radius-sm) !important;
+      font-family: 'Nunito', sans-serif !important;
+      font-weight: 800 !important;
+      font-size: clamp(0.8rem, 1.8vw, 0.92rem) !important;
+      min-height: 44px !important;
+      width: 100% !important;
+      padding: 0.55rem 1rem !important;
+      white-space: normal !important;
+      transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s !important;
+      letter-spacing: 0.02em !important;
+      box-shadow: 0 2px 10px rgba(22,163,74,0.3) !important;
     }
     .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(29,78,216,0.4);
+      opacity: 0.92 !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 20px rgba(22,163,74,0.4) !important;
     }
+    .stButton > button:active { transform: translateY(0) !important; }
 
-    /* ── TABS ── */
-    div[data-testid="stTabs"] button {
-        font-size: clamp(0.7rem, 2vw, 0.85rem) !important;
-        padding: 0.5rem 0.6rem !important;
-        white-space: nowrap;
-    }
+    /* ═══════════════════════════════════════
+       TABS
+    ═══════════════════════════════════════ */
     div[data-testid="stTabs"] [role="tablist"] {
-        flex-wrap: wrap;
-        gap: 2px;
+      background: var(--dark-card2);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      gap: 2px;
+      border: 1px solid var(--dark-border2);
+      flex-wrap: wrap;
+    }
+    div[data-testid="stTabs"] button[role="tab"] {
+      font-family: 'Nunito', sans-serif !important;
+      font-size: clamp(0.68rem, 1.8vw, 0.82rem) !important;
+      font-weight: 700 !important;
+      color: var(--text-muted) !important;
+      border-radius: 7px !important;
+      padding: 0.45rem 0.65rem !important;
+      transition: all 0.18s !important;
+      background: transparent !important;
+      border: none !important;
+      white-space: nowrap !important;
+    }
+    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+      background: linear-gradient(135deg, var(--green-800), var(--green-700)) !important;
+      color: var(--green-100) !important;
+      box-shadow: 0 2px 8px rgba(22,163,74,0.35) !important;
+    }
+    div[data-testid="stTabs"] button[role="tab"]:hover:not([aria-selected="true"]) {
+      color: var(--green-400) !important;
+      background: rgba(34,197,94,0.07) !important;
     }
 
-    /* ── SIDEBAR ── */
+    /* ═══════════════════════════════════════
+       SIDEBAR
+    ═══════════════════════════════════════ */
     div[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #07130d 0%, #0a1f12 40%, #0f2d1a 100%) !important;
-        border-right: 1px solid rgba(26,158,92,0.25) !important;
-        min-width: 220px !important;
+      background: linear-gradient(180deg, #060e08 0%, #091409 50%, #0d1c0e 100%) !important;
+      border-right: 1px solid var(--dark-border) !important;
+      min-width: 230px !important;
     }
-    div[data-testid="stSidebar"] > div {
-        padding-top: 1rem !important;
-    }
+    div[data-testid="stSidebar"] > div { padding-top: 1rem !important; }
     div[data-testid="stSidebar"] label,
     div[data-testid="stSidebar"] p,
     div[data-testid="stSidebar"] span {
-        color: #e8f5ee !important;
-        font-size: clamp(0.78rem, 2vw, 0.9rem) !important;
+      color: #a7c4b0 !important;
+      font-size: clamp(0.78rem, 2vw, 0.88rem) !important;
     }
     div[data-testid="stSidebar"] h1,
     div[data-testid="stSidebar"] h2,
     div[data-testid="stSidebar"] h3 {
-        color: #f0b429 !important;
-        font-size: clamp(0.85rem, 2.5vw, 1rem) !important;
+      color: var(--gold) !important;
+      font-size: clamp(0.82rem, 2.2vw, 0.95rem) !important;
     }
-    div[data-testid="stSidebar"] input {
-        background: rgba(15,45,26,0.8) !important;
-        border: 1px solid rgba(26,158,92,0.3) !important;
-        color: #e8f5ee !important;
-        border-radius: 8px !important;
-        font-size: 0.9rem !important;
-        min-height: 40px !important;
+    div[data-testid="stSidebar"] input,
+    div[data-testid="stSidebar"] select {
+      background: rgba(14,25,16,0.9) !important;
+      border: 1px solid rgba(34,197,94,0.22) !important;
+      color: #dcfce7 !important;
+      border-radius: 8px !important;
+      font-size: 0.88rem !important;
+      min-height: 40px !important;
     }
     div[data-testid="stSidebar"] .stButton > button {
-        background: linear-gradient(135deg, #1a9e5c, #34c17a) !important;
-        min-height: 40px !important;
+      background: linear-gradient(135deg, var(--green-800), var(--green-600)) !important;
+      min-height: 40px !important;
+      font-size: 0.82rem !important;
     }
     div[data-testid="stSidebar"] hr {
-        border-color: rgba(26,158,92,0.2) !important;
-    }
-    div[data-testid="stSidebar"] [data-testid="stNumberInput"] input {
-        font-size: 0.9rem !important;
+      border-color: rgba(34,197,94,0.12) !important;
+      margin: 0.75rem 0 !important;
     }
 
-    /* ── INPUTS GERAIS ── */
-    input, textarea, select {
-        font-size: 16px !important;
+    /* ═══════════════════════════════════════
+       INPUTS
+    ═══════════════════════════════════════ */
+    input, textarea, select { font-size: 16px !important; }
+    div[data-testid="stTextInput"] > div > div,
+    div[data-testid="stTextInput"] input {
+      background: var(--dark-card) !important;
+      border: 1px solid var(--dark-border) !important;
+      color: var(--text-primary) !important;
+      border-radius: var(--radius-sm) !important;
+      min-height: 44px !important;
+      font-size: 0.9rem !important;
+      transition: border-color 0.15s !important;
     }
-    div[data-testid="stTextInput"] input,
+    div[data-testid="stTextInput"] input:focus {
+      border-color: var(--green-500) !important;
+      box-shadow: 0 0 0 2px rgba(34,197,94,0.15) !important;
+    }
+    div[data-testid="stSelectbox"] > div > div {
+      background: var(--dark-card) !important;
+      border: 1px solid var(--dark-border) !important;
+      color: var(--text-primary) !important;
+      border-radius: var(--radius-sm) !important;
+      min-height: 42px !important;
+    }
     div[data-testid="stNumberInput"] input {
-        min-height: 44px !important;
-        font-size: 16px !important;
+      background: var(--dark-card) !important;
+      border: 1px solid var(--dark-border) !important;
+      color: var(--text-primary) !important;
+      border-radius: var(--radius-sm) !important;
+      min-height: 42px !important;
+      font-size: 0.9rem !important;
+    }
+    div[data-testid="stTextArea"] textarea {
+      background: var(--dark-card) !important;
+      border: 1px solid var(--dark-border) !important;
+      color: var(--text-primary) !important;
+      border-radius: var(--radius-sm) !important;
+    }
+    /* labels */
+    div[data-testid="stTextInput"] label,
+    div[data-testid="stSelectbox"] label,
+    div[data-testid="stNumberInput"] label,
+    div[data-testid="stTextArea"] label,
+    div[data-testid="stMultiSelect"] label {
+      color: var(--text-muted) !important;
+      font-size: 0.78rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.06em !important;
+      text-transform: uppercase !important;
     }
 
-    /* ── CHAT ── */
+    /* ═══════════════════════════════════════
+       CHAT
+    ═══════════════════════════════════════ */
     div[data-testid="stChatMessage"] {
-        width: 100% !important;
-        max-width: 100% !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      background: transparent !important;
     }
     div[data-testid="stChatMessage"] p,
     div[data-testid="stChatMessage"] li,
     div[data-testid="stChatMessage"] td {
-        overflow-wrap: break-word !important;
-        word-break: break-word !important;
-        white-space: normal !important;
-        font-size: clamp(0.82rem, 2vw, 0.95rem) !important;
+      overflow-wrap: break-word !important;
+      word-break: break-word !important;
+      white-space: normal !important;
+      font-size: clamp(0.82rem, 1.9vw, 0.95rem) !important;
+      color: var(--text-primary) !important;
     }
     div[data-testid="stChatMessage"] table {
-        width: 100% !important;
-        table-layout: auto !important;
-        display: block !important;
-        overflow-x: auto !important;
-        font-size: 0.82rem !important;
+      width: 100% !important; display: block !important;
+      overflow-x: auto !important;
+      font-size: 0.8rem !important;
+    }
+    div[data-testid="stChatInput"] > div {
+      background: var(--dark-card) !important;
+      border: 1px solid var(--dark-border) !important;
+      border-radius: var(--radius-md) !important;
     }
     div[data-testid="stChatInput"] textarea {
-        font-size: 16px !important;
-        min-height: 44px !important;
+      color: var(--text-primary) !important;
+      font-size: 0.92rem !important;
+      min-height: 44px !important;
+      background: transparent !important;
     }
 
-    /* ── DATAFRAMES ── */
+    /* ═══════════════════════════════════════
+       ALERTS & INFO BOXES
+    ═══════════════════════════════════════ */
+    div[data-testid="stAlert"] {
+      border-radius: var(--radius-sm) !important;
+      font-size: 0.86rem !important;
+    }
+    div[data-testid="stAlert"][data-baseweb="notification"] {
+      background: rgba(14,25,16,0.8) !important;
+    }
+
+    /* ═══════════════════════════════════════
+       EXPANDER
+    ═══════════════════════════════════════ */
+    div[data-testid="stExpander"] {
+      background: var(--dark-card) !important;
+      border: 1px solid var(--dark-border) !important;
+      border-radius: var(--radius-md) !important;
+    }
+    div[data-testid="stExpander"] summary {
+      color: var(--green-200) !important;
+      font-weight: 700 !important;
+    }
+
+    /* ═══════════════════════════════════════
+       DATAFRAME
+    ═══════════════════════════════════════ */
     div[data-testid="stDataFrame"] {
-        overflow-x: auto !important;
-        width: 100% !important;
+      overflow-x: auto !important;
+      width: 100% !important;
+      border-radius: var(--radius-sm) !important;
+      border: 1px solid var(--dark-border) !important;
     }
     div[data-testid="stDataFrame"] table {
-        font-size: clamp(0.7rem, 1.8vw, 0.85rem) !important;
+      font-size: clamp(0.68rem, 1.6vw, 0.82rem) !important;
     }
 
-    /* ── PLOTLY ── */
+    /* ═══════════════════════════════════════
+       PLOTLY
+    ═══════════════════════════════════════ */
     div[data-testid="stPlotlyChart"] {
-        overflow-x: auto !important;
-        width: 100% !important;
+      overflow-x: auto !important;
+      width: 100% !important;
     }
 
-    /* ── COLUNAS — stack em mobile ── */
+    /* ═══════════════════════════════════════
+       FORM submit button override
+    ═══════════════════════════════════════ */
+    div[data-testid="stFormSubmitButton"] > button {
+      background: linear-gradient(135deg, var(--green-800), var(--green-600)) !important;
+      font-size: 0.9rem !important;
+      padding: 0.7rem 1.2rem !important;
+    }
+
+    /* ═══════════════════════════════════════
+       MULTISELECT
+    ═══════════════════════════════════════ */
+    div[data-testid="stMultiSelect"] > div {
+      background: var(--dark-card) !important;
+      border: 1px solid var(--dark-border) !important;
+      border-radius: var(--radius-sm) !important;
+    }
+    div[data-testid="stMultiSelect"] span[data-baseweb="tag"] {
+      background: var(--green-800) !important;
+      color: var(--green-100) !important;
+      border-radius: 6px !important;
+    }
+
+    /* ═══════════════════════════════════════
+       HEADINGS in main content
+    ═══════════════════════════════════════ */
+    .main h1 { color: var(--green-100) !important; font-size: clamp(1.4rem, 3.5vw, 2rem) !important; font-weight: 900 !important; }
+    .main h2 { color: var(--green-200) !important; font-size: clamp(1.1rem, 2.5vw, 1.5rem) !important; font-weight: 800 !important; }
+    .main h3 { color: var(--green-300, #86efac) !important; font-size: clamp(0.95rem, 2vw, 1.15rem) !important; font-weight: 700 !important; }
+    p, li { color: #a7c4b0 !important; line-height: 1.65 !important; }
+    caption, .stCaption, [data-testid="stCaptionContainer"] {
+      color: var(--text-muted) !important;
+      font-size: 0.76rem !important;
+    }
+
+    /* ═══════════════════════════════════════
+       MOBILE (< 640px)
+    ═══════════════════════════════════════ */
     @media (max-width: 640px) {
-        .main .block-container {
-            padding: 0.5rem 0.5rem 4rem !important;
-        }
-        .metric-card {
-            min-height: 80px;
-            padding: 0.8rem 1rem;
-        }
-        .metric-card .value {
-            font-size: 1.2rem;
-        }
-        .score-ring {
-            padding: 0.75rem 1rem;
-        }
-        div[data-testid="stTabs"] button {
-            font-size: 0.65rem !important;
-            padding: 0.4rem 0.4rem !important;
-        }
-        /* Força colunas a stackar em mobile */
-        div[data-testid="column"] {
-            width: 100% !important;
-            flex: 1 1 100% !important;
-            min-width: 0 !important;
-        }
-        /* Headers menores */
-        h1 { font-size: 1.4rem !important; }
-        h2 { font-size: 1.2rem !important; }
-        h3 { font-size: 1rem !important; }
-        /* Tabelas com scroll */
-        table { display: block !important; overflow-x: auto !important; }
-        /* Banner de indicadores — 2 por linha em mobile */
-        .eco-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      .main .block-container { padding: 0.5rem 0.5rem 5rem !important; }
+      .metric-card { min-height: 86px; padding: 0.8rem 0.9rem; }
+      .metric-card .value { font-size: 1.15rem; }
+      div[data-testid="stTabs"] button[role="tab"] { font-size: 0.62rem !important; padding: 0.38rem 0.42rem !important; }
+      h1 { font-size: 1.25rem !important; }
+      h2 { font-size: 1.05rem !important; }
+      .eco-grid { grid-template-columns: repeat(2,1fr) !important; }
     }
 
-    /* ── TABLET (641px - 1024px) ── */
+    /* TABLET */
     @media (min-width: 641px) and (max-width: 1024px) {
-        .main .block-container {
-            padding: 1rem 1rem 3rem !important;
-        }
-        .metric-card .value {
-            font-size: 1.3rem;
-        }
-        div[data-testid="stTabs"] button {
-            font-size: 0.75rem !important;
-        }
+      .metric-card .value { font-size: 1.25rem; }
+      div[data-testid="stTabs"] button[role="tab"] { font-size: 0.73rem !important; }
     }
 
-    /* ── GERAL overflow ── */
+    /* ═══════════════════════════════════════
+       OVERFLOW SAFETY
+    ═══════════════════════════════════════ */
     div[data-testid="stVerticalBlock"],
     div[data-testid="stHorizontalBlock"] {
-        max-width: 100% !important;
-        overflow-x: hidden !important;
+      max-width: 100% !important;
+      overflow-x: hidden !important;
     }
-    * { box-sizing: border-box; }
-
     </style>
     """, unsafe_allow_html=True)
+
 
 # =========================
 # COMPONENTES UI
@@ -1312,30 +1492,53 @@ def grafico_projecao(sobra, selic):
 def page_login():
     inject_css()
 
-    st.markdown("""
-    <div style="text-align:center; padding: 3rem 0 1.5rem;">
-        <svg width="60" height="60" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="margin:0 auto 16px;display:block;">
-            <defs>
-                <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#34c17a"/>
-                    <stop offset="100%" style="stop-color:#f0b429"/>
-                </linearGradient>
-            </defs>
-            <circle cx="50" cy="50" r="48" fill="#0a1f12" stroke="url(#lg)" stroke-width="3"/>
-            <polygon points="50,14 45,50 50,46 55,50" fill="#f0b429"/>
-            <polygon points="50,86 45,50 50,54 55,50" fill="#34c17a"/>
-            <circle cx="50" cy="50" r="6" fill="#0a1f12" stroke="#f0b429" stroke-width="2"/>
-            <circle cx="50" cy="50" r="2.5" fill="#f0b429"/>
-        </svg>
-        <div style="font-family:Georgia,serif;font-size:2.8rem;font-weight:900;
-            background:linear-gradient(135deg,#34c17a,#f0b429);
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-            background-clip:text;letter-spacing:-1px;line-height:1;margin-bottom:8px;">
-            iMoney
-        </div>
-        <p style="color:#6b9e80;margin-top:0.3rem;font-size:0.85rem;letter-spacing:2px;text-transform:uppercase;">
-            Assessoria Financeira com IA
-        </p>
+    st.markdown(f"""
+    <div style="text-align:center;padding:2.5rem 0 1.2rem;">
+      <svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg" width="84" height="84" style="display:block;margin:0 auto 12px;">
+  <defs>
+    <linearGradient id="ll1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4ade80"/>
+      <stop offset="100%" style="stop-color:#166534"/>
+    </linearGradient>
+    <linearGradient id="ll2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#86efac"/>
+      <stop offset="100%" style="stop-color:#15803d"/>
+    </linearGradient>
+    <filter id="ls"><feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#166534" flood-opacity="0.5"/></filter>
+    <filter id="lg2"><feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#22c55e" flood-opacity="0.6"/></filter>
+  </defs>
+  <circle cx="45" cy="45" r="42" fill="white" filter="url(#ls)"/>
+  <circle cx="45" cy="45" r="40" fill="none" stroke="url(#ll1)" stroke-width="2.5"/>
+  <circle cx="45" cy="45" r="33" fill="none" stroke="#bbf7d0" stroke-width="0.8" stroke-dasharray="3,5"/>
+  <g stroke="#22c55e" stroke-width="1.5" opacity="0.6">
+    <line x1="45" y1="6" x2="45" y2="13"/>
+    <line x1="45" y1="77" x2="45" y2="84"/>
+    <line x1="6" y1="45" x2="13" y2="45"/>
+    <line x1="77" y1="45" x2="84" y2="45"/>
+  </g>
+  <!-- needle up -->
+  <polygon points="45,10 40,45 45,40 50,45" fill="url(#ll1)" filter="url(#lg2)"/>
+  <!-- needle down -->
+  <polygon points="45,80 40,45 45,50 50,45" fill="#15803d" opacity="0.8"/>
+  <!-- fleur top -->
+  <g transform="translate(45,5)" fill="#16a34a">
+    <ellipse cx="0" cy="-0.5" rx="2.2" ry="3.5"/>
+    <ellipse cx="-3" cy="0.8" rx="1.8" ry="2.8" transform="rotate(-28)"/>
+    <ellipse cx="3" cy="0.8" rx="1.8" ry="2.8" transform="rotate(28)"/>
+    <rect x="-1.2" y="2.5" width="2.4" height="3" rx="0.8"/>
+  </g>
+  <!-- center -->
+  <circle cx="45" cy="45" r="14" fill="white" stroke="url(#ll1)" stroke-width="2"/>
+  <text x="45" y="50.5" text-anchor="middle" font-family="Georgia,serif"
+    font-size="16" font-weight="900" fill="url(#ll1)" filter="url(#lg2)">$</text>
+</svg>
+      <div style="font-family:'Nunito',sans-serif;font-size:2.6rem;font-weight:900;
+          color:#14532d;line-height:1;margin-bottom:6px;letter-spacing:-1.5px;">
+        iMoney
+      </div>
+      <p style="color:#6b9e80;font-size:0.78rem;letter-spacing:3px;text-transform:uppercase;margin:0;">
+        assessor<strong style="color:#15803d;font-size:0.86rem;">IA</strong> financeira
+      </p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1497,34 +1700,35 @@ def page_app():
     # --- SIDEBAR ---
     with st.sidebar:
         st.markdown(f"""
-        <div style='padding:0.5rem 0 1rem;'>
-            <!-- Logo bússola + iMoney -->
-            <div style='display:flex;align-items:center;gap:12px;margin-bottom:6px;'>
-                <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#34c17a"/>
-                            <stop offset="100%" style="stop-color:#f0b429"/>
-                        </linearGradient>
-                    </defs>
-                    <circle cx="50" cy="50" r="48" fill="#0a1f12" stroke="url(#sg)" stroke-width="3"/>
-                    <circle cx="50" cy="50" r="38" fill="none" stroke="#f0b429" stroke-width="0.6" stroke-dasharray="3,5" opacity="0.4"/>
-                    <polygon points="50,14 45,50 50,46 55,50" fill="#f0b429"/>
-                    <polygon points="50,86 45,50 50,54 55,50" fill="#34c17a"/>
-                    <circle cx="50" cy="50" r="6" fill="#0a1f12" stroke="#f0b429" stroke-width="2"/>
-                    <circle cx="50" cy="50" r="2.5" fill="#f0b429"/>
-                </svg>
-                <div>
-                    <div style='font-family:Georgia,serif;font-size:1.5rem;font-weight:900;
-                    background:linear-gradient(135deg,#34c17a,#f0b429);
-                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                    background-clip:text;line-height:1;'>iMoney</div>
-                    <div style='font-size:0.65rem;letter-spacing:2px;color:#6b9e80;
-                    text-transform:uppercase;margin-top:2px;'>Assessoria com IA</div>
-                </div>
+        <div style='padding:0.5rem 0 0.8rem;'>
+          <div style='display:flex;align-items:center;gap:10px;margin-bottom:4px;'>
+            <svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg" width="38" height="38">
+              <defs>
+                <linearGradient id="sb1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#4ade80"/>
+                  <stop offset="100%" style="stop-color:#166534"/>
+                </linearGradient>
+              </defs>
+              <circle cx="45" cy="45" r="42" fill="#0d1c0e" stroke="url(#sb1)" stroke-width="2.5"/>
+              <circle cx="45" cy="45" r="33" fill="none" stroke="#22c55e" stroke-width="0.6" stroke-dasharray="2,5" opacity="0.35"/>
+              <g stroke="#22c55e" stroke-width="1.2" opacity="0.5">
+                <line x1="45" y1="6" x2="45" y2="13"/>
+                <line x1="45" y1="77" x2="45" y2="84"/>
+                <line x1="6" y1="45" x2="13" y2="45"/>
+                <line x1="77" y1="45" x2="84" y2="45"/>
+              </g>
+              <polygon points="45,10 40,45 45,40 50,45" fill="#4ade80"/>
+              <polygon points="45,80 40,45 45,50 50,45" fill="#15803d" opacity="0.8"/>
+              <circle cx="45" cy="45" r="13" fill="#0d1c0e" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="45" y="50" text-anchor="middle" font-family="Georgia,serif"
+                font-size="14" font-weight="900" fill="#4ade80">$</text>
+            </svg>
+            <div>
+              <div style='font-family:Nunito,sans-serif;font-size:1.25rem;font-weight:900;color:#4ade80;line-height:1;'>iMoney</div>
+              <div style='font-size:0.58rem;color:#6b9e80;letter-spacing:2px;text-transform:uppercase;'>assessorIA financeira</div>
             </div>
-            <div style='color:#6b9e80;font-size:0.75rem;padding:6px 0 0;
-            border-top:1px solid rgba(26,158,92,0.2);'>👤 {email}</div>
+          </div>
+          <div style='color:#6b9e80;font-size:0.72rem;margin-top:2px;'>{email}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2335,7 +2539,11 @@ PLUGGY_WEBHOOK_URL = "https://seu-app.streamlit.app/webhook"</pre>
 <html>
 <head>
 <meta charset="UTF-8">
-<script src="https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js"></script>
+<meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+<script src="https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js"
+  crossorigin="anonymous"
+  onerror="document.getElementById('sdk-err').style.display='block';document.getElementById('open-btn').style.display='none';">
+</script>
 <style>
 body{{margin:0;padding:0;background:transparent;font-family:sans-serif;}}
 #open-btn{{display:block;width:100%;padding:13px 0;background:linear-gradient(135deg,#1a9e5c,#34c17a);
@@ -2350,6 +2558,12 @@ border:1px solid rgba(26,158,92,.4);border-radius:6px;color:#34c17a;cursor:point
 </head>
 <body>
 <button id="open-btn" onclick="openW()">🏦 Conectar meu banco agora</button>
+<div id="sdk-err" style="display:none;padding:12px;background:rgba(239,68,68,0.1);
+  border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#ef4444;font-size:0.8rem;margin-bottom:8px;">
+  ⚠️ Não foi possível carregar o widget da Pluggy neste ambiente.<br>
+  Use o campo abaixo para inserir o Item ID manualmente após conectar em
+  <a href="https://meu.pluggy.ai" target="_blank" style="color:#4ade80;">meu.pluggy.ai</a>.
+</div>
 <div id="err-box"></div>
 <div id="result-box">
   <strong style="color:#34c17a">✅ Banco conectado!</strong><br>
