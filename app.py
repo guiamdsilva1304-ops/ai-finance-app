@@ -2321,108 +2321,143 @@ PLUGGY_WEBHOOK_URL = "https://seu-app.streamlit.app/webhook"</pre>
 
             # ─── CONECTAR NOVO BANCO ───
             st.markdown("### ➕ Conectar Banco")
-            st.caption("Clique abaixo para abrir o seletor seguro de instituições financeiras.")
+            st.caption("O widget da Pluggy será carregado abaixo. Escolha seu banco e autorize o acesso.")
 
             token = pluggy_create_connect_token(user_id)
 
             if token:
-                # ─────────────────────────────────────────────
-                # PLUGGY CONNECT — fluxo correto para Streamlit
-                # O popup com postMessage não funciona no Streamlit
-                # por isolamento de iframe. Fluxo correto:
-                # 1) Usuário clica no link → abre Pluggy Connect
-                # 2) Após autorizar, Pluggy redireciona para callback
-                # 3) Usuário cola o Item ID retornado aqui
-                # ─────────────────────────────────────────────
-                # Pluggy Connect URL — formato oficial documentado
-                # Refs: https://docs.pluggy.ai/docs/authentication
-                pluggy_url_v1 = f"https://connect.pluggy.ai/?connectToken={token}&lang=pt-BR"
-                pluggy_url_v2 = f"https://connect.pluggy.ai?token={token}&lang=pt-BR"
-                # Usa v1 (formato com connectToken) conforme documentação
-                pluggy_url = pluggy_url_v1
+                token_preview = f"{token[:8]}...{token[-4:]}" if len(token) > 12 else "—"
+                st.success(f"✅ Token gerado ({token_preview}) — válido por 30 min")
 
-                # Mostra token truncado para debug (somente primeiros 8 chars)
-                token_preview = f"{token[:8]}...{token[-4:]}" if token and len(token) > 12 else "inválido"
+                import streamlit.components.v1 as _components
 
-                st.success(f"✅ Token gerado com sucesso! ({token_preview})")
-                st.markdown(f"""
-                <div style='background:rgba(15,45,26,0.5);border:1px solid rgba(26,158,92,0.3);
-                border-radius:14px;padding:20px;margin-bottom:16px;'>
-                    <div style='color:#34c17a;font-weight:700;margin-bottom:8px;font-size:1rem;'>
-                        🔐 Conectar via Pluggy Connect
-                    </div>
-                    <p style='color:#6b9e80;font-size:0.83rem;margin-bottom:16px;line-height:1.5;'>
-                        Clique no botão abaixo para abrir o portal seguro da Pluggy.
-                        Escolha seu banco, autorize o acesso e copie o <strong style='color:#f0b429;'>Item ID</strong>
-                        exibido na tela de sucesso.
-                    </p>
-                    <a href="{pluggy_url}" target="_blank" rel="noopener noreferrer" style='
-                        display:block;background:linear-gradient(135deg,#1a9e5c,#34c17a);
-                        color:white;border-radius:10px;padding:13px 0;
-                        font-size:0.95rem;font-weight:700;text-align:center;
-                        text-decoration:none;margin-bottom:12px;'>
-                        🏦 Abrir portal de conexão bancária ↗
-                    </a>
-                    <div style='background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.2);
-                    border-radius:8px;padding:10px 14px;font-size:0.78rem;color:#6b9e80;'>
-                        ⏳ Token válido por 30 minutos · 🔒 Nenhuma senha é armazenada pelo iMoney
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                # Link alternativo caso o principal não funcione
-                st.caption(f"Se o botão acima não abrir corretamente, [clique aqui]({pluggy_url_v2}).")
+                _pluggy_html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js"></script>
+<style>
+body{{margin:0;padding:0;background:transparent;font-family:sans-serif;}}
+#open-btn{{display:block;width:100%;padding:13px 0;background:linear-gradient(135deg,#1a9e5c,#34c17a);
+color:white;font-size:.95rem;font-weight:700;border:none;border-radius:11px;cursor:pointer;margin-bottom:10px;}}
+#open-btn:disabled{{background:#374151;cursor:not-allowed;opacity:.6;}}
+#result-box{{display:none;background:rgba(15,45,26,.7);border:1px solid rgba(26,158,92,.4);
+border-radius:10px;padding:14px 16px;font-size:.82rem;color:#e8f5ee;margin-top:8px;}}
+#copy-btn{{margin-top:8px;padding:5px 12px;background:rgba(26,158,92,.25);
+border:1px solid rgba(26,158,92,.4);border-radius:6px;color:#34c17a;cursor:pointer;font-size:.76rem;}}
+#err-box{{display:none;color:#ef4444;font-size:.82rem;margin-top:6px;}}
+</style>
+</head>
+<body>
+<button id="open-btn" onclick="openW()">🏦 Conectar meu banco agora</button>
+<div id="err-box"></div>
+<div id="result-box">
+  <strong style="color:#34c17a">✅ Banco conectado!</strong><br>
+  Banco: <span id="res-bank">—</span><br>
+  Item ID: <code id="res-item" style="font-size:.78rem;word-break:break-all;">—</code><br>
+  <button id="copy-btn" onclick="copyId()">📋 Copiar Item ID</button>
+  <div style="margin-top:8px;color:#6b9e80;font-size:.74rem;">Cole o Item ID no campo abaixo ↓</div>
+</div>
+<script>
+var _token = "{token}";
+var _inst = null;
+function openW(){{
+  var btn=document.getElementById("open-btn");
+  btn.disabled=true; btn.textContent="⏳ Carregando...";
+  document.getElementById("err-box").style.display="none";
+  try{{
+    _inst = new PluggyConnect({{
+      connectToken: _token,
+      includeSandbox: false,
+      onSuccess: function(d){{
+        var id = (d.item&&d.item.id)||d.id||"";
+        var nm = (d.item&&d.item.connector&&d.item.connector.name)||(d.connector&&d.connector.name)||"Banco";
+        document.getElementById("res-bank").textContent=nm;
+        document.getElementById("res-item").textContent=id;
+        document.getElementById("result-box").style.display="block";
+        btn.textContent="🏦 Conectar outro banco"; btn.disabled=false;
+        window.parent.postMessage({{type:"pluggy_ok",itemId:id,name:nm}},"*");
+      }},
+      onError: function(e){{
+        var box=document.getElementById("err-box");
+        box.textContent="❌ "+(e.message||JSON.stringify(e));
+        box.style.display="block";
+        btn.textContent="🏦 Tentar novamente"; btn.disabled=false;
+      }},
+      onClose: function(){{btn.textContent="🏦 Conectar meu banco agora"; btn.disabled=false;}}
+    }});
+    _inst.init();
+  }}catch(ex){{
+    var box=document.getElementById("err-box");
+    box.textContent="❌ Falha ao carregar SDK: "+ex.message;
+    box.style.display="block";
+    btn.textContent="🏦 Tentar novamente"; btn.disabled=false;
+  }}
+}}
+function copyId(){{
+  navigator.clipboard.writeText(document.getElementById("res-item").textContent)
+    .then(function(){{
+      document.getElementById("copy-btn").textContent="✅ Copiado!";
+      setTimeout(function(){{document.getElementById("copy-btn").textContent="📋 Copiar Item ID";}},2000);
+    }});
+}}
+</script>
+</body>
+</html>"""
 
-                # Passo 2: usuário cola o Item ID após conectar
-                st.markdown("**Passo 2:** Após autorizar no portal, informe aqui:")
-                col_m1, col_m2 = st.columns([3, 1])
-                with col_m1:
-                    manual_item_id = st.text_input(
-                        "Item ID (exibido na tela de sucesso da Pluggy)",
-                        key="manual_item_id",
-                        placeholder="Ex: a658c848-e475-457b-8565-d1fffba127c4"
-                    )
-                    manual_bank = st.text_input(
-                        "Nome do banco conectado",
-                        key="manual_bank",
-                        placeholder="Ex: Nubank, Itaú, Bradesco..."
-                    )
-                with col_m2:
+                _components.html(_pluggy_html, height=210, scrolling=False)
+
+                st.markdown("---")
+                st.markdown("**Passo 2 — Cole o Item ID retornado pelo widget:**")
+                _col1, _col2 = st.columns([3, 1])
+                with _col1:
+                    manual_item_id = st.text_input("Item ID", key="manual_item_id",
+                        placeholder="Ex: a658c848-e475-457b-8565-d1fffba127c4")
+                    manual_bank = st.text_input("Nome do banco", key="manual_bank",
+                        placeholder="Ex: Nubank, Itaú, Bradesco...")
+                with _col2:
                     st.markdown("<br><br>", unsafe_allow_html=True)
-                    if st.button("✅ Confirmar conexão", key="btn_manual_connect"):
-                        # Validação rigorosa do Item ID (UUID format)
-                        import re as _re
-                        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-                        if not manual_item_id or not _re.match(uuid_pattern, manual_item_id.strip().lower()):
-                            st.error("Item ID inválido. Deve ser um UUID no formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
-                        elif not manual_bank or len(manual_bank.strip()) < 2:
+                    if st.button("✅ Vincular", key="btn_manual_connect", use_container_width=True):
+                        _uuid_re = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                        _id = (manual_item_id or "").strip().lower()
+                        _bk = (manual_bank or "").strip()
+                        if not re.match(_uuid_re, _id):
+                            st.error("Item ID inválido — formato UUID esperado.")
+                        elif len(_bk) < 2:
                             st.error("Informe o nome do banco.")
                         else:
-                            # Verifica se o item realmente existe na Pluggy e pertence ao user
-                            api_key = pluggy_get_api_key()
-                            item_valid = False
-                            if api_key:
-                                try:
-                                    r = requests.get(
-                                        f"{PLUGGY_API_URL}/items/{manual_item_id.strip()}",
-                                        headers={"X-API-KEY": api_key}, timeout=10
-                                    )
-                                    if r.status_code == 200:
-                                        item_data = r.json()
-                                        # Verifica que o clientUserId bate com o user atual
-                                        if item_data.get("clientUserId") == str(user_id):
-                                            item_valid = True
+                            with st.spinner("Verificando na Pluggy..."):
+                                _akey = pluggy_get_api_key()
+                                _valid = False
+                                if _akey:
+                                    try:
+                                        _r = requests.get(f"{PLUGGY_API_URL}/items/{_id}",
+                                            headers={"X-API-KEY": _akey}, timeout=10)
+                                        if _r.status_code == 200:
+                                            _idata = _r.json()
+                                            if _idata.get("clientUserId") == str(user_id):
+                                                _valid = True
+                                                _conn = _idata.get("connector", {})
+                                                if _conn.get("name"): _bk = _conn["name"]
+                                            else:
+                                                st.error("❌ Este item não pertence à sua conta.")
+                                        elif _r.status_code == 404:
+                                            st.error("❌ Item ID não encontrado.")
                                         else:
-                                            st.error("❌ Este item não pertence à sua conta. Verifique o Item ID.")
-                                    else:
-                                        st.error(f"❌ Item ID não encontrado na Pluggy (status {r.status_code}).")
-                                except Exception as e:
-                                    st.error("Erro ao verificar conexão. Tente novamente.")
-                            if item_valid:
-                                pluggy_save_connection(user_id, manual_item_id.strip(), manual_bank.strip())
-                                st.success(f"✅ {manual_bank.strip()} conectado com sucesso!")
+                                            st.error(f"❌ Erro Pluggy: {_r.status_code}")
+                                    except Exception:
+                                        st.error("Erro de rede. Tente novamente.")
+                            if _valid:
+                                pluggy_save_connection(user_id, _id, _bk)
+                                st.success(f"✅ {_bk} vinculado!")
                                 st.rerun()
             else:
-                st.error("Não foi possível gerar token de conexão. Verifique as chaves Pluggy nos secrets.")
+                st.error("❌ Não foi possível gerar token.")
+                if _pluggy_error:
+                    st.warning(f"🔍 {_pluggy_error}")
+                with st.expander("📋 Como configurar"):
+                    st.code('PLUGGY_CLIENT_ID = "seu-id"\nPLUGGY_CLIENT_SECRET = "seu-secret"', language="toml")
+                    st.caption("Acesse: dashboard.pluggy.ai → Settings → API Keys")
 
         # ─── RESUMO FINANCEIRO CONSOLIDADO ───
         connected_items = pluggy_get_items(user_id)
