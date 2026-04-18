@@ -1,0 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:ital,wght@0,300;0,400;0,600;1,400&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Nunito Sans', sans-serif;
+    background: #f8fdf9;
+    color: #0d2414;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #f0fdf4; }
+  ::-webkit-scrollbar-thumb { background: #bbf7d0; border-radius: 99px; }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl border border-[#e4f5e9] shadow-[0_1px_4px_rgba(20,83,45,0.06),0_4px_16px_rgba(20,83,45,0.08)] p-5 transition-all duration-200;
+  }
+  .card-hover {
+    @apply hover:shadow-[0_4px_12px_rgba(20,83,45,0.10),0_12px_32px_rgba(20,83,45,0.12)] hover:-translate-y-0.5;
+  }
+  .card-green {
+    @apply bg-gradient-to-br from-[#16a34a] to-[#166534] rounded-2xl p-5 text-white;
+    box-shadow: 0 4px 20px rgba(22,163,74,0.25);
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-gradient-to-r from-[#16a34a] to-[#22c55e]
+           hover:from-[#15803d] hover:to-[#16a34a]
+           text-white font-bold rounded-xl px-6 py-3 text-sm
+           active:scale-95 transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    box-shadow: 0 4px 14px rgba(22,163,74,0.3);
+    font-family: 'Nunito', sans-serif;
+  }
+  .btn-primary:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(22,163,74,0.4);
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-[#f0fdf4] hover:bg-[#dcfce7] border border-[#bbf7d0]
+           text-[#15803d] font-bold rounded-xl px-6 py-3 text-sm
+           active:scale-95 transition-all duration-150;
+    font-family: 'Nunito', sans-serif;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           hover:bg-[#f0fdf4] text-[#15803d] font-bold
+           rounded-xl px-4 py-2 text-sm transition-all duration-150;
+    font-family: 'Nunito', sans-serif;
+  }
+  .input {
+    @apply w-full bg-[#f8fdf9] border border-[#e4f5e9] rounded-xl px-4 py-3
+           text-[#0d2414] text-sm placeholder:text-[#8db89d]
+           focus:outline-none focus:ring-2 focus:ring-[#4ade80] focus:border-[#22c55e]
+           transition-all duration-150;
+  }
+  .input-error {
+    @apply border-red-300 focus:ring-red-200 focus:border-red-400;
+  }
+  .label {
+    @apply block text-[11px] font-bold text-[#4a7a5a] uppercase tracking-widest mb-1.5;
+    font-family: 'Nunito', sans-serif;
+  }
+  /* Metric card parts */
+  .metric-val {
+    font-family: 'Nunito', sans-serif;
+    @apply font-black text-[#0d2414] leading-none;
+    font-size: clamp(1.3rem, 2.8vw, 1.7rem);
+  }
+  .metric-label {
+    @apply text-[11px] font-bold text-[#8db89d] uppercase tracking-wider;
+    font-family: 'Nunito', sans-serif;
+  }
+  .metric-sub {
+    @apply text-xs text-[#16a34a] mt-0.5 font-semibold;
+  }
+  /* Staggered animations */
+  .anim-1 { animation-delay: 60ms; }
+  .anim-2 { animation-delay: 120ms; }
+  .anim-3 { animation-delay: 180ms; }
+  .anim-4 { animation-delay: 240ms; }
+  .anim-5 { animation-delay: 300ms; }
+  .anim-6 { animation-delay: 360ms; }
+}
+
+/* Patterns */
+.bg-dots {
+  background-image: radial-gradient(circle, #dcfce7 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.bg-grid-faint {
+  background-image: linear-gradient(#e4f5e9 1px, transparent 1px),
+                    linear-gradient(90deg, #e4f5e9 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Shimmer loading */
+.shimmer {
+  background: linear-gradient(90deg, #f0fdf4 25%, #dcfce7 50%, #f0fdf4 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Fade up */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  opacity: 0;
+  animation: fadeUp 0.45s ease forwards;
+}
+
+/* Sidebar active link */
+.nav-link {
+  @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-[#4a7a5a]
+         hover:bg-[#f0fdf4] hover:text-[#15803d] transition-all duration-150;
+  font-family: 'Nunito', sans-serif;
+}
+.nav-link.active {
+  @apply bg-gradient-to-r from-[#16a34a] to-[#22c55e] text-white shadow-[0_4px_14px_rgba(22,163,74,0.3)];
+}
+
+/* Chat bubble */
+.chat-user {
+  @apply ml-auto max-w-[80%] bg-gradient-to-br from-[#16a34a] to-[#15803d]
+         text-white rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed;
+}
+.chat-ai {
+  @apply mr-auto max-w-[90%] bg-white border border-[#e4f5e9]
+         text-[#0d2414] rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed
+         shadow-[0_1px_4px_rgba(20,83,45,0.06)];
+}
+
+/* Badge */
+.badge {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold;
+}
+.badge-green { @apply bg-[#dcfce7] text-[#15803d]; }
+.badge-yellow { @apply bg-amber-50 text-amber-700; }
+.badge-red { @apply bg-red-50 text-red-700; }
