@@ -18,8 +18,8 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <span className="text-xl font-black text-[#16a34a]">i<span className="text-[#0d2414]">Money</span></span>
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-sm font-bold text-[#5a6472] hover:text-[#16a34a] transition-colors">Entrar</Link>
-            <Link href="/" className="bg-[#16a34a] text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-[#15803d] transition-colors">Criar conta grátis</Link>
+            <Link href="/login" className="text-sm font-bold text-[#5a6472] hover:text-[#16a34a] transition-colors">Entrar</Link>
+            <Link href="/login" className="bg-[#16a34a] text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-[#15803d] transition-colors">Criar conta grátis</Link>
           </div>
         </div>
       </nav>
@@ -42,7 +42,7 @@ export default function LandingPage() {
             O iMoney é seu assessor financeiro com IA que entende sua realidade brasileira. Sem enrolação, sem taxa, sem complicação. 💚
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-16">
-            <Link href="/" className="inline-flex items-center justify-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white font-black text-lg px-8 py-4 rounded-2xl transition-all hover:scale-105 shadow-lg shadow-green-500/25">
+            <Link href="/login" className="inline-flex items-center justify-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white font-black text-lg px-8 py-4 rounded-2xl transition-all hover:scale-105 shadow-lg shadow-green-500/25">
               Começar agora — é grátis <ArrowRight size={20}/>
             </Link>
             <a href="#como-funciona" className="inline-flex items-center justify-center gap-2 bg-white border-2 border-[#e4f5e9] hover:border-[#16a34a] text-[#0d2414] font-bold text-lg px-8 py-4 rounded-2xl transition-all">
@@ -141,7 +141,7 @@ export default function LandingPage() {
           <div className="text-5xl mb-6">🚀</div>
           <h2 className="text-3xl sm:text-4xl font-black mb-4">Pronto pra tomar controle do seu dinheiro?</h2>
           <p className="text-green-200 text-lg mb-10 max-w-2xl mx-auto">Crie sua conta grátis em menos de 1 minuto e comece hoje mesmo. Sem cartão de crédito, sem pegadinha.</p>
-          <Link href="/" className="inline-flex items-center gap-2 bg-white text-[#16a34a] font-black text-lg px-10 py-4 rounded-2xl hover:scale-105 transition-all shadow-xl">
+          <Link href="/login" className="inline-flex items-center gap-2 bg-white text-[#16a34a] font-black text-lg px-10 py-4 rounded-2xl hover:scale-105 transition-all shadow-xl">
             Criar minha conta grátis <ArrowRight size={20}/>
           </Link>
           <p className="text-green-300 text-sm mt-4">100% gratuito · Sem anúncios · Dados protegidos</p>
