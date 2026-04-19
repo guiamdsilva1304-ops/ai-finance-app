@@ -117,7 +117,7 @@ export default function PerfilPage() {
     if (estado) upsertData.estado = estado;
     if (cidade) upsertData.cidade = cidade;
 
-    const { error: err } = await supabase.from("user_profiles").upsert(upsertData);
+    const { error: err } = await supabase.from("user_profiles").upsert(upsertData, { onConflict: "user_id" });
     setSaving(false);
     if (err) { setError("Erro ao salvar. Tente novamente."); return; }
     setSaved(true);
