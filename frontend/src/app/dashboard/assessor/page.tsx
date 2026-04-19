@@ -4,13 +4,15 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { Send, Trash2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
 
 interface Message { role: "user" | "assistant"; content: string }
 
 const QUICK_ACTIONS = [
-  { label: "📊 Onde investir minha sobra?", prompt: "Analise minha situação e me diga onde devo investir minha sobra mensal considerando a SELIC atual." },
-  { label: "✂️ Como cortar gastos?", prompt: "Analise meus gastos por categoria e indique onde posso reduzir de forma inteligente." },
-  { label: "🎯 Como alcançar minhas metas?", prompt: "Com base nas minhas metas e situação atual, qual a melhor estratégia?" },
+  { label: "📊 Onde investir minha sobra?", prompt: "Analise minha situação financeira e me diga onde devo investir minha sobra mensal considerando a SELIC atual e meu perfil." },
+  { label: "✂️ Como cortar gastos?", prompt: "Analise meus gastos por categoria e me diga onde posso reduzir de forma inteligente." },
+  { label: "🎯 Como alcançar minhas metas?", prompt: "Com base no meu perfil e situação atual, qual a melhor estratégia para alcançar minhas metas?" },
+  { label: "🛡️ Reserva de emergência", prompt: "Como devo montar minha reserva de emergência? Quanto preciso guardar e onde?" },
 ];
 
 export default function AssessorPage() {
@@ -21,7 +23,6 @@ export default function AssessorPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = createSupabaseBrowser();
 
-  // Load history
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -31,7 +32,7 @@ export default function AssessorPage() {
         .select("role,content")
         .eq("user_id", user.id)
         .order("created_at", { ascending: true })
-        .limit(100);
+        .limit(50);
       if (data?.length) setMessages(data as Message[]);
       setHistoryLoaded(true);
     }
@@ -54,19 +55,27 @@ export default function AssessorPage() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      // Get context from DB
       const { data: { user } } = await supabase.auth.getUser();
-      const [memRes, metasRes, perfilRes] = await Promise.all([
+
+      const [memRes, metasRes, perfilRes, ecoRes, summaryRes] = await Promise.allSettled([
         supabase.from("user_memory").select("*").eq("user_id", user!.id).single(),
         supabase.from("metas").select("*").eq("user_id", user!.id),
         supabase.from("user_profiles").select("*").eq("user_id", user!.id).single(),
+        fetch("/api/rates/eco"),
+        fetch("/api/dashboard/summary", {
+          headers: { Authorization: `Bearer ${session?.access_token}` },
+        }),
       ]);
-      const mem = memRes.data ?? {};
-      const renda = mem.last_renda ?? 0;
-      const gastos = mem.last_gastos ?? 0;
 
-      const ecoRes = await fetch("/api/rates/eco");
-      const eco = ecoRes.ok ? await ecoRes.json() : { selic_anual: 14.75, ipca_mensal: 0.56 };
+      const mem = memRes.status === "fulfilled" ? memRes.value.data ?? {} : {};
+      const metas = metasRes.status === "fulfilled" ? metasRes.value.data ?? [] : [];
+      const perfil = perfilRes.status === "fulfilled" ? perfilRes.value.data ?? {} : {};
+      const eco = ecoRes.status === "fulfilled" && ecoRes.value.ok ? await ecoRes.value.json() : { selic_anual: 14.75, ipca_mensal: 0.56 };
+      const summary = summaryRes.status === "fulfilled" && summaryRes.value.ok ? await summaryRes.value.json() : null;
+
+      const renda = summary?.renda ?? mem.last_renda ?? 0;
+      const gastos = summary?.gastos ?? mem.last_gastos ?? 0;
+      const gastosCat = summary?.gastosCat ?? mem.gastos_categorias ?? {};
 
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -78,19 +87,34 @@ export default function AssessorPage() {
           messages: updated,
           context: {
             renda, gastos, sobra: renda - gastos,
-            selic: eco.selic_anual, ipca: eco.ipca_mensal,
-            score: 0, perfil: "—", trend: mem.trend ?? "estável",
-            metas: metasRes.data ?? [],
-            gastosCat: mem.gastos_categorias ?? {},
-            perfilUsuario: perfilRes.data ?? {},
-            tipoRenda: "Salário fixo",
+            selic: eco.selic_anual,
+            ipca: eco.ipca_mensal,
+            ipca_anual: eco.ipca_anual,
+            metas,
+            gastosCat,
+            perfilUsuario: perfil,
+            idade: perfil.idade,
+            cidade: perfil.cidade,
+            estado: perfil.estado,
+            ocupacao: perfil.ocupacao,
+            filhos: perfil.filhos,
           },
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro");
-      setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+
+      const assistantMsg = { role: "assistant" as const, content: data.reply };
+      setMessages(prev => [...prev, assistantMsg]);
+
+      // Save to chat_history
+      if (user) {
+        await supabase.from("chat_history").insert([
+          { user_id: user.id, role: "user", content },
+          { user_id: user.id, role: "assistant", content: data.reply },
+        ]);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro desconhecido";
       setMessages(prev => [...prev, { role: "assistant", content: `❌ ${msg}` }]);
@@ -107,8 +131,7 @@ export default function AssessorPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-0px)] lg:h-screen p-5 lg:p-8 max-w-3xl mx-auto">
-      {/* Header */}
+    <div className="flex flex-col h-screen p-5 lg:p-8 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-5 shrink-0">
         <div>
           <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
@@ -123,11 +146,10 @@ export default function AssessorPage() {
         )}
       </div>
 
-      {/* Quick actions */}
       {messages.length === 0 && historyLoaded && (
         <div className="mb-4 shrink-0">
           <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider mb-2.5">Ações rápidas</p>
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {QUICK_ACTIONS.map(({ label, prompt }) => (
               <button key={label} onClick={() => send(prompt)}
                 className="btn-secondary text-left text-xs py-2.5 px-3 flex items-center gap-2">
@@ -139,7 +161,6 @@ export default function AssessorPage() {
         </div>
       )}
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 pb-4">
         {messages.length === 0 && historyLoaded && (
           <div className="flex flex-col items-center justify-center h-full text-center py-10">
@@ -158,8 +179,19 @@ export default function AssessorPage() {
                 IA
               </div>
             )}
-            <div className={msg.role === "user" ? "chat-user" : "chat-ai"}>
-              <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+            <div className={cn(
+              "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+              msg.role === "user"
+                ? "bg-[#16a34a] text-white rounded-br-sm"
+                : "bg-white border border-[#e4f5e9] text-[#0d2414] rounded-bl-sm"
+            )}>
+              {msg.role === "assistant" ? (
+                <div className="prose prose-sm max-w-none prose-headings:text-[#0d2414] prose-headings:font-black prose-p:text-[#0d2414] prose-strong:text-[#0d2414] prose-li:text-[#0d2414] prose-a:text-[#16a34a]">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                </div>
+              ) : (
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+              )}
             </div>
           </div>
         ))}
@@ -169,7 +201,7 @@ export default function AssessorPage() {
             <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#16a34a] to-[#15803d] flex items-center justify-center text-white text-xs font-bold shrink-0 mr-2 mt-1">
               IA
             </div>
-            <div className="chat-ai flex items-center gap-1.5 py-3.5">
+            <div className="bg-white border border-[#e4f5e9] rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
               {[0,1,2].map(i => (
                 <span key={i} className="w-2 h-2 bg-[#16a34a] rounded-full animate-bounce"
                   style={{ animationDelay: `${i * 150}ms` }}/>
@@ -180,10 +212,9 @@ export default function AssessorPage() {
         <div ref={bottomRef}/>
       </div>
 
-      {/* Input */}
       <div className="shrink-0 mt-3">
         <form onSubmit={(e) => { e.preventDefault(); send(input); }}
-          className="flex gap-2 bg-white border border-[#e4f5e9] rounded-2xl p-2 shadow-card">
+          className="flex gap-2 bg-white border border-[#e4f5e9] rounded-2xl p-2 shadow-sm">
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
