@@ -119,7 +119,7 @@ export default function PerfilPage() {
 
     const { error: err } = await supabase.from("user_profiles").upsert(upsertData, { onConflict: "user_id" });
     setSaving(false);
-    if (err) { setError("Erro ao salvar. Tente novamente."); return; }
+    if (err) { setError(err.message); return; }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
     setProfile({ ...profile, ...upsertData } as Profile);
