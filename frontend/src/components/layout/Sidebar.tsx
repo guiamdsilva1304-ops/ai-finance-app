@@ -14,7 +14,7 @@ import { useState } from "react";
 
 const NAV_ITEMS = [
   { href: "/dashboard",              icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/dashboard/assessor",     icon: MessageCircle,   label: "Assessor IA" },
+  { href: "/dashboard/assessor",     icon: MessageCircle,   label: "Assessor" },
   { href: "/dashboard/transacoes",   icon: Receipt,         label: "Transações" },
   { href: "/dashboard/metas",        icon: Target,          label: "Metas" },
   { href: "/dashboard/investimentos",icon: TrendingUp,      label: "Investimentos" },
