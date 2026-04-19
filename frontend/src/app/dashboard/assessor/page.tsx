@@ -135,9 +135,9 @@ export default function AssessorPage() {
       <div className="flex items-center justify-between mb-5 shrink-0">
         <div>
           <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
-            💬 Assessor IA
+            💬 Assessor
           </h1>
-          <p className="text-sm text-[#6b9e80]">Powered by Claude — contexto financeiro completo</p>
+          <p className="text-sm text-[#6b9e80]"></p>
         </div>
         {messages.length > 0 && (
           <button onClick={clearHistory} className="btn-ghost p-2.5 text-[#8db89d] hover:text-red-500" title="Limpar">
