@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.90.0",
     "@supabase/ssr": "0.1.0",
     "@supabase/supabase-js": "2.39.0",
+    "@tailwindcss/typography": "^0.5.19",
     "clsx": "2.0.0",
     "date-fns": "2.30.0",
     "lucide-react": "0.263.1",
