@@ -1,235 +1,160 @@
 "use client";
-
+import Link from "next/link";
 import { useState, useEffect } from "react";
-import { createSupabaseBrowser } from "@/lib/supabase";
-import { Eye, EyeOff, Mail, Lock, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ArrowRight, BarChart3, Brain, Shield, TrendingUp, Zap, ChevronDown } from "lucide-react";
 
-type Tab = "login" | "register";
-
-export default function AuthPage() {
-  const [tab, setTab] = useState<Tab>("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [mounted, setMounted] = useState(false);
+export default function LandingPage() {
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const supabase = createSupabaseBrowser();
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) window.location.href = "/dashboard";
-    });
+    const fn = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", fn);
+    return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  const passStrength = (() => {
-    if (!password) return 0;
-    let s = 0;
-    if (password.length >= 6) s++;
-    if (/[a-zA-Z]/.test(password)) s++;
-    if (/[0-9]/.test(password)) s++;
-    return s;
-  })();
-
-  function parseErr(err: { message: string; status?: number }): string {
-    const msg = (err.message ?? "").toLowerCase();
-    const st = err.status ?? 0;
-    if (msg.includes("invalid login") || msg.includes("invalid credentials")) return "Email ou senha incorretos.";
-    if (msg.includes("email not confirmed")) return "Confirme seu email antes de entrar. Verifique sua caixa de entrada.";
-    if (msg.includes("too many") || st === 429) return "Muitas tentativas. Aguarde alguns minutos.";
-    if (msg.includes("user not found")) return "Email nao encontrado. Crie uma conta primeiro.";
-    if (msg.includes("already registered") || msg.includes("already exists")) return "Este email ja esta cadastrado. Faca login.";
-    if (msg.includes("password should be")) return "Senha muito curta. Use minimo 6 caracteres.";
-    if (msg.includes("unable to validate email") || msg.includes("invalid email")) return "Email invalido. Verifique o formato.";
-    if (msg.includes("signup is disabled")) return "Cadastros temporariamente desabilitados.";
-    if (msg.includes("fetch") || msg.includes("network")) return "Erro de conexao. Verifique sua internet.";
-    return "Erro: " + err.message;
-  }
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setError(""); setSuccess("");
-    const em = email.trim().toLowerCase();
-    if (!em) { setError("Digite seu email."); return; }
-    if (!password) { setError("Digite sua senha."); return; }
-    setLoading(true);
-    try {
-      const supabase = createSupabaseBrowser();
-      const { data, error: err } = await supabase.auth.signInWithPassword({ email: em, password });
-      if (err) { setError(parseErr(err)); return; }
-      if (data.user) {
-        setSuccess("Login realizado! Redirecionando...");
-        setTimeout(() => { window.location.href = "/dashboard"; }, 500);
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erro inesperado.");
-    } finally { setLoading(false); }
-  }
-
-  async function handleRegister(e: React.FormEvent) {
-    e.preventDefault();
-    setError(""); setSuccess("");
-    const em = email.trim().toLowerCase();
-    if (!em) { setError("Digite seu email."); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { setError("Email invalido."); return; }
-    if (!password) { setError("Digite uma senha."); return; }
-    if (password.length < 6) { setError("Senha deve ter minimo 6 caracteres."); return; }
-    if (password !== confirmPassword) { setError("As senhas nao coincidem."); return; }
-    setLoading(true);
-    try {
-      const supabase = createSupabaseBrowser();
-      const { data, error: err } = await supabase.auth.signUp({
-        email: em, password,
-        options: { emailRedirectTo: window.location.origin + "/dashboard" },
-      });
-      if (err) { setError(parseErr(err)); return; }
-      if (!data.user) { setError("Nao foi possivel criar a conta. Tente novamente."); return; }
-      const { data: ld, error: le } = await supabase.auth.signInWithPassword({ email: em, password });
-      if (!le && ld.user) {
-        setSuccess("Conta criada! Redirecionando...");
-        setTimeout(() => { window.location.href = "/dashboard"; }, 500);
-      } else {
-        setSuccess("Conta criada! Verifique seu email para confirmar e depois faca login.");
-        setTab("login"); setPassword(""); setConfirmPassword("");
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erro inesperado.");
-    } finally { setLoading(false); }
-  }
-
-  if (!mounted) return (
-    <div className="min-h-screen bg-[#f8fdf9] flex items-center justify-center">
-      <div className="w-8 h-8 rounded-full border-2 border-[#16a34a] border-t-transparent animate-spin"/>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-[#f8fdf9] flex flex-col">
-      <header className="flex justify-center pt-10 pb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#22c55e] to-[#16a34a] flex items-center justify-center text-white font-black text-xl" style={{fontFamily:"Nunito,sans-serif"}}>i</div>
-          <div>
-            <div className="font-black text-[#14532d] text-2xl leading-none" style={{fontFamily:"Nunito,sans-serif"}}>iMoney</div>
-            <div className="text-[10px] text-[#6b9e80] uppercase tracking-widest">assessorIA financeira</div>
+    <div className="min-h-screen bg-white" style={{ fontFamily: "Nunito, sans-serif" }}>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/95 backdrop-blur shadow-sm" : "bg-transparent"}`}>
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <span className="text-xl font-black text-[#16a34a]">i<span className="text-[#0d2414]">Money</span></span>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="text-sm font-bold text-[#5a6472] hover:text-[#16a34a] transition-colors">Entrar</Link>
+            <Link href="/" className="bg-[#16a34a] text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-[#15803d] transition-colors">Criar conta grátis</Link>
           </div>
         </div>
-      </header>
-      <main className="flex-1 flex items-start justify-center px-4 pb-16">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl border border-[#e4f5e9] overflow-hidden" style={{boxShadow:"0 8px 40px rgba(20,83,45,0.12)"}}>
-            <div className="flex border-b border-[#e4f5e9]">
-              {(["login","register"] as Tab[]).map(t => (
-                <button key={t} onClick={() => { setTab(t); setError(""); setSuccess(""); }}
-                  className={cn("flex-1 py-4 text-sm font-bold transition-all",
-                    tab === t ? "text-[#15803d] border-b-2 border-[#16a34a] bg-[#f0fdf4]" : "text-[#8db89d] hover:text-[#15803d]"
-                  )} style={{fontFamily:"Nunito,sans-serif"}}>
-                  {t === "login" ? "Entrar" : "Criar conta"}
-                </button>
-              ))}
-            </div>
-            <div className="p-8">
-              {error && (
-                <div className="mb-5 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
-                  <AlertCircle size={16} className="shrink-0 mt-0.5"/><span>{error}</span>
-                </div>
-              )}
-              {success && (
-                <div className="mb-5 flex items-start gap-2 bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl px-4 py-3 text-sm text-[#15803d]">
-                  <CheckCircle2 size={16} className="shrink-0 mt-0.5"/><span>{success}</span>
-                </div>
-              )}
-              {tab === "login" ? (
-                <form onSubmit={handleLogin} className="space-y-5">
-                  <div>
-                    <label className="label">Email</label>
-                    <div className="relative">
-                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8db89d]"/>
-                      <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                        placeholder="seu@email.com" autoComplete="email" className="input pl-10" disabled={loading}/>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="label">Senha</label>
-                    <div className="relative">
-                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8db89d]"/>
-                      <input type={showPass ? "text" : "password"} value={password}
-                        onChange={e => setPassword(e.target.value)} placeholder="Sua senha"
-                        autoComplete="current-password" className="input pl-10 pr-10" disabled={loading}/>
-                      <button type="button" onClick={() => setShowPass(!showPass)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8db89d] hover:text-[#15803d]">
-                        {showPass ? <EyeOff size={16}/> : <Eye size={16}/>}
-                      </button>
-                    </div>
-                  </div>
-                  <button type="submit" disabled={loading} className="btn-primary w-full">
-                    {loading ? <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin"/>Entrando...</span>
-                      : <span className="flex items-center gap-2">Entrar <ArrowRight size={16}/></span>}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleRegister} className="space-y-5">
-                  <div>
-                    <label className="label">Email</label>
-                    <div className="relative">
-                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8db89d]"/>
-                      <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                        placeholder="seu@email.com" autoComplete="email" className="input pl-10" disabled={loading}/>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="label">Senha</label>
-                    <div className="relative">
-                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8db89d]"/>
-                      <input type={showPass ? "text" : "password"} value={password}
-                        onChange={e => setPassword(e.target.value)} placeholder="Minimo 6 caracteres"
-                        className="input pl-10 pr-10" disabled={loading}/>
-                      <button type="button" onClick={() => setShowPass(!showPass)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8db89d] hover:text-[#15803d]">
-                        {showPass ? <EyeOff size={16}/> : <Eye size={16}/>}
-                      </button>
-                    </div>
-                    {password && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <div className="flex gap-1 flex-1">
-                          {[1,2,3].map(i => (
-                            <div key={i} className={cn("h-1.5 flex-1 rounded-full transition-all",
-                              i <= passStrength ? ["bg-red-400","bg-amber-400","bg-[#4ade80]"][passStrength-1] : "bg-gray-200")}/>
-                          ))}
-                        </div>
-                        <span className="text-[11px] font-bold text-[#6b9e80]">
-                          {["Fraca","Media","Forte"][passStrength-1] ?? ""}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="label">Confirme a senha</label>
-                    <div className="relative">
-                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8db89d]"/>
-                      <input type={showPass ? "text" : "password"} value={confirmPassword}
-                        onChange={e => setConfirmPassword(e.target.value)} placeholder="Repita a senha"
-                        className={cn("input pl-10", confirmPassword && confirmPassword !== password && "border-red-300")}
-                        disabled={loading}/>
-                    </div>
-                    {confirmPassword && confirmPassword !== password && (
-                      <p className="text-xs text-red-500 mt-1">Senhas nao coincidem</p>
-                    )}
-                  </div>
-                  <button type="submit" disabled={loading} className="btn-primary w-full">
-                    {loading ? <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin"/>Criando conta...</span>
-                      : <span className="flex items-center gap-2">Criar conta <ArrowRight size={16}/></span>}
-                  </button>
-                </form>
-              )}
-              <p className="text-center text-xs text-[#8db89d] mt-6">Esqueceu a senha? Entre em contato com o suporte.</p>
-            </div>
+      </nav>
+
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#f0fdf4] via-white to-[#f0fdf4]">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#16a34a]/10 rounded-full blur-3xl"/>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#22c55e]/10 rounded-full blur-3xl"/>
+        </div>
+        <div className="relative max-w-6xl mx-auto px-6 pt-24 pb-16 text-center">
+          <div className="inline-flex items-center gap-2 bg-[#f0fdf4] border border-[#bbf7d0] text-[#16a34a] text-xs font-bold px-4 py-2 rounded-full mb-6">
+            <Zap size={12}/> Powered by Inteligência Artificial
+          </div>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#0d2414] leading-tight mb-6">
+            Seu dinheiro,{" "}
+            <span className="text-[#16a34a]">finalmente</span>{" "}
+            fazendo sentido
+          </h1>
+          <p className="text-lg sm:text-xl text-[#5a6472] max-w-2xl mx-auto mb-10 leading-relaxed">
+            O iMoney é seu assessor financeiro com IA que entende sua realidade brasileira. Sem enrolação, sem taxa, sem complicação. 💚
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-16">
+            <Link href="/" className="inline-flex items-center justify-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white font-black text-lg px-8 py-4 rounded-2xl transition-all hover:scale-105 shadow-lg shadow-green-500/25">
+              Começar agora — é grátis <ArrowRight size={20}/>
+            </Link>
+            <a href="#como-funciona" className="inline-flex items-center justify-center gap-2 bg-white border-2 border-[#e4f5e9] hover:border-[#16a34a] text-[#0d2414] font-bold text-lg px-8 py-4 rounded-2xl transition-all">
+              Como funciona <ChevronDown size={20}/>
+            </a>
+          </div>
+          <div className="flex flex-wrap justify-center gap-8">
+            {[
+              { value: "100%", label: "Gratuito" },
+              { value: "IA", label: "Assessor inteligente" },
+              { value: "BCB", label: "Dados oficiais em tempo real" },
+            ].map(({ value, label }) => (
+              <div key={label} className="text-center">
+                <p className="text-2xl font-black text-[#16a34a]">{value}</p>
+                <p className="text-sm text-[#8db89d] font-bold">{label}</p>
+              </div>
+            ))}
           </div>
         </div>
-      </main>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+          <ChevronDown size={24} className="text-[#8db89d]"/>
+        </div>
+      </section>
+
+      <section id="como-funciona" className="py-24 bg-white">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <span className="text-[#16a34a] font-bold text-sm uppercase tracking-wider">Simples assim</span>
+            <h2 className="text-3xl sm:text-4xl font-black text-[#0d2414] mt-2">Em 3 passos você já tá no controle</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { step: "01", emoji: "📝", title: "Registre seus gastos", desc: "Anote suas receitas e despesas em segundos. A IA categoriza automaticamente pra você." },
+              { step: "02", emoji: "📊", title: "Veja o panorama real", desc: "Dashboard completo com SELIC, IPCA e tudo que impacta seu bolso, em tempo real." },
+              { step: "03", emoji: "🤖", title: "Converse com sua IA", desc: "Pergunte qualquer coisa sobre finanças. Sua assessora particular responde com base no seu perfil." },
+            ].map(({ step, emoji, title, desc }) => (
+              <div key={step} className="relative text-center p-8 rounded-3xl border border-[#e4f5e9] hover:border-[#16a34a] hover:shadow-lg transition-all">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#16a34a] text-white text-xs font-black px-3 py-1 rounded-full">Passo {step}</div>
+                <div className="text-5xl mb-4 mt-2">{emoji}</div>
+                <h3 className="text-lg font-black text-[#0d2414] mb-2">{title}</h3>
+                <p className="text-[#6b9e80] text-sm leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 bg-[#f0fdf4]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <span className="text-[#16a34a] font-bold text-sm uppercase tracking-wider">Funcionalidades</span>
+            <h2 className="text-3xl sm:text-4xl font-black text-[#0d2414] mt-2">Tudo que você precisa, num só lugar</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { icon: <Brain size={24}/>, title: "Assessor IA 24/7", desc: "Tire dúvidas sobre investimentos, metas e estratégias a qualquer hora. Respostas personalizadas pro seu perfil.", color: "bg-purple-50 text-purple-600" },
+              { icon: <TrendingUp size={24}/>, title: "SELIC e IPCA em tempo real", desc: "Dados oficiais do Banco Central atualizados automaticamente. Saiba exatamente quanto seu dinheiro rende.", color: "bg-green-50 text-green-600" },
+              { icon: <BarChart3 size={24}/>, title: "Dashboard financeiro", desc: "Visualize renda, gastos, sobra e projeções de poupança num painel limpo e intuitivo.", color: "bg-blue-50 text-blue-600" },
+              { icon: <Shield size={24}/>, title: "Reserva de emergência", desc: "Calcule quanto você precisa guardar e onde aplicar pra ter segurança financeira de verdade.", color: "bg-orange-50 text-orange-600" },
+              { icon: <Zap size={24}/>, title: "Metas financeiras", desc: "Defina objetivos e acompanhe o progresso. A IA te diz a melhor estratégia pra chegar lá.", color: "bg-yellow-50 text-yellow-600" },
+              { icon: <ArrowRight size={24}/>, title: "Open Finance", desc: "Conecte suas contas bancárias com segurança e tenha uma visão completa das suas finanças.", color: "bg-pink-50 text-pink-600" },
+            ].map(({ icon, title, desc, color }) => (
+              <div key={title} className="bg-white rounded-2xl p-6 border border-[#e4f5e9] hover:shadow-md transition-all">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${color}`}>{icon}</div>
+                <h3 className="font-black text-[#0d2414] mb-2">{title}</h3>
+                <p className="text-sm text-[#6b9e80] leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 bg-white">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl sm:text-4xl font-black text-[#0d2414] mb-12">O iMoney é pra você que... 👇</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+            {[
+              "💸 Ganha no fim do mês e não sabe onde o dinheiro foi",
+              "📈 Quer começar a investir mas não sabe por onde",
+              "🎯 Tem uma meta (viagem, carro, casa) e não sabe como chegar lá",
+              "😰 Tá endividado e quer um plano pra sair dessa",
+              "🤔 Quer entender a diferença entre CDB, Tesouro e FII",
+              "📱 Prefere um app simples a planilhas complicadas",
+            ].map((item) => (
+              <div key={item} className="flex items-start gap-3 bg-[#f8fdf9] border border-[#e4f5e9] rounded-xl p-4">
+                <span className="text-lg">{item.split(" ")[0]}</span>
+                <p className="text-sm font-bold text-[#0d2414] leading-relaxed">{item.slice(item.indexOf(" ") + 1)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 bg-gradient-to-br from-[#0d2414] to-[#16a34a] text-white">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="text-5xl mb-6">🚀</div>
+          <h2 className="text-3xl sm:text-4xl font-black mb-4">Pronto pra tomar controle do seu dinheiro?</h2>
+          <p className="text-green-200 text-lg mb-10 max-w-2xl mx-auto">Crie sua conta grátis em menos de 1 minuto e comece hoje mesmo. Sem cartão de crédito, sem pegadinha.</p>
+          <Link href="/" className="inline-flex items-center gap-2 bg-white text-[#16a34a] font-black text-lg px-10 py-4 rounded-2xl hover:scale-105 transition-all shadow-xl">
+            Criar minha conta grátis <ArrowRight size={20}/>
+          </Link>
+          <p className="text-green-300 text-sm mt-4">100% gratuito · Sem anúncios · Dados protegidos</p>
+        </div>
+      </section>
+
+      <footer className="bg-[#0d2414] border-t border-white/10 py-8">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <span className="text-lg font-black text-[#16a34a]">i<span className="text-white">Money</span></span>
+          <p className="text-sm text-green-800">© 2026 iMoney · Feito com 💚 no Brasil</p>
+          <p className="text-xs text-green-900">Dados do Banco Central do Brasil</p>
+        </div>
+      </footer>
     </div>
   );
 }
