@@ -4,8 +4,8 @@ export async function GET() {
   try {
     const [selicMetaRes, ipcaMensalRes, ipca12mRes] = await Promise.all([
       fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json"),
-      fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/1?formato=json"),
-      fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/12?formato=json"),
+      fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json"),
+      fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/12?formato=json"),
     ]);
 
     const selicMetaData = selicMetaRes.ok ? await selicMetaRes.json() : null;
@@ -17,15 +17,14 @@ export async function GET() {
 
     const ipca_anual = ipca12mData
       ? parseFloat(
-          (
-            (ipca12mData.reduce((acc: number, d: { valor: string }) => acc * (1 + parseFloat(d.valor) / 100), 1) - 1) * 100
-          ).toFixed(2)
+          ((ipca12mData.reduce((acc: number, d: { valor: string }) =>
+            acc * (1 + parseFloat(d.valor) / 100), 1) - 1) * 100).toFixed(2)
         )
-      : 6.92;
+      : 5.48;
 
     const selic_anual = selic_meta;
     const selic_mensal = parseFloat(((Math.pow(1 + selic_meta / 100, 1 / 12) - 1) * 100).toFixed(4));
-    const juro_real = parseFloat(((1 + selic_anual / 100) / (1 + ipca_anual / 100) - 1) * 100).toFixed(2);
+    const juro_real = parseFloat(((((1 + selic_anual / 100) / (1 + ipca_anual / 100)) - 1) * 100).toFixed(2));
 
     return NextResponse.json({
       selic_mensal,
@@ -33,7 +32,7 @@ export async function GET() {
       selic_meta,
       ipca_mensal,
       ipca_anual,
-      juro_real: parseFloat(juro_real),
+      juro_real,
       cdi: selic_mensal,
       ultima_atualizacao: new Date().toISOString(),
     });
