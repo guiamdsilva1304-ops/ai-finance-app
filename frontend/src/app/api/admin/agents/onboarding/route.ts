@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     // Gerar sequência com Claude
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20251101",
+      model: "claude-sonnet-4-6",
       max_tokens: 6000,
       system: "Responda SOMENTE com JSON válido. Sem markdown. Sem texto fora do JSON.",
       messages: [{ role: "user", content: buildPrompt(userName, userEmail, context) }],
