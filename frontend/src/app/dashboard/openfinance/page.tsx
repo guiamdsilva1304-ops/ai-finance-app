@@ -9,6 +9,7 @@ export default function OpenFinancePage() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [checked, setChecked] = useState(false);
   const supabase = createSupabaseBrowser();
 
   useEffect(() => {
@@ -18,6 +19,7 @@ export default function OpenFinancePage() {
       setEmail(user.email ?? "");
       const { data } = await supabase.from("openfinance_interest").select("id").eq("user_id", user.id).single();
       if (data) setAlreadyRegistered(true);
+      setChecked(true); else setAlreadyRegistered(false);
     }
     check();
   }, [supabase]);
@@ -65,7 +67,7 @@ export default function OpenFinancePage() {
         ))}
       </div>
       <div className="card border-[#bbf7d0] bg-[#f8fdf9]">
-        {done || alreadyRegistered ? (
+        {(done || alreadyRegistered) && checked ? (
           <div className="text-center py-6">
             <div className="w-14 h-14 rounded-2xl bg-[#f0fdf4] border-2 border-[#16a34a] flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 size={28} className="text-[#16a34a]"/>
