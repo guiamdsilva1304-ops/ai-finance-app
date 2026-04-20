@@ -98,6 +98,14 @@ export default function MarketingAgent() {
     navigator.clipboard.writeText(txt).then(() => { setCopied(type); setTimeout(() => setCopied(null), 2500); });
   };
 
+  const downloadImage = () => {
+    if (!current?.imageUrl) return;
+    const a = document.createElement("a");
+    a.href = current.imageUrl;
+    a.download = `imoney-post-${platform}-${Date.now()}.png`;
+    a.click();
+  };
+
   const logout = async () => { await fetch("/api/admin/auth",{method:"DELETE"}); router.push("/admin/login"); };
   const charCount = current?.post?.length || 0;
   const overLimit = charCount > pl.maxChars;
@@ -107,7 +115,7 @@ export default function MarketingAgent() {
       {items.map(item => {
         const on = selected === item.id;
         return (
-          <button key={item.id} onClick={() => onSelect(item.id)} style={{ background:on?C.greenGlow:C.s2, border:`1px solid ${on?C.green:C.border}`, color:on?C.green:C.muted, fontFamily:"inherit", fontSize:13, fontWeight:on?700:500, padding:"10px 12px", borderRadius:12, cursor:"pointer", textAlign:"left" }}>
+          <button key={item.id} onClick={() => onSelect(item.id)} style={{ background:on?C.greenGlow:C.s2, border:`1px solid ${on?C.green:C.border}`, color:on?C.green:C.muted, fontFamily:"inherit", fontSize:13, fontWeight:on?700:500, padding:"10px 12px", borderRadius:12, cursor:"pointer", textAlign:"left" as const }}>
             <div>{item.label}</div>
             {item.desc && <div style={{ fontSize:10, opacity:0.7, marginTop:2 }}>{item.desc}</div>}
           </button>
@@ -120,37 +128,43 @@ export default function MarketingAgent() {
     <div style={{ minHeight:"100vh", background:C.bg, color:C.text, fontFamily:"'Nunito','Segoe UI',sans-serif" }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}} *{box-sizing:border-box}`}</style>
 
+      {/* TOPBAR */}
       <div style={{ background:C.s1, borderBottom:`1px solid ${C.border}`, padding:"0 24px", height:58, position:"sticky", top:0, zIndex:100, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
           <button onClick={() => router.push("/admin")} style={{ background:"transparent", border:`1px solid ${C.border}`, color:C.muted, fontFamily:"inherit", fontSize:12, padding:"5px 10px", borderRadius:8, cursor:"pointer" }}>← Admin</button>
           <span style={{ fontSize:14, fontWeight:800, color:C.white }}>📣 Agente de Marketing</span>
-          <div style={{ background:C.greenGlow, border:`1px solid ${C.border}`, color:C.green, fontSize:10, fontFamily:"monospace", padding:"2px 8px", borderRadius:20 }}>claude opus</div>
+          <div style={{ background:C.greenGlow, border:`1px solid ${C.border}`, color:C.green, fontSize:10, fontFamily:"monospace", padding:"2px 8px", borderRadius:20 }}>claude opus + gemini</div>
         </div>
         <button onClick={logout} style={{ background:"transparent", border:"1px solid rgba(255,82,82,0.25)", color:C.red, fontFamily:"inherit", fontSize:11, padding:"4px 10px", borderRadius:8, cursor:"pointer" }}>Sair</button>
       </div>
 
       <div style={{ maxWidth:860, margin:"0 auto", padding:"24px 16px 80px" }}>
+
+        {/* TABS */}
         <div style={{ display:"flex", gap:6, marginBottom:20, background:C.s1, borderRadius:14, padding:5, border:`1px solid ${C.border}` }}>
           {([["config","⚙️ Configurar"],["output",`✦ Resultado${results.length?` (${results.length})`:""}`]] as const).map(([id,lbl]) => (
             <button key={id} onClick={() => setTab(id)} style={{ flex:1, background:tab===id?C.s3:"transparent", border:`1px solid ${tab===id?C.border:"transparent"}`, color:tab===id?C.green:C.muted, fontFamily:"inherit", fontSize:13, fontWeight:tab===id?800:500, padding:"9px 0", borderRadius:10, cursor:"pointer" }}>{lbl}</button>
           ))}
         </div>
 
+        {/* CONFIG */}
         {tab === "config" && (
           <div style={{ animation:"up .25s ease" }}>
             {[
-              { title:"Plataforma", content: (
-                <div style={{ display:"flex", flexWrap:"wrap" as const, gap:8 }}>
-                  {PLATFORMS.map(p => { const on = platform===p.id; return (
-                    <button key={p.id} onClick={() => setPlatform(p.id)} style={{ background:on?C.greenGlow:C.s2, border:`1px solid ${on?C.green:C.border}`, color:on?C.green:C.muted, fontWeight:on?800:500, fontFamily:"inherit", fontSize:13, padding:"9px 16px", borderRadius:12, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>{p.icon} {p.label}</button>
-                  ); })}
-                  <div style={{ fontSize:11, color:C.muted, fontFamily:"monospace", marginTop:6, width:"100%" }}>limite: {pl.maxChars.toLocaleString()} caracteres</div>
+              { title:"Plataforma", content:(
+                <div>
+                  <div style={{ display:"flex", flexWrap:"wrap" as const, gap:8 }}>
+                    {PLATFORMS.map(p => { const on = platform===p.id; return (
+                      <button key={p.id} onClick={() => setPlatform(p.id)} style={{ background:on?C.greenGlow:C.s2, border:`1px solid ${on?C.green:C.border}`, color:on?C.green:C.muted, fontWeight:on?800:500, fontFamily:"inherit", fontSize:13, padding:"9px 16px", borderRadius:12, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>{p.icon} {p.label}</button>
+                    ); })}
+                  </div>
+                  <div style={{ fontSize:11, color:C.muted, fontFamily:"monospace", marginTop:8 }}>limite: {pl.maxChars.toLocaleString()} chars</div>
                 </div>
               )},
               { title:"Formato", content: optGrid(FORMATS, format, setFormat) },
               { title:"Tom", content: optGrid(TONES, tone, setTone) },
               { title:"Público-alvo", content: optGrid(AUDIENCES, audience, setAudience) },
-              { title:"Tema", content: (
+              { title:"Tema", content:(
                 <div>
                   <input value={theme} onChange={e => { setTheme(e.target.value); setChip(null); }} placeholder="Digite um tema ou escolha abaixo..." style={{ width:"100%", background:C.s2, border:`1px solid ${C.border}`, color:C.text, fontFamily:"inherit", fontSize:13, padding:"11px 14px", borderRadius:12, outline:"none", marginBottom:12 }} />
                   <div style={{ display:"flex", flexWrap:"wrap" as const, gap:7 }}>
@@ -160,14 +174,14 @@ export default function MarketingAgent() {
                   </div>
                 </div>
               )},
-              { title:"Variações", content: (
+              { title:"Variações", content:(
                 <div>
                   <div style={{ display:"flex", gap:8 }}>
                     {[1,2,3].map(n => { const on = qty===n; return (
                       <button key={n} onClick={() => setQty(n)} style={{ flex:1, background:on?C.greenGlow:C.s2, border:`1px solid ${on?C.green:C.border}`, color:on?C.green:C.muted, fontFamily:"inherit", fontSize:14, fontWeight:on?800:600, padding:"11px 0", borderRadius:12, cursor:"pointer" }}>{n} variação{n>1?"ões":""}</button>
                     ); })}
                   </div>
-                  <div style={{ fontSize:11, color:C.muted, marginTop:8, textAlign:"center" as const }}>Mais variações = mais opções para escolher a melhor</div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:8, textAlign:"center" as const }}>Claude Opus gera o texto · Gemini gera a imagem</div>
                 </div>
               )},
             ].map(({ title, content }) => (
@@ -181,7 +195,7 @@ export default function MarketingAgent() {
 
             <button onClick={generate} disabled={loading} style={{ width:"100%", background:loading?"#007a32":C.green, color:"#000", border:"none", borderRadius:14, padding:"17px 0", fontFamily:"inherit", fontSize:16, fontWeight:900, cursor:loading?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow:loading?"none":"0 4px 20px rgba(0,200,83,0.25)" }}>
               <span style={loading?{display:"inline-block",animation:"spin .8s linear infinite"}:{}}>{loading?"◌":"✦"}</span>
-              {loading ? `Gerando ${qty} variação${qty>1?"ões":""}...` : `Gerar ${qty} variação${qty>1?"ões":""} com Claude Opus`}
+              {loading ? `Gerando texto + imagem...` : `Gerar ${qty} variação${qty>1?"ões":""} com texto + imagem`}
             </button>
 
             {hist.length > 0 && (
@@ -199,13 +213,14 @@ export default function MarketingAgent() {
           </div>
         )}
 
+        {/* OUTPUT */}
         {tab === "output" && (
           <div style={{ animation:"up .25s ease" }}>
             {!results.length ? (
               <div style={{ background:C.s1, border:`1px solid ${C.border}`, borderRadius:16, padding:"60px 20px", textAlign:"center" as const }}>
                 <div style={{ fontSize:40, marginBottom:14 }}>✦</div>
-                <div style={{ color:C.muted, fontSize:14 }}>Nenhum conteúdo ainda. Configure e gere na aba ⚙️</div>
-                <button onClick={() => setTab("config")} style={{ marginTop:16, background:C.greenGlow, border:`1px solid ${C.green}`, color:C.green, fontFamily:"inherit", fontSize:13, fontWeight:700, padding:"10px 20px", borderRadius:10, cursor:"pointer" }}>Ir para configuração →</button>
+                <div style={{ color:C.muted, fontSize:14 }}>Nenhum conteúdo ainda.</div>
+                <button onClick={() => setTab("config")} style={{ marginTop:16, background:C.greenGlow, border:`1px solid ${C.green}`, color:C.green, fontFamily:"inherit", fontSize:13, fontWeight:700, padding:"10px 20px", borderRadius:10, cursor:"pointer" }}>Configurar →</button>
               </div>
             ) : (
               <>
@@ -216,14 +231,27 @@ export default function MarketingAgent() {
                     ); })}
                   </div>
                 )}
+
                 {current && (
                   <>
+                    {/* IMAGEM */}
+                    {current.imageUrl && (
+                      <div style={{ background:C.s1, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden", marginBottom:14 }}>
+                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 18px", borderBottom:`1px solid ${C.border}` }}>
+                          <div style={{ fontSize:10, fontFamily:"monospace", color:C.green, textTransform:"uppercase" as const, letterSpacing:"1px" }}>// imagem gerada · gemini nano</div>
+                          <button onClick={downloadImage} style={{ background:C.greenGlow, border:`1px solid ${C.green}`, color:C.green, fontFamily:"monospace", fontSize:11, padding:"5px 12px", borderRadius:7, cursor:"pointer", fontWeight:700 }}>⬇ baixar</button>
+                        </div>
+                        <img src={current.imageUrl} alt="Imagem gerada" style={{ width:"100%", maxHeight:400, objectFit:"cover", display:"block" }} />
+                      </div>
+                    )}
+
+                    {/* POST */}
                     <div style={{ background:C.s1, border:`1px solid ${C.border}`, borderRadius:16, padding:20, marginBottom:14 }}>
                       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
                         <div style={{ fontSize:10, fontFamily:"monospace", color:C.green, letterSpacing:"1px" }}>// POST · {pl.icon} {pl.label.toUpperCase()}</div>
                         <div style={{ display:"flex", gap:6 }}>
                           <button onClick={() => copy("post")} style={{ background:copied==="post"?C.greenGlow:"transparent", border:`1px solid ${copied==="post"?C.green:C.border}`, color:copied==="post"?C.green:C.muted, fontFamily:"monospace", fontSize:11, padding:"5px 10px", borderRadius:7, cursor:"pointer" }}>{copied==="post"?"✓ copiado!":"copiar"}</button>
-                          <button onClick={() => copy("all")} style={{ background:copied==="all"?C.green:"transparent", border:`1px solid ${copied==="all"?C.green:C.border}`, color:copied==="all"?"#000":C.muted, fontFamily:"monospace", fontSize:11, padding:"5px 10px", borderRadius:7, cursor:"pointer", fontWeight:700 }}>{copied==="all"?"✓ tudo!":"copiar + tags"}</button>
+                          <button onClick={() => copy("all")} style={{ background:copied==="all"?C.green:"transparent", border:`1px solid ${copied==="all"?C.green:C.border}`, color:copied==="all"?"#000":C.muted, fontFamily:"monospace", fontSize:11, padding:"5px 10px", borderRadius:7, cursor:"pointer", fontWeight:700 }}>{copied==="all"?"✓ tudo!":"+ hashtags"}</button>
                         </div>
                       </div>
                       <div style={{ fontSize:14, lineHeight:1.85, color:C.text, whiteSpace:"pre-wrap", background:C.s2, borderRadius:12, padding:"18px 16px", borderLeft:`3px solid ${C.green}`, marginBottom:14 }}>{current.post}</div>
@@ -238,13 +266,13 @@ export default function MarketingAgent() {
                       </div>
                     </div>
 
+                    {/* ESTRATÉGIA */}
                     <div style={{ background:C.s1, border:`1px solid ${C.border}`, borderRadius:16, padding:20, marginBottom:14 }}>
-                      <div style={{ fontSize:10, fontFamily:"monospace", color:C.green, textTransform:"uppercase" as const, letterSpacing:"1.5px", marginBottom:12 }}>// Estratégia de Publicação</div>
+                      <div style={{ fontSize:10, fontFamily:"monospace", color:C.green, textTransform:"uppercase" as const, letterSpacing:"1.5px", marginBottom:12 }}>// Estratégia</div>
                       {[
                         { icon:"🎣", title:"GANCHO ALTERNATIVO", val:current.gancho, italic:true },
                         { icon:"📣", title:"CTA IDEAL", val:current.cta },
                         { icon:"⏰", title:"MELHOR HORÁRIO", val:current.melhor_horario },
-                        { icon:"🖼️", title:"SUGESTÃO VISUAL", val:current.formato_visual },
                         { icon:"💡", title:"POR QUE VAI ENGAJAR", val:current.insight, muted:true },
                       ].filter(r => r.val).map(({ icon, title, val, italic, muted: m }, i, arr) => (
                         <div key={title} style={{ display:"flex", gap:12, alignItems:"flex-start", padding:"14px 0", borderBottom:i<arr.length-1?`1px solid ${C.border}`:"none" }}>
@@ -257,9 +285,11 @@ export default function MarketingAgent() {
                       ))}
                     </div>
 
-                    <div style={{ display:"flex", gap:8 }}>
-                      <button onClick={() => setTab("config")} style={{ flex:1, background:"transparent", border:`1px solid ${C.border}`, color:C.muted, fontFamily:"inherit", fontSize:13, fontWeight:700, padding:"12px 0", borderRadius:12, cursor:"pointer" }}>← Nova geração</button>
-                      <button onClick={() => copy("all")} style={{ flex:2, background:C.green, color:"#000", border:"none", fontFamily:"inherit", fontSize:14, fontWeight:900, padding:"12px 0", borderRadius:12, cursor:"pointer", boxShadow:"0 4px 16px rgba(0,200,83,0.25)" }}>
+                    {/* AÇÕES */}
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                      <button onClick={() => setTab("config")} style={{ background:"transparent", border:`1px solid ${C.border}`, color:C.muted, fontFamily:"inherit", fontSize:13, fontWeight:700, padding:"12px 0", borderRadius:12, cursor:"pointer" }}>← Nova geração</button>
+                      <button onClick={downloadImage} disabled={!current?.imageUrl} style={{ background:current?.imageUrl?C.s2:"transparent", border:`1px solid ${current?.imageUrl?C.green:C.border}`, color:current?.imageUrl?C.green:C.muted, fontFamily:"inherit", fontSize:13, fontWeight:700, padding:"12px 0", borderRadius:12, cursor:current?.imageUrl?"pointer":"not-allowed" }}>⬇ Baixar imagem</button>
+                      <button onClick={() => copy("all")} style={{ gridColumn:"1 / -1", background:C.green, color:"#000", border:"none", fontFamily:"inherit", fontSize:14, fontWeight:900, padding:"14px 0", borderRadius:12, cursor:"pointer", boxShadow:"0 4px 16px rgba(0,200,83,0.25)" }}>
                         {copied==="all" ? "✓ Copiado! Hora de postar 🚀" : "📋 Copiar post + hashtags"}
                       </button>
                     </div>
