@@ -44,30 +44,30 @@ REGRAS: português brasileiro autêntico, mencione iMoney organicamente, primeir
 
 async function generateImage(prompt: string, aspectRatio: string): Promise<string | null> {
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${process.env.GOOGLE_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Create a professional marketing image for iMoney, a Brazilian personal finance app. ${prompt}. Style: modern, clean, green (#00C853) and white color scheme, no text overlay, suitable for ${aspectRatio} social media post, high quality.`
-            }]
-          }],
-          generationConfig: {
-            responseModalities: ["IMAGE"],
-          }
-        }),
-      }
-    );
+    const aspectMap: Record<string, string> = {
+      "1:1": "square",
+      "9:16": "portrait_9_16",
+      "16:9": "landscape_16_9",
+    };
+    const imageSize = aspectMap[aspectRatio] || "square";
+
+    const response = await fetch("https://fal.run/fal-ai/flux/schnell", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Key ${process.env.FAL_API_KEY}`,
+      },
+      body: JSON.stringify({
+        prompt: `Professional marketing image for iMoney, a Brazilian personal finance app. ${prompt}. Modern clean design, green (#00C853) and white colors, no text, high quality social media visual.`,
+        image_size: imageSize,
+        num_inference_steps: 4,
+        num_images: 1,
+      }),
+    });
 
     const data = await response.json();
-    const parts = data?.candidates?.[0]?.content?.parts || [];
-    const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith("image/"));
-    if (imagePart) {
-      return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-    }
+    const imageUrl = data?.images?.[0]?.url;
+    if (imageUrl) return imageUrl;
     return null;
   } catch {
     return null;
