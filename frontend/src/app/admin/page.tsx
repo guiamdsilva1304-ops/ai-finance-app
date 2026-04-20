@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 
 const AGENTS = [
-  { id:"marketing", icon:"📣", name:"Marketing de Conteúdo", desc:"Posts prontos para Instagram, TikTok, LinkedIn e WhatsApp.", status:"ativo", href:"/admin/agents/marketing" },
   { id:"posts", icon:"🗃️", name:"Banco de Posts & Calendário", desc:"30 posts gerados de uma vez, organizados por dia. Histórico de tudo gerado.", status:"ativo", href:"/admin/posts" },
+  { id:"marketing", icon:"📣", name:"Marketing de Conteúdo", desc:"Posts prontos para Instagram, TikTok, LinkedIn e WhatsApp.", status:"em breve", href:"#" },
   { id:"onboarding", icon:"🚀", name:"Onboarding & Vendas", desc:"Sequências de e-mail e WhatsApp para ativar usuários.", status:"em breve", href:"#" },
   { id:"growth", icon:"📈", name:"Growth & Aquisição", desc:"Estratégias de aquisição e funis de conversão.", status:"em breve", href:"#" },
   { id:"feedback", icon:"🎯", name:"Feedback & UX", desc:"Analisa feedbacks e prioriza features.", status:"em breve", href:"#" },
