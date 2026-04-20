@@ -1,4 +1,5 @@
 "use client";
+import { amplitude } from "@/app/amplitude";
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
@@ -77,6 +78,14 @@ export default function AssessorPage() {
       const gastos = summary?.gastos ?? mem.last_gastos ?? 0;
       const gastosCat = summary?.gastosCat ?? mem.gastos_categorias ?? {};
 
+      const startTime = Date.now();
+      const conversationId = messages[0]?.content?.slice(0,8) || "new";
+      amplitude.track("AI Message Sent", {
+        assistant_mode: "assessor",
+        message_intent: "financial_query",
+        message_length: content.length,
+        conversation_id: conversationId,
+      });
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -105,6 +114,12 @@ export default function AssessorPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro");
 
+      amplitude.track("AI Response Received", {
+        assistant_mode: "assessor",
+        response_type: "text",
+        response_latency_ms: Date.now() - startTime,
+        conversation_id: messages[0]?.content?.slice(0,8) || "new",
+      });
       const assistantMsg = { role: "assistant" as const, content: data.reply };
       setMessages(prev => [...prev, assistantMsg]);
 

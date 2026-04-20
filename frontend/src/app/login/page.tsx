@@ -1,4 +1,5 @@
 "use client";
+import { amplitude, identifyUser } from "./amplitude";
 
 import { useState, useEffect } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
@@ -63,6 +64,18 @@ export default function AuthPage() {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email: em, password });
       if (err) { setError(parseErr(err)); return; }
       if (data.user) {
+        amplitude.track("Login Completed", {
+          auth_method: "email",
+          mfa_used: false,
+          session_id: data.session?.access_token?.slice(-8) || "",
+        });
+        identifyUser(data.user.id, {
+          "Plan Type": "free",
+          "Trial Status": false,
+          "Signup Method": "email",
+          "AI Feature Access": true,
+          "Primary Currency": "BRL",
+        });
         setSuccess("Login realizado! Redirecionando...");
         setTimeout(() => { window.location.href = "/dashboard"; }, 500);
       }
@@ -91,6 +104,22 @@ export default function AuthPage() {
       if (!data.user) { setError("Nao foi possivel criar a conta. Tente novamente."); return; }
       const { data: ld, error: le } = await supabase.auth.signInWithPassword({ email: em, password });
       if (!le && ld.user) {
+        amplitude.track("Login Completed", {
+          auth_method: "email",
+          mfa_used: false,
+          session_id: ld.session?.access_token?.slice(-8) || "",
+        });
+        identifyUser(ld.user.id, {
+          "Plan Type": "free",
+          "Trial Status": false,
+          "Signup Method": "email",
+          "Onboarding Status": "started",
+          "AI Feature Access": true,
+          "Primary Currency": "BRL",
+          "Account Connection Status": false,
+          "Connected Institution Count": 0,
+          "Notification Opt-In": true,
+        });
         setSuccess("Conta criada! Redirecionando...");
         setTimeout(() => { window.location.href = "/dashboard"; }, 500);
       } else {
@@ -100,6 +129,15 @@ export default function AuthPage() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro inesperado.");
     } finally { setLoading(false); }
+  }
+
+  // Track login started
+  if (typeof window !== "undefined" && mounted) {
+    amplitude.track("Login Started", {
+      auth_method: "email",
+      entry_page: window.location.pathname,
+      is_returning_user: tab === "login",
+    });
   }
 
   if (!mounted) return (

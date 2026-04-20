@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@amplitude/unified": "^1.0.18",
     "@anthropic-ai/sdk": "^0.90.0",
     "@supabase/ssr": "0.1.0",
     "@supabase/supabase-js": "2.39.0",
