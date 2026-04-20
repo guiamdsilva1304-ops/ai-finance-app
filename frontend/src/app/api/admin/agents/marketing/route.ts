@@ -46,7 +46,7 @@ RETORNE SOMENTE este JSON (zero markdown):
       "gancho": "primeira linha alternativa mais forte",
       "insight": "por que este conteúdo vai performar",
       "image_prompt": "prompt em inglês para Pollinations.ai — específico, cores verde #00C853 e branco iMoney, estilo moderno brasileiro, sem texto na imagem",
-      "gemini_prompt": "prompt detalhado em português para Gemini/Nano Banana baseado na estética escolhida — descreva composição exata, cores, elementos visuais, tipografia sugerida, mood, ícones. SEM texto dentro da imagem.",      "carousel_slides": [{"slide": 1, "titulo": "texto curto do slide (máx 6 palavras)", "subtitulo": "frase de apoio opcional", "visual_prompt": "prompt visual específico para este slide"}]
+      "gemini_prompt": "prompt EXTREMAMENTE detalhado em português para Gemini/Nano Banana. Inclua TODOS estes elementos: (1) COMPOSIÇÃO: descreva exatamente onde cada elemento está na imagem, proporções, hierarquia visual, enquadramento; (2) PALETA: cores exatas em hex, gradientes se houver, contraste; (3) ELEMENTOS VISUAIS: ícones específicos, ilustrações, formas geométricas, texturas, padrões de fundo; (4) ILUMINAÇÃO: tipo de luz, sombras, brilhos; (5) ESTILO: referências visuais específicas, movimento, profundidade; (6) MOOD: sensação que a imagem deve transmitir; (7) RESTRIÇÕES: SEM texto na imagem, formato quadrado 1:1, alta qualidade. Baseie tudo na estética escolhida e no tema do post.",      "carousel_slides": [{"slide": 1, "titulo": "texto curto do slide (máx 6 palavras)", "subtitulo": "frase de apoio opcional", "visual_prompt": "prompt visual específico para este slide"}]
     }
   ]
 }
