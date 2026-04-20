@@ -290,12 +290,20 @@ export default function MarketingAgent() {
                         { icon:"📣", title:"CTA IDEAL", val:current.cta },
                         { icon:"⏰", title:"MELHOR HORÁRIO", val:current.melhor_horario },
                         { icon:"💡", title:"POR QUE VAI ENGAJAR", val:current.insight, muted:true },
-                      ].filter(r => r.val).map(({ icon, title, val, italic, muted: m }, i, arr) => (
+                        { icon:"🎨", title:"PROMPT PARA GEMINI / NANO BANANA (copie e cole no Gemini para gerar a imagem)", val:current.gemini_prompt, isPrompt:true },
+                      ].filter(r => r.val).map(({ icon, title, val, italic, muted: m, isPrompt }: any, i, arr) => (
                         <div key={title} style={{ display:"flex", gap:12, alignItems:"flex-start", padding:"14px 0", borderBottom:i<arr.length-1?`1px solid ${C.border}`:"none" }}>
                           <div style={{ width:36, height:36, background:C.s2, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>{icon}</div>
                           <div style={{ flex:1 }}>
                             <div style={{ fontSize:9, color:C.muted, fontFamily:"monospace", letterSpacing:"1px", marginBottom:4 }}>{title}</div>
-                            <div style={{ fontSize:13, color:m?C.muted:C.text, fontStyle:italic?"italic":"normal", lineHeight:1.55 }}>{val}</div>
+                            {isPrompt ? (
+                              <div>
+                                <div style={{ fontSize:12, color:C.text, lineHeight:1.6, background:C.s2, padding:"10px 12px", borderRadius:8, fontFamily:"monospace", marginBottom:8 }}>{val}</div>
+                                <button onClick={() => navigator.clipboard.writeText(val)} style={{ background:C.greenGlow, border:`1px solid ${C.green}`, color:C.green, fontFamily:"inherit", fontSize:11, fontWeight:700, padding:"5px 12px", borderRadius:7, cursor:"pointer" }}>📋 Copiar prompt</button>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize:13, color:m?C.muted:C.text, fontStyle:italic?"italic":"normal", lineHeight:1.55 }}>{val}</div>
+                            )}
                           </div>
                         </div>
                       ))}

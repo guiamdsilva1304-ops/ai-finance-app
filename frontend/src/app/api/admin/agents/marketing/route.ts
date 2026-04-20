@@ -34,7 +34,8 @@ RETORNE SOMENTE este JSON (zero markdown):
       "melhor_horario": "dia(s) e horário ideal",
       "gancho": "primeira linha alternativa mais forte",
       "insight": "por que este conteúdo vai performar",
-      "image_prompt": "prompt em inglês para gerar imagem que acompanha este post — seja específico, descreva cores verde e branco da iMoney, estilo moderno e brasileiro, sem texto na imagem"
+      "image_prompt": "prompt em inglês para Pollinations.ai — específico, cores verde #00C853 e branco iMoney, estilo moderno brasileiro, sem texto na imagem",
+      "gemini_prompt": "prompt em português otimizado para Gemini/Nano Banana gerar a imagem perfeita para este post — seja muito detalhado: descreva composição, cores, iluminação, estilo, elementos visuais, mood. Inclua: paleta verde iMoney (#00C853) e branco, sem texto na imagem, estilo moderno brasileiro, formato quadrado para Instagram"
     }
   ]
 }
