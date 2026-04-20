@@ -86,7 +86,23 @@ export default function MarketingAgent() {
       if (!vars.length || !vars[0].post) throw new Error("Sem conteúdo. Tente novamente.");
       setResults(vars);
       setTab("output");
+      // Nota: imagens sendo geradas em background
       setHist((h:any[]) => [{ text: vars[0].post.split("\n")[0].slice(0,50), pl: pl.label, ts: new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}) }, ...h].slice(0,10));
+      // Gerar imagens separadamente (evita timeout)
+      const ASPECT: Record<string,string> = { instagram:"1:1", tiktok:"9:16", twitter:"16:9", linkedin:"1:1", whatsapp:"1:1" };
+      const aspectRatio = ASPECT[platform] || "1:1";
+      const varsWithImages = await Promise.all(vars.map(async (v: any) => {
+        try {
+          const imgRes = await fetch("/api/admin/agents/marketing/image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: v.image_prompt || theme || "personal finance", aspectRatio }),
+          });
+          const imgData = await imgRes.json();
+          return { ...v, imageUrl: imgData.imageUrl || null };
+        } catch { return v; }
+      }));
+      setResults(varsWithImages);
     } catch(e:any) { setError(e.message); }
     finally { setLoading(false); }
   }, [platform, format, tone, audience, theme, qty, pl.label]);

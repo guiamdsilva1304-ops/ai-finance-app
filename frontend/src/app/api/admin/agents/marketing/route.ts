@@ -42,37 +42,6 @@ RETORNE SOMENTE este JSON (zero markdown):
 REGRAS: português brasileiro autêntico, mencione iMoney organicamente, primeira linha que para o scroll.`;
 }
 
-async function generateImage(prompt: string, aspectRatio: string): Promise<string | null> {
-  try {
-    const aspectMap: Record<string, string> = {
-      "1:1": "square",
-      "9:16": "portrait_9_16",
-      "16:9": "landscape_16_9",
-    };
-    const imageSize = aspectMap[aspectRatio] || "square";
-
-    const response = await fetch("https://fal.run/fal-ai/flux/schnell", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Key ${process.env.FAL_API_KEY}`,
-      },
-      body: JSON.stringify({
-        prompt: `Professional marketing image for iMoney, a Brazilian personal finance app. ${prompt}. Modern clean design, green (#00C853) and white colors, no text, high quality social media visual.`,
-        image_size: imageSize,
-        num_inference_steps: 4,
-        num_images: 1,
-      }),
-    });
-
-    const data = await response.json();
-    const imageUrl = data?.images?.[0]?.url;
-    if (imageUrl) return imageUrl;
-    return null;
-  } catch {
-    return null;
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -98,15 +67,7 @@ export async function POST(req: NextRequest) {
     const parsed = JSON.parse(match[0]);
     const variations = parsed.variations || [];
 
-    // 2. Gerar imagens em paralelo
-    const variationsWithImages = await Promise.all(
-      variations.map(async (v: any) => {
-        const imageUrl = await generateImage(v.image_prompt || theme, pl.imageSize);
-        return { ...v, imageUrl };
-      })
-    );
-
-    return NextResponse.json({ variations: variationsWithImages });
+    return NextResponse.json({ variations });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
