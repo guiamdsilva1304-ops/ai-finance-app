@@ -61,6 +61,7 @@ export default function MarketingAgent() {
   const [theme, setTheme] = useState("");
   const [chip, setChip] = useState<number|null>(null);
   const [qty, setQty] = useState(2);
+  const [aesthetic, setAesthetic] = useState("bold");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [activeVar, setActiveVar] = useState(0);
@@ -78,7 +79,7 @@ export default function MarketingAgent() {
       const res = await fetch("/api/admin/agents/marketing", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ platform, format, tone, audience, theme, qty }),
+        body: JSON.stringify({ platform, format, tone, audience, theme, qty, aesthetic }),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Erro"); }
       const data = await res.json();
@@ -105,7 +106,7 @@ export default function MarketingAgent() {
       setResults(varsWithImages);
     } catch(e:any) { setError(e.message); }
     finally { setLoading(false); }
-  }, [platform, format, tone, audience, theme, qty, pl.label]);
+  }, [platform, format, tone, audience, theme, qty, aesthetic, pl.label]);
 
   const copy = (type: string) => {
     if (!current) return;
@@ -188,6 +189,25 @@ export default function MarketingAgent() {
                       <button key={i} onClick={() => { setChip(i); setTheme(t.v); }} style={{ background:on?C.greenGlow:C.s2, border:`1px solid ${on?C.green:C.border}`, color:on?C.green:C.muted, fontFamily:"inherit", fontSize:12, padding:"6px 11px", borderRadius:20, cursor:"pointer", display:"inline-flex", alignItems:"center", gap:4 }}>{t.e} {t.l}</button>
                     ); })}
                   </div>
+                </div>
+              )},
+              { title:"Estética Visual", content:(
+                <div style={{ display:"flex", flexDirection:"column" as const, gap:8 }}>
+                  {[
+                    { id:"bold", icon:"💥", label:"Bold & Impact", desc:"Estilo atual iMoney — tipografia pesada, verde escuro" },
+                    { id:"clean", icon:"✨", label:"Clean & Minimal", desc:"Fundo branco, elegante, muito espaço" },
+                    { id:"editorial", icon:"📰", label:"Editorial", desc:"Estilo revista financeira brasileira" },
+                    { id:"gradient", icon:"🌊", label:"Gradient & Modern", desc:"Gradientes verdes, futurista" },
+                    { id:"ilustrado", icon:"🎨", label:"Ilustrado Brasileiro", desc:"Personagens e ilustrações flat" },
+                  ].map(a => { const on = aesthetic===a.id; return (
+                    <button key={a.id} onClick={() => setAesthetic(a.id)} style={{ background:on?C.greenGlow:C.s2, border:`1px solid ${on?C.green:C.border}`, color:on?C.green:C.muted, fontFamily:"inherit", fontSize:13, fontWeight:on?700:500, padding:"10px 14px", borderRadius:12, cursor:"pointer", textAlign:"left" as const, display:"flex", alignItems:"center", gap:10 }}>
+                      <span style={{ fontSize:18 }}>{a.icon}</span>
+                      <div>
+                        <div>{a.label}</div>
+                        <div style={{ fontSize:10, opacity:0.7, marginTop:1 }}>{a.desc}</div>
+                      </div>
+                    </button>
+                  ); })}
                 </div>
               )},
               { title:"Variações", content:(
@@ -308,6 +328,26 @@ export default function MarketingAgent() {
                         </div>
                       ))}
                     </div>
+
+                    {/* CARROSSEL */}
+                    {current.carousel_slides && current.carousel_slides.length > 0 && (
+                      <div style={{ background:C.s1, border:`1px solid ${C.border}`, borderRadius:16, padding:20, marginBottom:14 }}>
+                        <div style={{ fontSize:10, fontFamily:"monospace", color:C.green, textTransform:"uppercase" as const, letterSpacing:"1.5px", marginBottom:14 }}>// Slides do Carrossel</div>
+                        <div style={{ display:"flex", flexDirection:"column" as const, gap:10 }}>
+                          {current.carousel_slides.map((slide: any, i: number) => (
+                            <div key={i} style={{ background:C.s2, borderRadius:12, padding:14, border:`1px solid ${C.border}` }}>
+                              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+                                <div style={{ background:C.green, color:"#000", fontSize:10, fontWeight:800, fontFamily:"monospace", padding:"2px 8px", borderRadius:20 }}>SLIDE {slide.slide}</div>
+                                <button onClick={() => navigator.clipboard.writeText(slide.visual_prompt)} style={{ background:"transparent", border:`1px solid ${C.border}`, color:C.muted, fontSize:10, fontFamily:"monospace", padding:"3px 8px", borderRadius:6, cursor:"pointer" }}>copiar prompt</button>
+                              </div>
+                              <div style={{ fontSize:15, fontWeight:800, color:C.white, marginBottom:4 }}>{slide.titulo}</div>
+                              {slide.subtitulo && <div style={{ fontSize:12, color:C.muted, marginBottom:8 }}>{slide.subtitulo}</div>}
+                              <div style={{ fontSize:11, color:C.muted, fontFamily:"monospace", background:C.s1, padding:"8px 10px", borderRadius:8, lineHeight:1.5 }}>🎨 {slide.visual_prompt}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* AÇÕES */}
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>

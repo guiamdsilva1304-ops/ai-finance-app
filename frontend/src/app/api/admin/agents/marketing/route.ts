@@ -13,7 +13,15 @@ const PLATFORMS: Record<string, { label: string; maxChars: number; imageSize: st
   whatsapp:  { label: "WhatsApp",    maxChars: 1000, imageSize: "1:1" },
 };
 
-function buildPrompt(platform: string, format: string, tone: string, audience: string, theme: string, qty: number) {
+const AESTHETICS: Record<string, string> = {
+  bold: "Bold & Impact — tipografia grande e pesada, verde escuro #1a3a1a e verde vibrante #00C853, ícones ilustrativos de dinheiro/finanças, fundo escuro com elementos gráficos, muito contraste, estilo dos posts atuais da iMoney",
+  clean: "Clean & Minimal — fundo branco, tipografia leve e moderna, acentos em verde #00C853, muito espaço negativo, elegante e sofisticado",
+  editorial: "Editorial — estilo revista financeira brasileira, grid estruturado, mix de foto e ilustração, cores verde e branco com detalhes dourados",
+  gradient: "Gradient & Modern — gradientes de verde escuro para verde vibrante, elementos geométricos, futurista e tecnológico, sem texto",
+  ilustrado: "Ilustrado Brasileiro — personagens diversos brasileiros, ilustrações flat coloridas, verde #00C853 dominante, alegre e acessível",
+};
+
+function buildPrompt(platform: string, format: string, tone: string, audience: string, theme: string, qty: number, aesthetic: string = "bold") {
   const pl = PLATFORMS[platform];
   return `Você é o melhor estrategista de conteúdo para fintechs do Brasil. Crie ${qty} variação(ões) para a iMoney — app gratuito de finanças pessoais com IA para brasileiros.
 
@@ -23,6 +31,9 @@ BRIEFING:
 - Tom: ${tone}
 - Público: ${audience}
 - Tema: ${theme || "finanças pessoais inteligentes"}
+
+ESTÉTICA VISUAL DA iMoney para os prompts de imagem:
+${AESTHETICS[aesthetic] || AESTHETICS.bold}
 
 RETORNE SOMENTE este JSON (zero markdown):
 {
@@ -35,7 +46,7 @@ RETORNE SOMENTE este JSON (zero markdown):
       "gancho": "primeira linha alternativa mais forte",
       "insight": "por que este conteúdo vai performar",
       "image_prompt": "prompt em inglês para Pollinations.ai — específico, cores verde #00C853 e branco iMoney, estilo moderno brasileiro, sem texto na imagem",
-      "gemini_prompt": "prompt em português otimizado para Gemini/Nano Banana gerar a imagem perfeita para este post — seja muito detalhado: descreva composição, cores, iluminação, estilo, elementos visuais, mood. Inclua: paleta verde iMoney (#00C853) e branco, sem texto na imagem, estilo moderno brasileiro, formato quadrado para Instagram"
+      "gemini_prompt": "prompt detalhado em português para Gemini/Nano Banana baseado na estética escolhida — descreva composição exata, cores, elementos visuais, tipografia sugerida, mood, ícones. SEM texto dentro da imagem.",      "carousel_slides": [{"slide": 1, "titulo": "texto curto do slide (máx 6 palavras)", "subtitulo": "frase de apoio opcional", "visual_prompt": "prompt visual específico para este slide"}]
     }
   ]
 }
@@ -46,7 +57,7 @@ REGRAS: português brasileiro autêntico, mencione iMoney organicamente, primeir
 
 export async function POST(req: NextRequest) {
   try {
-    const { platform, format, tone, audience, theme, qty = 1 } = await req.json();
+    const { platform, format, tone, audience, theme, qty = 1, aesthetic = "bold" } = await req.json();
     const pl = PLATFORMS[platform] || PLATFORMS.instagram;
 
     // 1. Gerar texto com Claude
@@ -54,7 +65,7 @@ export async function POST(req: NextRequest) {
       model: "claude-opus-4-5-20251101",
       max_tokens: 4000,
       system: "Responda SOMENTE com JSON válido. Sem markdown. Sem texto fora do JSON.",
-      messages: [{ role: "user", content: buildPrompt(platform, format, tone, audience, theme, qty) }],
+      messages: [{ role: "user", content: buildPrompt(platform, format, tone, audience, theme, qty, aesthetic) }],
     });
 
     const raw = message.content
