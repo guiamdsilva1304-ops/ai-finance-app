@@ -45,18 +45,18 @@ REGRAS: português brasileiro autêntico, mencione iMoney organicamente, primeir
 async function generateImage(prompt: string, aspectRatio: string): Promise<string | null> {
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GOOGLE_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${process.env.GOOGLE_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Generate a professional marketing image for a Brazilian fintech app called iMoney. ${prompt}. Style: modern, clean, green and white color scheme, no text overlay, suitable for ${aspectRatio} social media post.`
+              text: `Create a professional marketing image for iMoney, a Brazilian personal finance app. ${prompt}. Style: modern, clean, green (#00C853) and white color scheme, no text overlay, suitable for ${aspectRatio} social media post, high quality.`
             }]
           }],
           generationConfig: {
-            responseModalities: ["IMAGE", "TEXT"],
+            responseModalities: ["IMAGE"],
           }
         }),
       }
