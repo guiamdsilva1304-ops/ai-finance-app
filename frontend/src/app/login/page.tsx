@@ -12,6 +12,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [consent, setConsent] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -219,7 +220,23 @@ export default function AuthPage() {
                       <p className="text-xs text-red-500 mt-1">Senhas nao coincidem</p>
                     )}
                   </div>
-                  <button type="submit" disabled={loading} className="btn-primary w-full">
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-[#f0faf4] border border-[#c8e6c9]">
+                    <input
+                      type="checkbox"
+                      id="consent"
+                      checked={consent}
+                      onChange={e => setConsent(e.target.checked)}
+                      className="mt-1 w-4 h-4 accent-[#00C853] cursor-pointer flex-shrink-0"
+                    />
+                    <label htmlFor="consent" className="text-xs text-[#1a3a1a] leading-relaxed cursor-pointer">
+                      Li e concordo com os{" "}
+                      <a href="/termos" target="_blank" className="text-[#00C853] font-bold underline">Termos de Uso</a>
+                      {" "}e a{" "}
+                      <a href="/privacidade" target="_blank" className="text-[#00C853] font-bold underline">Política de Privacidade</a>
+                      {" "}da iMoney, incluindo o uso dos meus dados para personalização do serviço e envio de emails de onboarding.
+                    </label>
+                  </div>
+                  <button type="submit" disabled={loading || !consent} className="btn-primary w-full" style={{opacity: !consent ? 0.5 : 1}}>
                     {loading ? <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin"/>Criando conta...</span>
                       : <span className="flex items-center gap-2">Criar conta <ArrowRight size={16}/></span>}
                   </button>
