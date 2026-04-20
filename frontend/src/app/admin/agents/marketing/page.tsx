@@ -69,6 +69,7 @@ export default function MarketingAgent() {
   const [tab, setTab] = useState<"config"|"output">("config");
   const [copied, setCopied] = useState<string|null>(null);
   const [hist, setHist] = useState<any[]>([]);
+  const [saved, setSaved] = useState<string|null>(null);
 
   const pl = PLATFORMS.find(p => p.id === platform)!;
   const current = results[activeVar];
@@ -121,6 +122,29 @@ export default function MarketingAgent() {
     a.href = current.imageUrl;
     a.download = `imoney-post-${platform}-${Date.now()}.png`;
     a.click();
+  };
+
+  const savePost = async () => {
+    if (!current) return;
+    try {
+      await fetch("/api/admin/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform, format, tone, audience, theme, aesthetic,
+          post: current.post,
+          hashtags: current.hashtags,
+          cta: current.cta,
+          melhor_horario: current.melhor_horario,
+          gancho: current.gancho,
+          insight: current.insight,
+          gemini_prompt: current.gemini_prompt,
+          carousel_slides: current.carousel_slides || null,
+        }),
+      });
+      setSaved("ok");
+      setTimeout(() => setSaved(null), 3000);
+    } catch {}
   };
 
   const logout = async () => { await fetch("/api/admin/auth",{method:"DELETE"}); router.push("/admin/login"); };
@@ -350,8 +374,9 @@ export default function MarketingAgent() {
                     )}
 
                     {/* AÇÕES */}
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
                       <button onClick={() => setTab("config")} style={{ background:"transparent", border:`1px solid ${C.border}`, color:C.muted, fontFamily:"inherit", fontSize:13, fontWeight:700, padding:"12px 0", borderRadius:12, cursor:"pointer" }}>← Nova geração</button>
+                      <button onClick={savePost} style={{ background:saved?C.greenGlow:"transparent", border:`1px solid ${saved?C.green:C.border}`, color:saved?C.green:C.muted, fontFamily:"inherit", fontSize:13, fontWeight:700, padding:"12px 0", borderRadius:12, cursor:"pointer" }}>{saved?"✓ Salvo!":"💾 Salvar"}</button>
                       <button onClick={downloadImage} disabled={!current?.imageUrl} style={{ background:current?.imageUrl?C.s2:"transparent", border:`1px solid ${current?.imageUrl?C.green:C.border}`, color:current?.imageUrl?C.green:C.muted, fontFamily:"inherit", fontSize:13, fontWeight:700, padding:"12px 0", borderRadius:12, cursor:current?.imageUrl?"pointer":"not-allowed" }}>⬇ Baixar imagem</button>
                       <button onClick={() => copy("all")} style={{ gridColumn:"1 / -1", background:C.green, color:"#000", border:"none", fontFamily:"inherit", fontSize:14, fontWeight:900, padding:"14px 0", borderRadius:12, cursor:"pointer", boxShadow:"0 4px 16px rgba(0,200,83,0.25)" }}>
                         {copied==="all" ? "✓ Copiado! Hora de postar 🚀" : "📋 Copiar post + hashtags"}
