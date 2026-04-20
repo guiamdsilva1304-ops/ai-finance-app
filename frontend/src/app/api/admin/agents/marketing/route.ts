@@ -98,20 +98,14 @@ export async function POST(req: NextRequest) {
     const variations = parsed.variations || [];
     if (!variations.length || !variations[0].post) throw new Error("Sem conteúdo gerado");
 
-    // Gerar imagem via Pollinations
-    const variationsWithImages = await Promise.all(
-      variations.map(async (v: any) => {
-        try {
-          const imgRes = await fetch("/api/admin/agents/marketing/image", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: v.gemini_prompt || briefing }),
-          });
-          const imgData = await imgRes.json();
-          return { ...v, imageUrl: imgData.imageUrl || null };
-        } catch { return v; }
-      })
-    );
+    // Gerar imagem via Pollinations diretamente
+    const variationsWithImages = variations.map((v: any) => {
+      const prompt = encodeURIComponent(
+        `Professional marketing image for iMoney Brazilian fintech. ${v.gemini_prompt || briefing}. Green #00C853 white modern flat design no text high quality.`
+      );
+      const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=1024&height=1024&nologo=true&enhance=true&seed=${Math.floor(Math.random()*99999)}`;
+      return { ...v, imageUrl };
+    });
 
     return NextResponse.json({ variations: variationsWithImages });
   } catch (err: any) {
