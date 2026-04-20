@@ -1,5 +1,5 @@
 "use client";
-import { amplitude, identifyUser } from "./amplitude";
+import { amplitude, identifyUser } from "../amplitude";
 
 import { useState, useEffect } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
