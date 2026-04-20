@@ -9,54 +9,30 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 function buildPrompt(userName: string, userEmail: string, context: string) {
-  return `Você é o melhor especialista em onboarding de fintechs brasileiras. Crie uma sequência completa de 7 e-mails de onboarding para a iMoney.
+  return `Você é especialista em onboarding de fintechs brasileiras. Crie sequência de 7 emails para iMoney (app gratuito de finanças pessoais com IA).
 
-SOBRE A iMoney:
-- App gratuito de finanças pessoais com IA para brasileiros
-- Categoriza gastos automaticamente via Open Finance (Pluggy)
-- Assessor financeiro por IA (powered by Claude)
-- Metas financeiras inteligentes
-- Interface branca e verde, fonte Nunito, identidade jovem e acessível
-- URL do app: https://ai-finance-app-ashen.vercel.app
+USUÁRIO: ${userName} | ${userEmail}
+CONTEXTO: ${context || "Novo usuário cadastrado"}
+APP URL: https://ai-finance-app-ashen.vercel.app
 
-USUÁRIO:
-- Nome: ${userName}
-- Email: ${userEmail}
-- Contexto adicional: ${context || "Novo usuário que acabou de se cadastrar"}
+SEQUÊNCIA:
+1. Imediato — Boas-vindas + primeiro passo
+2. Dia 1 — Cadastrar renda
+3. Dia 2 — Adicionar gastos
+4. Dia 3 — Primeira meta
+5. Dia 5 — Open Finance
+6. Dia 7 — Assessor IA
+7. Dia 14 — Re-engajamento
 
-SEQUÊNCIA DE E-MAILS:
-1. Imediato após cadastro — Boas-vindas calorosas + primeiro passo claro
-2. Dia 1 — Cadastrar renda mensal (por que é importante)
-3. Dia 2 — Adicionar principais gastos (categorias)
-4. Dia 3 — Definir primeira meta financeira
-5. Dia 5 — Conectar Open Finance para categorização automática
-6. Dia 7 — Apresentar o Assessor IA e o que ele pode fazer
-7. Dia 14 — Re-engajamento se não usou (abordagem empática)
+RETORNE SOMENTE JSON:
+{"sequence":[{"day":0,"subject":"assunto curto impactante","preview":"preview 90 chars","plain":"texto do email max 120 palavras, amigável, 1 CTA claro, mencione iMoney organicamente, dado real do Brasil"}]}
 
-RETORNE SOMENTE este JSON:
-{
-  "sequence": [
-    {
-      "day": 0,
-      "subject": "assunto do email (max 50 chars, sem emoji no início)",
-      "preview": "texto de preview (max 90 chars)",
-      "html": "HTML completo do email com design bonito em verde e branco iMoney, responsivo, com botão CTA verde #00C853",
-      "plain": "versão texto plano do email"
-    }
-  ]
+REGRAS: português brasileiro natural, assunto com alta taxa de abertura, 1 objetivo por email, use nome ${userName}.`;
 }
 
-REGRAS PARA OS E-MAILS:
-1. Tom amigável, próximo, como um amigo inteligente — nunca corporativo
-2. Assunto deve gerar curiosidade e ter alta taxa de abertura
-3. Cada email deve ter UM único objetivo e UM único CTA
-4. Use o nome ${userName} de forma natural
-5. Máximo 150 palavras por email — seja direto
-6. HTML deve ser bonito: fonte Nunito do Google Fonts, cor primária #00C853, fundo branco, botão verde arredondado
-7. Inclua o logo "💸 iMoney" no topo de cada email
-8. Rodapé com "Você recebe este email pois se cadastrou na iMoney" e link de descadastro
-9. Dados reais do Brasil para contextualizar (ex: "70% dos brasileiros não têm reserva de emergência")
-10. Cada email deve ser autossuficiente — funcionar mesmo se o usuário não leu os anteriores`;
+function buildEmailHTML(subject: string, plain: string, userName: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"></head><body style="margin:0;padding:0;background:#f5f5f5;font-family:Nunito,sans-serif"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:20px 0"><tr><td align="center"><table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.08)"><tr><td style="background:#00C853;padding:24px 32px;text-align:center"><span style="font-size:28px">💸</span><span style="color:#ffffff;font-size:22px;font-weight:900;margin-left:8px">iMoney</span></td></tr><tr><td style="padding:32px"><h1 style="color:#1a3a1a;font-size:22px;font-weight:800;margin:0 0 16px">${subject}</h1><div style="color:#333;font-size:15px;line-height:1.7;white-space:pre-wrap">${plain.replace(/
+/g,'<br>')}</div><div style="margin:28px 0;text-align:center"><a href="https://ai-finance-app-ashen.vercel.app" style="background:#00C853;color:#000;text-decoration:none;padding:14px 32px;border-radius:50px;font-weight:800;font-size:15px;display:inline-block">Abrir iMoney →</a></div></td></tr><tr><td style="padding:16px 32px 24px;border-top:1px solid #f0f0f0;text-align:center"><p style="color:#999;font-size:12px;margin:0">Você recebe este email pois se cadastrou na iMoney.<br><a href="#" style="color:#00C853">Descadastrar</a></p></td></tr></table></td></tr></table></body></html>`;
 }
 
 export async function POST(req: NextRequest) {
@@ -76,6 +52,12 @@ export async function POST(req: NextRequest) {
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("Resposta inválida do modelo");
     const parsed = JSON.parse(match[0]);
+
+    // Adicionar HTML a cada email
+    parsed.sequence = parsed.sequence.map((email: any) => ({
+      ...email,
+      html: buildEmailHTML(email.subject, email.plain, userName),
+    }));
 
     // Enviar email 1 imediatamente se solicitado
     if (sendNow && parsed.sequence?.[0]) {
