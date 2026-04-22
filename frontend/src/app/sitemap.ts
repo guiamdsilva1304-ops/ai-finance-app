@@ -1,5 +1,4 @@
 import { MetadataRoute } from "next";
-
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = "https://ai-finance-app-ashen.vercel.app";
   return [
