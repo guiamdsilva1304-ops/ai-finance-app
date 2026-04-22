@@ -27,6 +27,7 @@ export const metadata: Metadata = {
     images: ["/og-image.png"],
   },
   alternates: { canonical: "https://ai-finance-app-ashen.vercel.app" },
+  verification: { google: "WONpgV72z1PLGHk-AfjWdvn32beVilTymkv_t-FE08E" },
   manifest: "/manifest.json",
 };
 
