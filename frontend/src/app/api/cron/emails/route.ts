@@ -155,7 +155,7 @@ async function sendMonthlyEmails() {
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization');
-  if (req.nextUrl?.searchParams.get("debug") === "1") return NextResponse.json({ secret, env: process.env.CRON_SECRET });
+  if (req.nextUrl?.searchParams.get("debug") === "1") return NextResponse.json({ secret, env: process.env.CRON_SECRET ?? "UNDEFINED", all_keys: Object.keys(process.env).filter(k => k.includes("CRON")) });
   if (secret !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
