@@ -84,12 +84,10 @@ async function sendWelcomeEmails() {
 
 async function sendFollowUpEmails() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const { data: users } = await supabaseAdmin
     .from("user_profiles")
     .select("id, email, nome, last_login_at")
-    .lte("last_login_at", sevenDaysAgo)
-    .gte("last_login_at", fourteenDaysAgo)
+    .or(`last_login_at.lte.${sevenDaysAgo},last_login_at.is.null`)
     .eq("followup_sent", false);
   if (!users?.length) return { followup: 0 };
   let count = 0;
