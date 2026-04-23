@@ -154,7 +154,10 @@ async function sendMonthlyEmails() {
 }
 
 export async function GET(req: NextRequest) {
-  // auth desativada temporariamente para debug
+  const secret = req.headers.get('authorization');
+  if (secret !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const [welcome, followup, weekly, monthly] = await Promise.all([
       sendWelcomeEmails(),
