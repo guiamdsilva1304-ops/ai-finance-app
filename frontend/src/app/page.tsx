@@ -16,7 +16,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "Nunito, sans-serif" }}>
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/95 backdrop-blur shadow-sm" : "bg-transparent"}`}>
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 h-28 flex items-center justify-between">
           <Image src="/logo.png" alt="iMoney" width={200} height={200} className="object-contain" style={{objectFit:"contain"}}/>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm font-bold text-[#5a6472] hover:text-[#16a34a] transition-colors">Entrar</Link>
