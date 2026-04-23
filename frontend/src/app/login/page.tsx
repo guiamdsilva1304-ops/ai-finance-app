@@ -64,6 +64,7 @@ export default function AuthPage() {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email: em, password });
       if (err) { setError(parseErr(err)); return; }
       if (data.user) {
+        supabase.from("user_profiles").update({ last_login_at: new Date().toISOString(), followup_sent: false }).eq("id", data.user.id).then(() => {});
         amplitude.track("Login Completed", {
           auth_method: "email",
           mfa_used: false,
