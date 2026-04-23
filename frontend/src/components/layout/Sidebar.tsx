@@ -42,7 +42,7 @@ export function Sidebar({ email }: SidebarProps) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className={cn("px-4 py-5 border-b border-[#e4f5e9]", collapsed && "px-3")}>
-        <Logo size={collapsed ? 48 : 72} showText={!collapsed} showTagline={!collapsed} />
+        <Logo size={collapsed ? 48 : 200} showText={false} showTagline={false} />
       </div>
 
       {/* Email */}
