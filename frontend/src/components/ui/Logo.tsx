@@ -9,7 +9,7 @@ interface LogoProps {
   dark?: boolean;
 }
 
-export function Logo({ size = 48, showText = true, showTagline = false, className, dark = false }: LogoProps) {
+export function Logo({ size = 120, showText = true, showTagline = false, className, dark = false }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <Image
