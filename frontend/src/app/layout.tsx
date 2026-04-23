@@ -29,6 +29,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "https://ai-finance-app-ashen.vercel.app" },
   verification: { google: "WONpgV72z1PLGHk-AfjWdvn32beVilTymkv_t-FE08E" },
   manifest: "/manifest.json",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+    shortcut: "/logo.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
