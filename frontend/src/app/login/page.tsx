@@ -104,6 +104,8 @@ export default function AuthPage() {
       if (!data.user) { setError("Nao foi possivel criar a conta. Tente novamente."); return; }
       const { data: ld, error: le } = await supabase.auth.signInWithPassword({ email: em, password });
       if (!le && ld.user) {
+        // Agenda emails de boas-vindas
+        fetch("/api/emails/welcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: ld.user.id, email: em }) }).catch(() => {});
         amplitude.track("Login Completed", {
           auth_method: "email",
           mfa_used: false,

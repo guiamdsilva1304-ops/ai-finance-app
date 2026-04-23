@@ -1,4 +1,10 @@
 {
   "framework": "nextjs",
-  "rootDirectory": "frontend"
+  "rootDirectory": "frontend",
+  "crons": [
+    {
+      "path": "/api/cron/emails",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
