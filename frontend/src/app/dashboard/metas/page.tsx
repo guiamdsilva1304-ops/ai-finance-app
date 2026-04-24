@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { formatBRL } from "@/lib/utils";
-import { Plus, Trash2, CheckCircle2, Target, RefreshCw } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, Target, RefreshCw, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Meta } from "@/types";
 
@@ -64,6 +64,17 @@ export default function MetasPage() {
     const { data: { user } } = await supabase.auth.getUser();
     await supabase.from("metas").update({ concluida: !meta.concluida })
       .eq("id", meta.id).eq("user_id", user!.id);
+    load();
+  }
+
+  async function togglePrincipal(meta: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    // Remove principal de todas
+    await supabase.from("metas").update({ principal: false }).eq("user_id", user!.id);
+    // Marca a selecionada (toggle off se já era principal)
+    if (!meta.principal) {
+      await supabase.from("metas").update({ principal: true }).eq("id", meta.id).eq("user_id", user!.id);
+    }
     load();
   }
 
@@ -177,7 +188,14 @@ export default function MetasPage() {
                     <p className="text-xs text-[#8db89d] mt-0.5">{meta.prazo_meses} meses restantes</p>
                   </div>
                   <div className="flex gap-1.5">
-                    <button onClick={() => toggleConcluida(meta)}
+                    <button
+              onClick={() => togglePrincipal(meta)}
+              title={meta.principal ? "Remover como principal" : "Marcar como meta principal"}
+              className={`p-1.5 rounded-lg transition-colors ${meta.principal ? "text-yellow-400" : "text-[#c8e6c9] hover:text-yellow-400"}`}
+            >
+              <Star size={16} fill={meta.principal ? "currentColor" : "none"}/>
+            </button>
+            <button onClick={() => toggleConcluida(meta)}
                       className="p-2 rounded-lg hover:bg-[#f0fdf4] text-[#8db89d] hover:text-[#16a34a] transition-colors" title="Marcar como concluída">
                       <CheckCircle2 size={15}/>
                     </button>
