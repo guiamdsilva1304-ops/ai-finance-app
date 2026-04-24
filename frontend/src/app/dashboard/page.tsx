@@ -15,6 +15,12 @@ const CATEGORY_COLORS = [
   "#f59e0b","#fb923c","#6366f1","#a855f7",
 ];
 
+interface Meta {
+  id: string; nome: string;
+  valor_alvo: number; valor_atual: number;
+  prazo_meses: number; concluida: boolean;
+}
+
 interface EcoData {
   selic_anual: number; selic_meta: number;
   ipca_mensal: number; ipca_anual: number;
@@ -31,6 +37,7 @@ export default function DashboardPage() {
   const [eco, setEco] = useState<EcoData | null>(null);
   const [dash, setDash] = useState<DashData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mainMeta, setMainMeta] = useState<Meta | null>(null);
   const supabase = createSupabaseBrowser();
 
   const load = useCallback(async () => {
@@ -38,6 +45,8 @@ export default function DashboardPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    const metasRes = await supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).order("valor_atual", { ascending: false });
+    if (metasRes.data?.length) setMainMeta(metasRes.data[0]);
     const [ecoRes, summaryRes] = await Promise.allSettled([
       fetch("/api/rates/eco"),
       fetch("/api/dashboard/summary", {
@@ -139,6 +148,33 @@ export default function DashboardPage() {
           </>
         )}
       </div>
+
+      {mainMeta && (
+        <div className="bg-white border border-[#e4f5e9] rounded-2xl p-5 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🎯</span>
+              <div>
+                <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider">Meta Principal</p>
+                <p className="font-black text-[#0d2414]" style={{fontFamily:"Nunito,sans-serif"}}>{mainMeta.nome}</p>
+              </div>
+            </div>
+            <a href="/dashboard/metas" className="text-xs font-bold text-[#16a34a] hover:underline">Ver todas →</a>
+          </div>
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="text-[#6b9e80] font-bold">{formatBRL(mainMeta.valor_atual)} guardados</span>
+            <span className="font-black text-[#0d2414]">{formatBRL(mainMeta.valor_alvo)}</span>
+          </div>
+          <div className="w-full bg-[#f0fdf4] rounded-full h-3">
+            <div className="bg-gradient-to-r from-[#16a34a] to-[#22c55e] h-3 rounded-full transition-all"
+              style={{width: `${Math.min(100, Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100))}%`}}/>
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-[#8db89d]">{Math.min(100, Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100))}% concluído</span>
+            <span className="text-xs text-[#8db89d]">{mainMeta.prazo_meses} meses restantes</span>
+          </div>
+        </div>
+      )}
 
       {/* Charts */}
       {dash && pieData.length > 0 && (
