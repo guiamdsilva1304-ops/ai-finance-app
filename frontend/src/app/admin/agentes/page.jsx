@@ -311,7 +311,7 @@ export default function AgentesPage() {
       const res = await fetch("/api/agents/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId: selected.id, saveResult: true,
+        body: JSON.stringify({ agentId: ag.id, saveResult: true,
           model: "claude-sonnet-4-20250514",
           max_tokens: 1000,
           system: ag.systemPrompt,
