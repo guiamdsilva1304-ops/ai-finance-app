@@ -4,6 +4,18 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+const ESTRATEGIA_SEMANAL: Record<number, { tipo: string; tema: string; formato: string }> = {
+  0: { tipo: "carrossel", tema: "planejamento financeiro semanal e metas de dinheiro", formato: "5 slides motivacionais com dicas práticas para a semana" },
+  1: { tipo: "carrossel", tema: "conceito financeiro essencial: reserva de emergência, SELIC, inflação, juros compostos ou investimentos", formato: "5-6 slides educativos estilo 'o que você precisa saber sobre X'" },
+  2: { tipo: "reels_script", tema: "dado chocante sobre finanças do brasileiro: endividamento, rotativo do cartão, salário mínimo, FGTS", formato: "Reels provocativo 15-30s com gancho forte nos primeiros 3 segundos" },
+  3: { tipo: "single_post", tema: "verdade inconveniente ou frase impactante sobre dinheiro e finanças pessoais", formato: "Post direto com frase grande e dado real do Brasil" },
+  4: { tipo: "carrossel", tema: "tutorial passo a passo: como montar orçamento, sair das dívidas ou começar a investir", formato: "6-7 slides com passos numerados e práticos" },
+  5: { tipo: "reels_script", tema: "iMoney em ação: como o assessor IA ajuda com finanças pessoais reais", formato: "Reels mostrando funcionalidade real do app de forma natural" },
+  6: { tipo: "reels_script", tema: "erro financeiro comum que todo brasileiro comete: poupança como investimento, parcelamento, rotativo", formato: "Reels educativo e provocativo que gera identificação" },
+};
+
+const DIAS_PT = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
 export async function GET() {
   try {
     const supabase = createClient(
@@ -23,7 +35,6 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const dias = body.dias || 3;
     const key = process.env.ANTHROPIC_API_KEY;
     if (!key) return NextResponse.json({ error: "ANTHROPIC_API_KEY ausente" }, { status: 500 });
 
@@ -31,6 +42,11 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    // Estratégia do dia — com override manual opcional
+    const diaSemana = body.dia_semana ?? new Date().getDay();
+    const estrategia = ESTRATEGIA_SEMANAL[diaSemana] || ESTRATEGIA_SEMANAL[1];
+    const diaStr = DIAS_PT[diaSemana];
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -42,11 +58,21 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 2000,
-        system: "Você é Lucas, CMO da iMoney. Gere posts para Instagram. Retorne SOMENTE JSON válido, sem markdown.",
+        system: `Você é Lucas, CMO da iMoney — fintech brasileira de IA financeira pessoal. Público: brasileiros 25-40 anos. Tom: direto, provocativo, baseado em dados reais (SELIC, IBGE, endividamento). Retorne SOMENTE JSON válido sem markdown e sem backticks.`,
         messages: [{
           role: "user",
-          content: `Gere EXATAMENTE 1 post. Retorne SOMENTE este array JSON sem markdown:
-[{"content_type":"reels_script","tema":"tema","angulo":"angulo","caption":"caption emojis max 150 chars","hashtags":["h1","h2","h3"],"cta":"cta","melhor_horario":"18h-20h","visual_description":"descricao visual","dias_a_partir_de_hoje":0}]`
+          content: `Hoje é ${diaStr}. Crie 1 post para Instagram da iMoney seguindo esta estratégia:
+
+FORMATO: ${estrategia.tipo}
+TEMA GUIA: ${estrategia.tema}
+ESTILO: ${estrategia.formato}
+
+Seja criativo — escolha um ângulo específico dentro do tema, use dados reais do Brasil, seja provocativo e relevante para o público brasileiro de 25-40 anos.
+
+Retorne SOMENTE este JSON (sem markdown, sem backticks, sem explicações):
+[{"content_type":"${estrategia.tipo}","tema":"tema específico escolhido","angulo":"ângulo criativo do post","caption":"caption com emojis máx 150 chars","hashtags":["hashtag1","hashtag2","hashtag3","hashtag4"],"cta":"call to action específico","melhor_horario":"18h-20h","visual_description":"descrição detalhada do visual para DALL-E 3: fundo branco, texto em verde escuro bold gigante, ícones 3D verdes flutuando, logo iMoney no canto inferior direito","dias_a_partir_de_hoje":0,"slides":[]}]
+
+${estrategia.tipo === "carrossel" ? `IMPORTANTE: preencha "slides" com ${estrategia.tipo === "carrossel" ? "5-6" : "0"} objetos: [{"texto":"TEXTO EM MAIUSCULAS MAX 8 PALAVRAS","visual_description":"visual específico deste slide"}]` : 'Deixe "slides" como array vazio [].'}`
         }]
       })
     });
@@ -61,14 +87,8 @@ export async function POST(req: NextRequest) {
 
     let posts;
     try {
-      // Extrai JSON mesmo dentro de markdown
-      let clean = text;
       const jsonMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
-      if (jsonMatch) {
-        clean = jsonMatch[0];
-      } else {
-        clean = text.replace(/```json|```/g, "").trim();
-      }
+      const clean = jsonMatch ? jsonMatch[0] : text.replace(/```json|```/g, "").trim();
       posts = JSON.parse(clean);
       if (!Array.isArray(posts)) posts = [posts];
     } catch {
@@ -81,14 +101,16 @@ export async function POST(req: NextRequest) {
       d.setDate(d.getDate() + (p.dias_a_partir_de_hoje || i));
       return {
         platform: "instagram",
-        content_type: p.content_type || "single_post",
-        tema: p.tema || "Financas",
+        content_type: p.content_type || estrategia.tipo,
+        tema: p.tema || "Finanças",
         angulo: p.angulo || "",
         caption: p.caption || "",
         hashtags: p.hashtags || [],
         cta: p.cta || "",
         melhor_horario: p.melhor_horario || "18h-20h",
         visual_description: p.visual_description || "",
+        slides: p.slides || [],
+        slides_count: p.slides?.length || 1,
         scheduled_for: d.toISOString().split("T")[0],
         status: "aguardando_aprovacao",
         image_status: "pending",
@@ -98,7 +120,7 @@ export async function POST(req: NextRequest) {
     const { data: saved, error } = await supabase.from("content_pipeline").insert(inserts).select();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    return NextResponse.json({ success: true, generated: inserts.length, posts: saved });
+    return NextResponse.json({ success: true, generated: inserts.length, estrategia: estrategia.tipo, dia: diaStr, posts: saved });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
