@@ -7,11 +7,11 @@ export const maxDuration = 60;
 const ESTRATEGIA_SEMANAL: Record<number, { tipo: string; tema: string; formato: string }> = {
   0: { tipo: "carrossel", tema: "planejamento financeiro semanal e metas de dinheiro", formato: "5 slides motivacionais com dicas práticas para a semana" },
   1: { tipo: "carrossel", tema: "conceito financeiro essencial: reserva de emergência, SELIC, inflação, juros compostos ou investimentos", formato: "5-6 slides educativos estilo 'o que você precisa saber sobre X'" },
-  2: { tipo: "reels_script", tema: "dado chocante sobre finanças do brasileiro: endividamento, rotativo do cartão, salário mínimo, FGTS", formato: "Reels provocativo 15-30s com gancho forte nos primeiros 3 segundos" },
+  2: { tipo: "single_post", tema: "dado chocante sobre finanças do brasileiro: endividamento, rotativo do cartão, salário mínimo, FGTS", formato: "Post direto com dado real gigante e contexto impactante" },
   3: { tipo: "single_post", tema: "verdade inconveniente ou frase impactante sobre dinheiro e finanças pessoais", formato: "Post direto com frase grande e dado real do Brasil" },
   4: { tipo: "carrossel", tema: "tutorial passo a passo: como montar orçamento, sair das dívidas ou começar a investir", formato: "6-7 slides com passos numerados e práticos" },
-  5: { tipo: "reels_script", tema: "iMoney em ação: como o assessor IA ajuda com finanças pessoais reais", formato: "Reels mostrando funcionalidade real do app de forma natural" },
-  6: { tipo: "reels_script", tema: "erro financeiro comum que todo brasileiro comete: poupança como investimento, parcelamento, rotativo", formato: "Reels educativo e provocativo que gera identificação" },
+  5: { tipo: "carrossel", tema: "comparativo financeiro: poupança vs investimento, aluguel vs compra, gastar vs guardar", formato: "5 slides comparando opções com dados reais" },
+  6: { tipo: "single_post", tema: "erro financeiro comum que todo brasileiro comete: poupança como investimento, parcelamento, rotativo", formato: "Post impactante com dado real e chamada para ação" },
 };
 
 const DIAS_PT = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
