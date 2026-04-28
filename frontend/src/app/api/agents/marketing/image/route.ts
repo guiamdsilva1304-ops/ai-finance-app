@@ -4,6 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+const LOGO_URL = "https://xckjwhlpijzkimwgoews.supabase.co/storage/v1/object/public/imoney-media/brand/logo.png";
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { postId, visual_description } = body;
@@ -16,18 +18,32 @@ export async function POST(req: NextRequest) {
   try {
     await supabase.from("content_pipeline").update({ image_status: "generating" }).eq("id", postId);
 
-    const prompt = `Instagram post for iMoney Brazilian fintech app. EXACT MANDATORY STYLE:
+    const textContent = visual_description || "CONTROLE SEU DINHEIRO";
 
-BACKGROUND: Pure white #FFFFFF. Clean, minimal, no gradients, no textures.
+    const prompt = `Create a square 1024x1024 Instagram post for iMoney, a Brazilian personal finance app.
 
-MAIN TEXT: Portuguese text displayed in CENTER of image. Font: ultra-bold black sans-serif (like Impact or Anton). Color: very dark green #1a3a1a. Size: GIANT, text must be COMPLETE without cuts or line breaks in wrong places - show full words. ALL CAPS. Text occupies 55-65% of the image. Text: "${visual_description || "CONTROLE SEU DINHEIRO"}".
+BACKGROUND: Pure white #FFFFFF. Clean. No gradients. No textures.
 
-FLOATING 3D ICONS: Around the text at corners and edges - green glossy 3D rendered objects: gold-green coin with dollar sign, upward green arrow, green growing bar chart, green lightbulb. Modern shiny style.
+MAIN TEXT: "${textContent}"
+- Position: CENTER of the image
+- Font: Ultra-bold sans-serif (Impact style)
+- Color: Very dark green #1a3a1a
+- ALL CAPS
+- Size: VERY LARGE, text must fill 55-65% of image width
+- IMPORTANT: Show ALL words COMPLETE. Never cut words. Never hyphenate. Reduce font size if needed to show all words.
 
-LOGO: Bottom-right corner only. Small logo: green compass/clock icon circle with dollar sign inside, text "iMoney" to the right in dark green. Discrete, small.
+FLOATING 3D ICONS (placed at corners, not overlapping text):
+- Top-left corner: glossy 3D green coin with $ symbol
+- Top-right corner: glossy 3D green upward arrow + bar chart growing
+- Bottom-left corner: glossy 3D green coin with $ symbol
+- Right side middle: glossy 3D green lightbulb
 
-CRITICAL: Show ALL words of the text completely. Do not cut words. Do not use hyphenation.
-NO real people. NO faces. NO English words in main text. Square 1:1 format.`;
+LOGO (bottom-right corner):
+- Draw the iMoney logo: a green compass rose with a large dollar sign $ in the center, a fleur-de-lis ornament on top, 4 sharp pointed compass arrows (north, south, east, west), gradient from bright lime green to dark forest green
+- Below the compass: text "iMoney" in dark green bold font
+- Size: small, about 80-100px, discrete
+
+STYLE: Professional Brazilian fintech. Clean. Minimal. High contrast. No real people. No faces. No English text in main content. Square format only.`;
 
     const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
@@ -52,7 +68,6 @@ NO real people. NO faces. NO English words in main text. Square 1:1 format.`;
     const data = await res.json();
     const b64 = data.data?.[0]?.b64_json;
     const url = data.data?.[0]?.url;
-
     let finalUrl = url || "";
 
     if (b64) {
