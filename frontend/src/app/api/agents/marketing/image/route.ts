@@ -5,17 +5,20 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const IMONEY_STYLE = `
-ESTILO VISUAL OBRIGATÓRIO — iMoney Brasil:
-- FUNDO: branco puro #FFFFFF — limpo, sem gradiente
-- TIPOGRAFIA: texto principal em português, fonte ultra bold sem serifa, cor verde escuro #1a3a1a, tamanho gigante ocupando 50-65% da imagem, todas as letras maiúsculas
-- ÍCONES 3D: elementos financeiros flutuando ao redor do texto — moedas douradas/verdes com símbolo $, seta para cima verde, gráfico de barras crescente verde, lâmpada verde — estilo 3D render moderno, brilhante
-- LOGO: no canto inferior direito, logo da iMoney (bússola verde com cifrão $ no centro e texto "iMoney" abaixo) — pequeno e discreto
-- SEM pessoas reais, sem rostos, sem texto em inglês
-- Proporção quadrada 1:1 para feed do Instagram
-- Visual impactante que para o scroll — igual ao estilo do app iMoney
-- Exemplo de referência: fundo branco, texto "NÃO É SOBRE GANHAR MAIS. É SOBRE CONTROLAR MELHOR." em verde escuro bold gigante, moedas 3D verdes flutuando nos cantos, logo iMoney no canto inferior direito
-`;
+Instagram post for iMoney Brazilian fintech app. MANDATORY STYLE:
 
+BACKGROUND: Pure white background only. No gradients. No dark colors.
+
+TEXT: Main message in Portuguese in the CENTER of image. Ultra-bold sans-serif font. Dark green color #1a3a1a. ALL CAPS. Giant size, 50-65% of image area. This text must be the hero element.
+
+FLOATING ELEMENTS: Around the text edges, floating modern glossy rendered icons: green coins with dollar sign, upward green arrow, green growing bar chart, green lightbulb. Scattered naturally at corners and sides.
+
+LOGO: Small iMoney logo at bottom-right corner only: green compass icon with dollar sign in center, text "iMoney" below it.
+
+NO dark backgrounds. NO people. NO faces. NO English text. Square format.
+
+REFERENCE STYLE: Like a Brazilian fintech social post with white background, giant dark green bold text center, green glossy financial icons floating around edges, small brand logo bottom-right.
+`;
 export async function POST(req: NextRequest) {
   try {
     const { postId, visual_description, tema } = await req.json();
