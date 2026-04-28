@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 
 const AGENTS = [
+  { id:"marca", icon:"🎨", name:"Identidade Visual", desc:"Upload da logo e cores da iMoney usadas nas imagens geradas.", status:"ativo", href:"/admin/marca" },
   { id:"agentes", icon:"🤖", name:"Equipe de Agentes IA", desc:"Ana, Kai, Lucas, Pedro, Maya e Julia — sua empresa rodando 24h.", status:"ativo", href:"/admin/agentes" },
   { id:"marketing", icon:"📱", name:"Pipeline de Marketing", desc:"Lucas gera posts com IA + imagens DALL-E. Você aprova em 15 min.", status:"ativo", href:"/admin/marketing" },
   { id:"onboarding", icon:"🚀", name:"Onboarding & Vendas", desc:"Sequências de e-mail e WhatsApp para ativar usuários cadastrados.", status:"ativo", href:"/admin/agents/onboarding" },

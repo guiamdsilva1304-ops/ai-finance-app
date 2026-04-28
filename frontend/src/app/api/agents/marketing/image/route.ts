@@ -4,7 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const LOGO_URL = "https://xckjwhlpijzkimwgoews.supabase.co/storage/v1/object/public/imoney-media/brand/logo.png";
+function getLogoUrl(supabaseUrl: string) {
+  return `${supabaseUrl}/storage/v1/object/public/imoney-media/brand/logo.png`;
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
