@@ -61,10 +61,18 @@ export async function POST(req: NextRequest) {
 
     let posts;
     try {
-      posts = JSON.parse(text.replace(/```json|```/g, "").trim());
+      // Extrai JSON mesmo dentro de markdown
+      let clean = text;
+      const jsonMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+      if (jsonMatch) {
+        clean = jsonMatch[0];
+      } else {
+        clean = text.replace(/```json|```/g, "").trim();
+      }
+      posts = JSON.parse(clean);
       if (!Array.isArray(posts)) posts = [posts];
     } catch {
-      return NextResponse.json({ error: "JSON invalido", raw: text.slice(0, 300) }, { status: 500 });
+      return NextResponse.json({ error: "JSON invalido", raw: text.slice(0, 500) }, { status: 500 });
     }
 
     const today = new Date();
