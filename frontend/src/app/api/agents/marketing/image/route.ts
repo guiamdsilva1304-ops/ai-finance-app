@@ -16,13 +16,18 @@ export async function POST(req: NextRequest) {
   try {
     await supabase.from("content_pipeline").update({ image_status: "generating" }).eq("id", postId);
 
-    const prompt = `Instagram post for iMoney Brazilian fintech. MANDATORY STYLE:
-BACKGROUND: Pure white #FFFFFF only. No gradients. No dark colors.
-TEXT: Main Portuguese text CENTER of image. Ultra-bold sans-serif. Dark green #1a3a1a. ALL CAPS. Giant, 50-65% of image.
-FLOATING ICONS: Green glossy coins with dollar sign, upward arrow, bar chart, lightbulb at corners.
-LOGO: Small iMoney compass logo bottom-right with text iMoney below.
-NO people. NO faces. NO English. Square 1:1.
-Content: ${visual_description || "Brazilian personal finance tips"}`;
+    const prompt = `Instagram post for iMoney Brazilian fintech app. EXACT MANDATORY STYLE:
+
+BACKGROUND: Pure white #FFFFFF. Clean, minimal, no gradients, no textures.
+
+MAIN TEXT: Portuguese text displayed in CENTER of image. Font: ultra-bold black sans-serif (like Impact or Anton). Color: very dark green #1a3a1a. Size: GIANT, text must be COMPLETE without cuts or line breaks in wrong places - show full words. ALL CAPS. Text occupies 55-65% of the image. Text: "${visual_description || "CONTROLE SEU DINHEIRO"}".
+
+FLOATING 3D ICONS: Around the text at corners and edges - green glossy 3D rendered objects: gold-green coin with dollar sign, upward green arrow, green growing bar chart, green lightbulb. Modern shiny style.
+
+LOGO: Bottom-right corner only. Small logo: green compass/clock icon circle with dollar sign inside, text "iMoney" to the right in dark green. Discrete, small.
+
+CRITICAL: Show ALL words of the text completely. Do not cut words. Do not use hyphenation.
+NO real people. NO faces. NO English words in main text. Square 1:1 format.`;
 
     const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",

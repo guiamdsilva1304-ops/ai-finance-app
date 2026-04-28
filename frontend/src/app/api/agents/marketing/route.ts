@@ -58,7 +58,11 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 2000,
-        system: `Você é Lucas, CMO da iMoney — fintech brasileira de IA financeira pessoal. Público: brasileiros 25-40 anos. Tom: direto, provocativo, baseado em dados reais (SELIC, IBGE, endividamento). Retorne SOMENTE JSON válido sem markdown e sem backticks.`,
+        system: `Você é Lucas, CMO da iMoney — fintech brasileira de IA financeira pessoal. Público: brasileiros 25-40 anos. Tom: direto, provocativo, baseado em dados reais (SELIC, IBGE, endividamento). Retorne SOMENTE JSON válido sem markdown e sem backticks.
+
+REGRA DE FORMATO:
+- Use "carrossel" quando o tema tiver múltiplos passos, lista de itens, comparativos ou explicações sequenciais (ex: "5 erros", "como fazer X em Y passos", "diferença entre A e B")
+- Use "single_post" quando o tema tiver 1 dado chocante, 1 frase impactante ou 1 insight rápido (ex: "X% dos brasileiros...", "Você sabia que...", frases de impacto)`,
         messages: [{
           role: "user",
           content: `Hoje é ${diaStr}. Crie 1 post para Instagram da iMoney seguindo esta estratégia:
