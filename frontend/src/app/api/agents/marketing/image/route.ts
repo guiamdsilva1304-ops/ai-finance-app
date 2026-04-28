@@ -5,17 +5,15 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const IMONEY_STYLE = `
-Estilo visual obrigatório:
-- Design minimalista e moderno, estilo fintech brasileira premium
-- Paleta: fundo escuro (#0f172a ou #1e293b) OU fundo verde escuro (#14532d)
-- Texto em branco ou verde claro (#86efac)
-- Tipografia bold, clean, sem serifa
-- Sem pessoas reais, sem rostos
-- Pode ter ícones geométricos, gráficos abstratos, símbolos financeiros
+ESTILO VISUAL OBRIGATÓRIO — iMoney Brasil:
+- FUNDO: branco puro #FFFFFF — limpo, sem gradiente
+- TIPOGRAFIA: texto principal em português, fonte ultra bold sem serifa, cor verde escuro #1a3a1a, tamanho gigante ocupando 50-65% da imagem, todas as letras maiúsculas
+- ÍCONES 3D: elementos financeiros flutuando ao redor do texto — moedas douradas/verdes com símbolo $, seta para cima verde, gráfico de barras crescente verde, lâmpada verde — estilo 3D render moderno, brilhante
+- LOGO: no canto inferior direito, logo da iMoney (bússola verde com cifrão $ no centro e texto "iMoney" abaixo) — pequeno e discreto
+- SEM pessoas reais, sem rostos, sem texto em inglês
 - Proporção quadrada 1:1 para feed do Instagram
-- Sem texto em inglês — tudo em português
-- Logo ou marca d'água sutil no canto inferior
-- Visual que para o scroll — impactante e direto
+- Visual impactante que para o scroll — igual ao estilo do app iMoney
+- Exemplo de referência: fundo branco, texto "NÃO É SOBRE GANHAR MAIS. É SOBRE CONTROLAR MELHOR." em verde escuro bold gigante, moedas 3D verdes flutuando nos cantos, logo iMoney no canto inferior direito
 `;
 
 export async function POST(req: NextRequest) {
