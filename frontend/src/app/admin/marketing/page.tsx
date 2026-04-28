@@ -42,6 +42,20 @@ export default function MarketingPage() {
     setGenerating(false);
   };
 
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      window.open(url, "_blank");
+    }
+  };
+
   const generateImage = async (postId: string, visualDescription: string) => {
     setGeneratingImage(true);
     try {
@@ -227,6 +241,18 @@ export default function MarketingPage() {
                 )}
                 <button onClick={() => updateStatus(selectedPost.id, "publicado")} style={{ width: "100%", background: "#0f172a", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>
                   📤 Marcar como publicado
+                </button>
+                {selectedPost.image_url && (
+                  <button onClick={() => downloadFile(selectedPost.image_url!, `imoney-${selectedPost.tema?.slice(0,20)}.png`)} style={{ width: "100%", background: "#0369a1", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>
+                    ⬇️ Baixar imagem
+                  </button>
+                )}
+                <button onClick={() => {
+                  const caption = (selectedPost.caption || "") + "\n\n" + (selectedPost.hashtags || []).map((h: string) => "#" + h.replace(/#/g,"")).join(" ");
+                  navigator.clipboard.writeText(caption);
+                  alert("✅ Caption copiada!");
+                }} style={{ width: "100%", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px", fontSize: 13, color: "#0f172a", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>
+                  📋 Copiar caption + hashtags
                 </button>
               </div>
             )}
