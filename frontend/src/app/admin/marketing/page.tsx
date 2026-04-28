@@ -22,6 +22,7 @@ export default function MarketingPage() {
   const [generating, setGenerating] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [notas, setNotas] = useState("");
+  const [generatingImage, setGeneratingImage] = useState(false);
   const [filter, setFilter] = useState("aguardando_aprovacao");
 
   const fetchPosts = async () => {
@@ -39,6 +40,26 @@ export default function MarketingPage() {
     await fetch("/api/agents/marketing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dias: 7 }) });
     await fetchPosts();
     setGenerating(false);
+  };
+
+  const generateImage = async (postId: string, visualDescription: string) => {
+    setGeneratingImage(true);
+    try {
+      const res = await fetch("/api/agents/marketing/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId, visual_description: visualDescription }),
+      });
+      const data = await res.json();
+      if (data.image_url) {
+        await fetchPosts();
+        setSelectedPost(prev => prev ? { ...prev, image_url: data.image_url, image_status: "ready" } : null);
+      }
+    } catch (err) {
+      console.error("Erro ao gerar imagem:", err);
+    } finally {
+      setGeneratingImage(false);
+    }
   };
 
   const updateStatus = async (id: string, status: string, notas_rejeicao?: string) => {
@@ -191,9 +212,23 @@ export default function MarketingPage() {
               </div>
             )}
             {selectedPost.status === "aprovado" && (
-              <button onClick={() => updateStatus(selectedPost.id, "publicado")} style={{ width: "100%", marginTop: 20, background: "#0f172a", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>
-                📤 Marcar como publicado
-              </button>
+              <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+                {selectedPost.image_url ? (
+                  <div>
+                    <img src={selectedPost.image_url} alt="Imagem gerada" style={{ width: "100%", borderRadius: 10, marginBottom: 10 }} />
+                    <button onClick={() => generateImage(selectedPost.id, selectedPost.visual_description || "")} disabled={generatingImage} style={{ width: "100%", background: "#7c3aed", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif", opacity: generatingImage ? 0.6 : 1 }}>
+                      🔄 Gerar nova imagem
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => generateImage(selectedPost.id, selectedPost.visual_description || "")} disabled={generatingImage} style={{ width: "100%", background: "#7c3aed", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, color: "#fff", cursor: generatingImage ? "not-allowed" : "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif", opacity: generatingImage ? 0.6 : 1 }}>
+                    {generatingImage ? "🎨 Gerando imagem DALL-E 3..." : "🎨 Gerar imagem com DALL-E 3"}
+                  </button>
+                )}
+                <button onClick={() => updateStatus(selectedPost.id, "publicado")} style={{ width: "100%", background: "#0f172a", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>
+                  📤 Marcar como publicado
+                </button>
+              </div>
             )}
           </div>
         </div>
