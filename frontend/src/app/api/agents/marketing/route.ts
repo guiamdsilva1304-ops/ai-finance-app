@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 2000,
+      max_tokens: 800,
       system: LUCAS_PROMPT,
       messages: [{
         role: "user",
