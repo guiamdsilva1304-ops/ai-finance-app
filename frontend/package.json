@@ -23,6 +23,7 @@
     "react-markdown": "^10.1.0",
     "recharts": "2.10.0",
     "resend": "^6.12.2",
+    "sharp": "^0.34.5",
     "tailwind-merge": "2.1.0"
   },
   "devDependencies": {
