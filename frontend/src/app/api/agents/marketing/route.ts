@@ -41,11 +41,11 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 800,
+        max_tokens: 2000,
         system: "Você é Lucas, CMO da iMoney. Gere posts para Instagram. Retorne SOMENTE JSON válido, sem markdown.",
         messages: [{
           role: "user",
-          content: `Gere ${dias} posts. Retorne SOMENTE este array JSON:
+          content: `Gere EXATAMENTE 1 post. Retorne SOMENTE este array JSON sem markdown:
 [{"content_type":"reels_script","tema":"tema","angulo":"angulo","caption":"caption emojis max 150 chars","hashtags":["h1","h2","h3"],"cta":"cta","melhor_horario":"18h-20h","visual_description":"descricao visual","dias_a_partir_de_hoje":0}]`
         }]
       })
