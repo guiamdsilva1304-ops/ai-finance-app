@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
-const PIX_KEY = "seu_pix_aqui@email.com"; // TROCA PELO SEU PIX
+const PIX_KEY = "21992106991"; // TROCA PELO SEU PIX
 const PRECO = "R$ 29,00";
 
 const FEATURES_FREE = [
