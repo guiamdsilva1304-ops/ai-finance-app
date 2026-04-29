@@ -40,7 +40,7 @@ Você domina criação de conteúdo para TikTok, Reels e Instagram:
 - Carrossel: engajamento profundo, salvar/compartilhar
 - Post estático: autoridade, frase de impacto
 
-Quando pedirem plano semanal, entregue 6 dias com: Segunda (Reels), Terça (Carrossel), Quarta (Reels), Quinta (Post), Sexta (Reels), Sábado (Carrossel).
+Quando pedirem plano semanal, entregue 6 dias: Segunda (Reels), Terça (Carrossel), Quarta (Reels), Quinta (Post), Sexta (Reels), Sábado (Carrossel).
 Para cada peça: formato, hook, roteiro ou slides, CTA e legenda com hashtags.
 Nunca mencione o app diretamente nos primeiros posts — venda o resultado, não o produto.`,
     sugestoes: [
@@ -93,8 +93,7 @@ Contexto técnico:
 - Waitlist Open Finance já ativa
 
 Estratégia: orgânico total, zero ads na fase 1.
-Break-even: 22 usuários pagantes.
-Meta: 100 pagantes em 6 meses.
+Break-even: 22 usuários pagantes. Meta: 100 pagantes em 6 meses.
 
 Entregue: sequências de email prontas (assunto + corpo), estratégias de funil, táticas de retenção, scripts de onboarding.`,
     sugestoes: [
@@ -119,7 +118,7 @@ Analisa métricas do negócio e produto para decisões baseadas em dados.
 Contexto:
 - Burn mensal: R$ 660
 - Break-even: 22 usuários a R$ 29,90/mês
-- Meta fase 1 (6 meses): 100 pagantes → R$ 2.990 MRR
+- Meta fase 1 (6 meses): 100 pagantes
 - Runway: ~7 meses com R$ 5k
 
 Tabelas Supabase: user_profiles, transactions, metas, user_investments, chat_history, email_queue, openfinance_interest.
@@ -144,11 +143,9 @@ Entregue: análises de retenção, projeções de MRR, queries SQL para o Supaba
 
 Stack:
 - Frontend: Next.js 14 (App Router), TypeScript, Tailwind CSS, fonte Nunito
-- Backend: Supabase (PostgreSQL + Auth + RLS + Storage)
+- Backend: Supabase (PostgreSQL + Auth + RLS)
 - IA: Anthropic API (Claude Sonnet) via /api/chat
-- Deploy: Vercel
-- Emails: Resend API com cron job no Vercel
-- Design: branco/verde, logo bússola verde
+- Deploy: Vercel · Emails: Resend API + cron job
 
 Páginas: / (landing), /login, /dashboard, /dashboard/assessor, /dashboard/transacoes, /dashboard/metas, /dashboard/investimentos, /dashboard/perfil, /dashboard/renda, /dashboard/openfinance, /admin, /admin/agentes
 
@@ -218,11 +215,12 @@ export default function AgentesPage() {
         ...prev,
         [agenteSelecionado.id]: [
           ...historico,
-          { role: 'assistant', content: 'Erro ao conectar com o agente. Tente novamente.', ts: new Date() },
+          { role: 'assistant', content: 'Erro ao conectar. Tente novamente.', ts: new Date() },
         ],
       }))
     } finally {
-      setLoading(false) }
+      setLoading(false)
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -230,14 +228,13 @@ export default function AgentesPage() {
   }
 
   const badgeStyle: Record<string, React.CSSProperties> = {
-    ativo:     { background: '#E1F5EE', color: '#085041' },
-    beta:      { background: '#FAEEDA', color: '#633806' },
-    'em breve':{ background: '#F1EFE8', color: '#5F5E5A' },
+    ativo:      { background: '#E1F5EE', color: '#085041' },
+    beta:       { background: '#FAEEDA', color: '#633806' },
+    'em breve': { background: '#F1EFE8', color: '#5F5E5A' },
   }
 
   return (
     <div style={{ display:'flex', height:'100vh', fontFamily:"'Nunito',sans-serif", background:'#f8f9f8', overflow:'hidden' }}>
-      {/* sidebar */}
       <aside style={{ width:272, minWidth:272, borderRight:'1px solid #e8ede8', background:'#fff', display:'flex', flexDirection:'column', overflow:'hidden' }}>
         <div style={{ padding:'18px 16px 14px', borderBottom:'1px solid #e8ede8', display:'flex', alignItems:'center', gap:10 }}>
           <div style={{ width:30, height:30, borderRadius:8, background:'#1D9E75', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -251,7 +248,7 @@ export default function AgentesPage() {
             <div style={{ fontSize:11, color:'#999' }}>Agentes internos</div>
           </div>
         </div>
-        <div style={{ flex:1, overflowY:'auto', padding:'8px 8px' }}>
+        <div style={{ flex:1, overflowY:'auto', padding:'8px' }}>
           {AGENTES.map(agente => {
             const ativo = agente.id === agenteSelecionado.id
             const temMsgs = mensagens[agente.id].length > 0
@@ -261,9 +258,9 @@ export default function AgentesPage() {
                   border: ativo ? `1px solid ${agente.cor}44` : '1px solid transparent',
                   borderRadius:10, padding:'9px 10px', cursor:'pointer', marginBottom:3,
                   display:'flex', alignItems:'center', gap:10, transition:'all .15s' }}>
-                <div style={{ width:34, height:34, borderRadius:8, flexShrink:0, background: agente.cor+'18',
+                <div style={{ width:34, height:34, borderRadius:8, flexShrink:0, background:`${agente.cor}18`,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:9, fontWeight:700, color: agente.cor, letterSpacing:'0.05em' }}>
+                  fontSize:9, fontWeight:700, color:agente.cor, letterSpacing:'0.05em' }}>
                   {agente.iniciais}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
@@ -274,7 +271,7 @@ export default function AgentesPage() {
                   <span style={{ fontSize:10, padding:'2px 6px', borderRadius:20, fontWeight:600, ...badgeStyle[agente.status] }}>
                     {agente.status === 'em breve' ? 'Em breve' : agente.status.charAt(0).toUpperCase() + agente.status.slice(1)}
                   </span>
-                  {temMsgs && <div style={{ width:5, height:5, borderRadius:'50%', background: agente.cor }} />}
+                  {temMsgs && <div style={{ width:5, height:5, borderRadius:'50%', background:agente.cor }} />}
                 </div>
               </button>
             )
@@ -285,15 +282,13 @@ export default function AgentesPage() {
         </div>
       </aside>
 
-      {/* main */}
       <main style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-        {/* header */}
         <div style={{ padding:'14px 22px', borderBottom:'1px solid #e8ede8', background:'#fff',
           display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-            <div style={{ width:38, height:38, borderRadius:10, background: agenteSelecionado.cor+'18',
+            <div style={{ width:38, height:38, borderRadius:10, background:`${agenteSelecionado.cor}18`,
               display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:10, fontWeight:700, color: agenteSelecionado.cor, letterSpacing:'0.05em' }}>
+              fontSize:10, fontWeight:700, color:agenteSelecionado.cor, letterSpacing:'0.05em' }}>
               {agenteSelecionado.iniciais}
             </div>
             <div>
@@ -309,13 +304,12 @@ export default function AgentesPage() {
           )}
         </div>
 
-        {/* mensagens */}
         <div style={{ flex:1, overflowY:'auto', padding:'20px 22px', display:'flex', flexDirection:'column', gap:14 }}>
           {msgs.length === 0 && (
             <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:20, padding:'40px 0' }}>
-              <div style={{ width:52, height:52, borderRadius:12, background: agenteSelecionado.cor+'18',
+              <div style={{ width:52, height:52, borderRadius:12, background:`${agenteSelecionado.cor}18`,
                 display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:14, fontWeight:700, color: agenteSelecionado.cor, letterSpacing:'0.05em' }}>
+                fontSize:14, fontWeight:700, color:agenteSelecionado.cor, letterSpacing:'0.05em' }}>
                 {agenteSelecionado.iniciais}
               </div>
               <div style={{ textAlign:'center' }}>
@@ -338,9 +332,9 @@ export default function AgentesPage() {
           {msgs.map((msg, i) => (
             <div key={i} style={{ display:'flex', justifyContent: msg.role==='user' ? 'flex-end' : 'flex-start' }}>
               {msg.role==='assistant' && (
-                <div style={{ width:26, height:26, borderRadius:6, flexShrink:0, background: agenteSelecionado.cor+'18',
+                <div style={{ width:26, height:26, borderRadius:6, flexShrink:0, background:`${agenteSelecionado.cor}18`,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:8, fontWeight:700, color: agenteSelecionado.cor, marginRight:8, marginTop:2, letterSpacing:'0.05em' }}>
+                  fontSize:8, fontWeight:700, color:agenteSelecionado.cor, marginRight:8, marginTop:2, letterSpacing:'0.05em' }}>
                   {agenteSelecionado.iniciais}
                 </div>
               )}
@@ -359,15 +353,15 @@ export default function AgentesPage() {
           ))}
           {loading && (
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ width:26, height:26, borderRadius:6, background: agenteSelecionado.cor+'18',
+              <div style={{ width:26, height:26, borderRadius:6, background:`${agenteSelecionado.cor}18`,
                 display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:8, fontWeight:700, color: agenteSelecionado.cor, letterSpacing:'0.05em' }}>
+                fontSize:8, fontWeight:700, color:agenteSelecionado.cor, letterSpacing:'0.05em' }}>
                 {agenteSelecionado.iniciais}
               </div>
               <div style={{ background:'#fff', border:'1px solid #e8ede8', borderRadius:'4px 14px 14px 14px',
                 padding:'10px 16px', display:'flex', gap:4, alignItems:'center' }}>
-                {[0,1,2].map(j=>(
-                  <div key={j} style={{ width:6, height:6, borderRadius:'50%', background: agenteSelecionado.cor,
+                {[0,1,2].map(j => (
+                  <div key={j} style={{ width:6, height:6, borderRadius:'50%', background:agenteSelecionado.cor,
                     animation:`bounce 1.2s ${j*.2}s ease-in-out infinite` }} />
                 ))}
               </div>
@@ -376,18 +370,17 @@ export default function AgentesPage() {
           <div ref={bottomRef} />
         </div>
 
-        {/* input */}
         <div style={{ padding:'14px 22px', borderTop:'1px solid #e8ede8', background:'#fff', flexShrink:0 }}>
           <div style={{ display:'flex', gap:10, alignItems:'flex-end', background:'#f8f9f8',
             borderRadius:14, border:'1px solid #e8ede8', padding:'9px 12px' }}>
-            <textarea ref={textareaRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={handleKeyDown}
+            <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
               placeholder={`Fale com o ${agenteSelecionado.nome}...`} rows={1}
               style={{ flex:1, resize:'none', border:'none', background:'transparent', fontSize:13,
                 fontFamily:"'Nunito',sans-serif", color:'#1a1a1a', outline:'none', lineHeight:1.5, maxHeight:160 }} />
-            <button onClick={()=>enviar()} disabled={!input.trim()||loading}
+            <button onClick={() => enviar()} disabled={!input.trim() || loading}
               style={{ width:32, height:32, borderRadius:8, flexShrink:0,
-                background: input.trim()&&!loading ? agenteSelecionado.cor : '#e8ede8',
-                border:'none', cursor: input.trim()&&!loading ? 'pointer' : 'not-allowed',
+                background: input.trim() && !loading ? agenteSelecionado.cor : '#e8ede8',
+                border:'none', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
                 display:'flex', alignItems:'center', justifyContent:'center', transition:'background .15s' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                 <path d="M22 2L11 13" stroke={input.trim()&&!loading?'#fff':'#aaa'} strokeWidth="2" strokeLinecap="round"/>
