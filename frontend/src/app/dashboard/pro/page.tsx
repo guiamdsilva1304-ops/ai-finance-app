@@ -116,7 +116,7 @@ export default function ProPage() {
                     {copied ? "✅ Copiado!" : "📋 Copiar chave PIX"}
                   </button>
                   <div style={{ fontSize: 13, color: "#64748b" }}>
-                    Após o pagamento, envie o comprovante para <strong>suporte@imoney.app</strong><br />
+                    Após o pagamento, envie o comprovante para <strong>imoneyappcontato@gmail.com</strong><br />
                     Ativação em até 2 horas úteis
                   </div>
                 </div>
