@@ -8,6 +8,36 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   ts: Date
+  cards?: Card[]
+  diff?: DiffBlock[]
+  actions?: AgentAction[]
+}
+
+interface Card {
+  dia?: string
+  formato?: string
+  cor?: string
+  hook?: string
+  titulo?: string
+  roteiro?: string
+  slides?: string[]
+  cta?: string
+  legenda?: string
+  texto?: string
+}
+
+interface DiffBlock {
+  arquivo: string
+  antes: string
+  depois: string
+  descricao: string
+}
+
+interface AgentAction {
+  tipo: 'email' | 'publicar' | 'segmentar' | 'alerta'
+  descricao: string
+  status: 'executado' | 'pendente' | 'erro'
+  detalhe?: string
 }
 
 interface Agent {
@@ -22,84 +52,111 @@ interface Agent {
   sugestoes: string[]
 }
 
+const FORMAT_COLORS: Record<string, string> = {
+  Reels: '#534AB7',
+  Carrossel: '#085041',
+  Post: '#0C447C',
+  Stories: '#633806',
+}
+
 const AGENTES: Agent[] = [
   {
     id: 'conteudo',
     nome: 'Agente de conteúdo',
     cargo: 'Head of Content',
-    descricao: 'Gera o plano semanal completo: Reels, Carrosséis e Posts com roteiro, hook e legenda.',
+    descricao: 'Gera o plano semanal completo com cards visuais por dia.',
     status: 'ativo',
     cor: '#1D9E75',
     iniciais: 'MKT',
-    systemPrompt: `Você é o agente de conteúdo da iMoney, um app brasileiro de finanças pessoais com IA voltado para jovens de 20–30 anos.
+    systemPrompt: `Você é o agente de conteúdo da iMoney, app brasileiro de finanças pessoais com IA para jovens de 20–30 anos.
+Tom: amigo que entende de dinheiro. Direto, sem juridiquês.
 
-A voz da marca é próxima, direta, sem juridiquês. Tom: amigo que entende de dinheiro.
+Quando o usuário pedir plano semanal, retorne EXATAMENTE este JSON (sem markdown, sem backticks):
+{"plano":[
+  {"dia":"Segunda","formato":"Reels","hook":"...","roteiro":"...","cta":"...","legenda":"..."},
+  {"dia":"Terça","formato":"Carrossel","titulo":"...","slides":["slide1","slide2","slide3","slide4","slide5","slide6 com CTA"],"legenda":"..."},
+  {"dia":"Quarta","formato":"Reels","hook":"...","roteiro":"...","cta":"...","legenda":"..."},
+  {"dia":"Quinta","formato":"Post","titulo":"...","texto":"...","legenda":"..."},
+  {"dia":"Sexta","formato":"Reels","hook":"...","roteiro":"...","cta":"...","legenda":"..."},
+  {"dia":"Sábado","formato":"Carrossel","titulo":"...","slides":["slide1","slide2","slide3","slide4","slide5","slide6 com CTA"],"legenda":"..."}
+]}
 
-Você domina criação de conteúdo para TikTok, Reels e Instagram:
-- Reels: viralidade, topo de funil, educação rápida
-- Carrossel: engajamento profundo, salvar/compartilhar
-- Post estático: autoridade, frase de impacto
-
-Quando pedirem plano semanal, entregue 6 dias: Segunda (Reels), Terça (Carrossel), Quarta (Reels), Quinta (Post), Sexta (Reels), Sábado (Carrossel).
-Para cada peça: formato, hook, roteiro ou slides, CTA e legenda com hashtags.
-Nunca mencione o app diretamente nos primeiros posts — venda o resultado, não o produto.`,
+Para outros pedidos, responda normalmente em texto.
+Nunca mencione o app nos primeiros posts — venda o resultado, não o produto.`,
     sugestoes: [
-      'Gere o plano completo desta semana — tema: reserva de emergência',
+      'Gere os posts para a semana — tema: reserva de emergência',
+      'Gere os posts para a semana — tema: sair das dívidas',
       'Crie um Reels: erros que jovens cometem com o salário',
-      'Monte um carrossel: 7 hábitos de quem não fica no vermelho',
-      'Escreva 3 hooks para vídeos sobre investimentos para iniciantes',
+      '3 hooks para vídeos sobre investimentos para iniciantes',
     ],
   },
   {
     id: 'seo',
     nome: 'Agente SEO',
     cargo: 'Head of Growth Orgânico',
-    descricao: 'Pesquisa keywords, planeja artigos e otimiza o blog da iMoney para ranquear no Google.',
+    descricao: 'Pesquisa keywords, escreve e publica 70% dos artigos automaticamente.',
     status: 'ativo',
     cor: '#378ADD',
     iniciais: 'SEO',
     systemPrompt: `Você é o agente de SEO da iMoney, app brasileiro de finanças pessoais com IA.
 
-Especialista em SEO para o mercado brasileiro de finanças pessoais. Sabe o que jovens de 20–30 anos buscam no Google sobre dinheiro, dívidas e investimentos.
+Especialista em SEO para finanças pessoais no Brasil. Concorrentes: Nubank blog, Neon, Mobills, Me Poupe.
+Vantagem da iMoney: voz humana, IA como ferramenta real.
 
-Concorrentes no Google: Nubank blog, Neon, Mobills, Me Poupe.
-Vantagem da iMoney: voz humana, foco em IA como ferramenta real.
+Quando pedirem para escrever e publicar um artigo, retorne EXATAMENTE este JSON (sem markdown, sem backticks):
+{"artigo":{
+  "titulo":"...",
+  "slug":"url-do-artigo",
+  "meta_description":"...",
+  "conteudo":"artigo completo em markdown",
+  "publicar_automaticamente": true
+}}
 
-Entregue: keywords com volume e dificuldade, estrutura de artigos (H1, H2s, meta, slug), artigos completos otimizados, clusters de conteúdo.
-Escreva como pessoa fala, não como banco escreve.`,
+Para publicar_automaticamente: use true para 70% dos casos (artigos informativos sobre finanças).
+Use false (rascunho) para artigos que mencionam preços, promoções ou dados sensíveis.
+
+Para outros pedidos (keywords, clusters, análises), responda normalmente em texto.`,
     sugestoes: [
+      'Escreva e publique: "Como montar reserva de emergência em 2025"',
+      'Escreva e publique: "Quanto guardar por mês com salário de R$ 3.000"',
       'Liste as 20 keywords mais valiosas para o blog da iMoney',
-      'Escreva artigo completo: "Como montar reserva de emergência em 2025"',
       'Monte um cluster de conteúdo sobre investimentos para iniciantes',
-      'O que o Nubank blog faz bem e o que podemos superar?',
     ],
   },
   {
     id: 'growth',
     nome: 'Agente de growth',
     cargo: 'Head of Growth',
-    descricao: 'Cria sequências de email, funis de conversão e estratégias para transformar cadastros em pagantes.',
+    descricao: 'Age de forma autônoma: dispara emails, segmenta usuários e converte cadastros em pagantes.',
     status: 'ativo',
     cor: '#7F77DD',
     iniciais: 'GRW',
     systemPrompt: `Você é o agente de growth da iMoney, app brasileiro de finanças pessoais com IA.
 
 Foco: converter cadastros gratuitos em pagantes (R$ 29,90/mês) e reduzir churn.
+Break-even: 22 usuários. Meta: 100 pagantes em 6 meses.
 
-Contexto técnico:
-- Emails via Resend API
-- Cron job no Vercel (roda a cada hora)
-- Tabela email_queue no Supabase
-- Waitlist Open Finance já ativa
+Infraestrutura disponível:
+- Emails via Resend API (tabela email_queue no Supabase)
+- Segmentação de usuários via user_profiles
+- Cron job rodando a cada hora no Vercel
 
-Estratégia: orgânico total, zero ads na fase 1.
-Break-even: 22 usuários pagantes. Meta: 100 pagantes em 6 meses.
+Quando o usuário pedir uma ação de growth, retorne EXATAMENTE este JSON (sem markdown, sem backticks):
+{"acoes":[
+  {"tipo":"email","descricao":"...","status":"executado","detalhe":"assunto e corpo do email"},
+  {"tipo":"segmentar","descricao":"...","status":"executado","detalhe":"critério de segmentação"},
+  {"tipo":"alerta","descricao":"...","status":"pendente","detalhe":"requer aprovação"}
+]}
 
-Entregue: sequências de email prontas (assunto + corpo), estratégias de funil, táticas de retenção, scripts de onboarding.`,
+Tipos válidos: "email" (insere na email_queue), "segmentar" (filtra user_profiles), "publicar" (cria post), "alerta" (notifica o founder).
+Use "executado" para ações que você executa automaticamente.
+Use "pendente" para ações que precisam de aprovação (mudanças de preço, campanhas novas).
+
+Para análises e estratégias, responda normalmente em texto.`,
     sugestoes: [
-      'Crie a sequência completa de 5 emails de boas-vindas',
-      'Escreva o email de upgrade: free → Pro (R$ 29,90)',
-      'Estratégia para reativar usuários inativos há 30 dias',
+      'Execute a sequência de boas-vindas para novos cadastros',
+      'Identifique usuários inativos há 30 dias e reative',
+      'Dispare campanha de upgrade para usuários ativos há 60 dias',
       'Monte o funil completo: cadastro → ativação → pagamento',
     ],
   },
@@ -107,15 +164,13 @@ Entregue: sequências de email prontas (assunto + corpo), estratégias de funil,
     id: 'dados',
     nome: 'Agente de dados',
     cargo: 'Head of Analytics',
-    descricao: 'Analisa métricas, monitora MRR, identifica churn e gera relatórios semanais do negócio.',
+    descricao: 'Analisa métricas, monitora MRR, identifica churn e gera relatórios semanais.',
     status: 'beta',
     cor: '#EF9F27',
     iniciais: 'DAD',
     systemPrompt: `Você é o agente de dados da iMoney, app brasileiro de finanças pessoais com IA.
 
-Analisa métricas do negócio e produto para decisões baseadas em dados.
-
-Contexto:
+Contexto do negócio:
 - Burn mensal: R$ 660
 - Break-even: 22 usuários a R$ 29,90/mês
 - Meta fase 1 (6 meses): 100 pagantes
@@ -123,45 +178,199 @@ Contexto:
 
 Tabelas Supabase: user_profiles, transactions, metas, user_investments, chat_history, email_queue, openfinance_interest.
 
-Entregue: análises de retenção, projeções de MRR, queries SQL para o Supabase, relatórios semanais, alertas sobre métricas preocupantes.`,
+Entregue: análises de retenção, projeções de MRR, queries SQL, relatórios semanais, alertas sobre métricas preocupantes.`,
     sugestoes: [
-      'Projete o MRR mês a mês até atingir R$ 1M faturado',
-      'Escreva a query SQL para calcular churn mensal no Supabase',
-      'Quais métricas acompanhar semanalmente no meu estágio?',
-      'Monte um dashboard de métricas para o /admin da iMoney',
+      'Projete o MRR mês a mês até R$ 1M faturado',
+      'Query SQL para calcular churn mensal no Supabase',
+      'Quais métricas acompanhar semanalmente agora?',
+      'Monte o dashboard de métricas para o /admin',
     ],
   },
   {
     id: 'dev',
     nome: 'Agente dev',
     cargo: 'CTO',
-    descricao: 'Arquiteta features, escreve código Next.js 14 + Supabase, faz deploy e resolve bugs de produção.',
+    descricao: 'Revisa o código automaticamente, identifica bugs nos logs e gera patches prontos para aplicar.',
     status: 'ativo',
     cor: '#D85A30',
     iniciais: 'DEV',
-    systemPrompt: `Você é o agente dev da iMoney, responsável pela parte técnica do produto.
+    systemPrompt: `Você é o agente dev da iMoney, responsável pela saúde técnica do produto.
 
-Stack:
-- Frontend: Next.js 14 (App Router), TypeScript, Tailwind CSS, fonte Nunito
-- Backend: Supabase (PostgreSQL + Auth + RLS)
-- IA: Anthropic API (Claude Sonnet) via /api/chat
-- Deploy: Vercel · Emails: Resend API + cron job
+Stack: Next.js 14 (App Router), TypeScript, Tailwind, Nunito, Supabase, Anthropic API (Claude Sonnet), Vercel, Resend.
 
-Páginas: / (landing), /login, /dashboard, /dashboard/assessor, /dashboard/transacoes, /dashboard/metas, /dashboard/investimentos, /dashboard/perfil, /dashboard/renda, /dashboard/openfinance, /admin, /admin/agentes
+Páginas: / /login /dashboard /dashboard/assessor /dashboard/transacoes /dashboard/metas /dashboard/investimentos /dashboard/perfil /dashboard/renda /dashboard/openfinance /admin /admin/agentes
 
 Tabelas Supabase: user_memory, transactions, metas, user_profiles, user_investments, chat_history, pluggy_connections, openfinance_interest, email_queue, admin_posts
 
-Env vars: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, ANTHROPIC_API_KEY, RESEND_API_KEY, CRON_SECRET, SUPABASE_SERVICE_ROLE_KEY
+Quando identificar um bug ou melhoria, retorne EXATAMENTE este JSON (sem markdown, sem backticks):
+{"diff":[
+  {
+    "arquivo":"caminho/do/arquivo.tsx",
+    "antes":"código atual com problema",
+    "depois":"código corrigido",
+    "descricao":"o que foi corrigido e por quê"
+  }
+]}
 
-Entregue: código completo e funcional, componentes no padrão visual (branco/verde, Nunito), queries SQL otimizadas, debug com contexto do stack.`,
+Para perguntas de arquitetura, análise de código ou discussão técnica, responda normalmente em texto.
+Sempre explique o raciocínio antes do diff.`,
     sugestoes: [
-      'Como adicionar streaming na resposta dos agentes?',
-      'Adiciona autenticação por role admin nesta página',
-      'Escreva o componente de histórico de chats dos agentes',
-      'Crie um cron job semanal que gera relatório de MRR por email',
+      'Revise o código do /dashboard/assessor e aponte melhorias',
+      'Analise a API route /api/chat e otimize para menor latência',
+      'Identifique possíveis vazamentos de memória no frontend',
+      'Revise as políticas RLS do Supabase e aponte falhas de segurança',
     ],
   },
 ]
+
+function parseResposta(content: string, agentId: AgentId): { texto: string; cards?: Card[]; diff?: DiffBlock[]; actions?: AgentAction[] } {
+  const clean = content.replace(/```json|```/g, '').trim()
+  try {
+    const json = JSON.parse(clean)
+    if (agentId === 'conteudo' && json.plano) {
+      return { texto: '', cards: json.plano }
+    }
+    if (agentId === 'seo' && json.artigo) {
+      const card: Card = {
+        titulo: json.artigo.titulo,
+        texto: `📝 ${json.artigo.publicar_automaticamente ? 'Publicado automaticamente' : 'Salvo como rascunho'}\n\nSlug: /${json.artigo.slug}\n\nMeta: ${json.artigo.meta_description}`,
+        legenda: json.artigo.conteudo.slice(0, 300) + '...',
+      }
+      return { texto: '', cards: [card] }
+    }
+    if (agentId === 'growth' && json.acoes) {
+      return { texto: '', actions: json.acoes }
+    }
+    if (agentId === 'dev' && json.diff) {
+      return { texto: '', diff: json.diff }
+    }
+  } catch { /* não é JSON, trata como texto */ }
+  return { texto: content }
+}
+
+function CardConteudo({ card }: { card: Card }) {
+  const [expandido, setExpandido] = useState(false)
+  const cor = FORMAT_COLORS[card.formato || ''] || '#888'
+  const bgCor = cor + '15'
+  return (
+    <div style={{ background: '#fff', border: `1px solid ${cor}33`, borderRadius: 12, overflow: 'hidden', marginBottom: 8 }}>
+      <div style={{ background: bgCor, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+        onClick={() => setExpandido(!expandido)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: cor, background: cor + '22', padding: '3px 10px', borderRadius: 20 }}>{card.formato}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a' }}>{card.dia}</span>
+        </div>
+        <span style={{ fontSize: 12, color: '#888' }}>{expandido ? '▲ fechar' : '▼ ver'}</span>
+      </div>
+      {expandido && (
+        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {card.hook && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>HOOK</div>
+              <div style={{ fontSize: 13, color: '#1a1a1a', fontWeight: 600, borderLeft: `3px solid ${cor}`, paddingLeft: 10, lineHeight: 1.5 }}>{card.hook}</div>
+            </div>
+          )}
+          {card.titulo && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>TÍTULO</div>
+              <div style={{ fontSize: 13, color: '#1a1a1a', fontWeight: 600, borderLeft: `3px solid ${cor}`, paddingLeft: 10 }}>{card.titulo}</div>
+            </div>
+          )}
+          {card.roteiro && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>ROTEIRO</div>
+              <div style={{ fontSize: 12, color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{card.roteiro}</div>
+            </div>
+          )}
+          {card.slides && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 6 }}>SLIDES</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {card.slides.map((s, i) => (
+                  <div key={i} style={{ fontSize: 12, color: '#444', background: '#f8f9f8', borderRadius: 8, padding: '6px 10px', display: 'flex', gap: 8 }}>
+                    <span style={{ fontWeight: 700, color: cor, minWidth: 20 }}>{i + 1}</span>
+                    <span>{s}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {card.texto && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>TEXTO</div>
+              <div style={{ fontSize: 12, color: '#444', lineHeight: 1.6 }}>{card.texto}</div>
+            </div>
+          )}
+          {card.cta && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>CTA</div>
+              <div style={{ fontSize: 12, color: '#1a1a1a', fontWeight: 600 }}>{card.cta}</div>
+            </div>
+          )}
+          {card.legenda && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>LEGENDA</div>
+              <div style={{ fontSize: 11, color: '#666', background: '#f8f9f8', borderRadius: 8, padding: '8px 10px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{card.legenda}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CardDiff({ block }: { block: DiffBlock }) {
+  const [aplicado, setAplicado] = useState(false)
+  const comando = `cd /workspaces/ai-finance-app && claude "aplique este patch no arquivo ${block.arquivo}: ${block.descricao}"`
+  return (
+    <div style={{ background: '#fff', border: '1px solid #D85A3033', borderRadius: 12, overflow: 'hidden', marginBottom: 8 }}>
+      <div style={{ background: '#D85A3012', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#D85A30', marginBottom: 2 }}>PATCH</div>
+          <div style={{ fontSize: 12, color: '#1a1a1a', fontWeight: 600 }}>{block.arquivo}</div>
+        </div>
+        <button onClick={() => { navigator.clipboard.writeText(comando); setAplicado(true) }}
+          style={{ fontSize: 11, padding: '5px 12px', borderRadius: 8, border: 'none', background: aplicado ? '#1D9E75' : '#D85A30', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
+          {aplicado ? '✓ Copiado' : 'Copiar comando'}
+        </button>
+      </div>
+      <div style={{ padding: '10px 14px' }}>
+        <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>{block.descricao}</div>
+        <div style={{ fontFamily: 'monospace', fontSize: 11, background: '#f8f9f8', borderRadius: 8, overflow: 'hidden' }}>
+          {block.antes.split('\n').map((l, i) => (
+            <div key={`a${i}`} style={{ padding: '1px 10px', background: '#ffeef0', color: '#c0392b' }}>- {l}</div>
+          ))}
+          {block.depois.split('\n').map((l, i) => (
+            <div key={`d${i}`} style={{ padding: '1px 10px', background: '#e6ffed', color: '#196127' }}>+ {l}</div>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: '#888', marginTop: 8, fontFamily: 'monospace', background: '#f0f0f0', borderRadius: 6, padding: '6px 10px', wordBreak: 'break-all' }}>
+          {comando}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CardAction({ action }: { action: AgentAction }) {
+  const cores: Record<string, string> = { executado: '#1D9E75', pendente: '#EF9F27', erro: '#D85A30' }
+  const cor = cores[action.status] || '#888'
+  const icones: Record<string, string> = { email: 'EMAIL', publicar: 'POST', segmentar: 'SEG', alerta: 'ALERT' }
+  return (
+    <div style={{ background: '#fff', border: `1px solid ${cor}33`, borderRadius: 10, padding: '10px 14px', marginBottom: 6, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <div style={{ width: 36, height: 36, borderRadius: 8, background: cor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: cor, flexShrink: 0, letterSpacing: '0.04em' }}>
+        {icones[action.tipo] || action.tipo.toUpperCase()}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', marginBottom: 2 }}>{action.descricao}</div>
+        {action.detalhe && <div style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>{action.detalhe}</div>}
+      </div>
+      <span style={{ fontSize: 10, fontWeight: 700, color: cor, background: cor + '18', padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+        {action.status}
+      </span>
+    </div>
+  )
+}
 
 export default function AgentesPage() {
   const [agenteSelecionado, setAgenteSelecionado] = useState<Agent>(AGENTES[0])
@@ -172,11 +381,9 @@ export default function AgentesPage() {
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-
   const msgs = mensagens[agenteSelecionado.id]
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
-
   useEffect(() => {
     const ta = textareaRef.current
     if (!ta) return
@@ -199,28 +406,26 @@ export default function AgentesPage() {
         body: JSON.stringify({
           messages: historico.map(m => ({ role: m.role, content: m.content })),
           systemPrompt: agenteSelecionado.systemPrompt,
+          agentId: agenteSelecionado.id,
         }),
       })
       if (!res.ok) throw new Error('Erro na API')
       const data = await res.json()
+      const rawContent = data.content ?? 'Sem resposta.'
+      const parsed = parseResposta(rawContent, agenteSelecionado.id)
       setMensagens(prev => ({
         ...prev,
         [agenteSelecionado.id]: [
           ...historico,
-          { role: 'assistant', content: data.content ?? 'Sem resposta.', ts: new Date() },
+          { role: 'assistant', content: parsed.texto, ts: new Date(), cards: parsed.cards, diff: parsed.diff, actions: parsed.actions },
         ],
       }))
     } catch {
       setMensagens(prev => ({
         ...prev,
-        [agenteSelecionado.id]: [
-          ...historico,
-          { role: 'assistant', content: 'Erro ao conectar. Tente novamente.', ts: new Date() },
-        ],
+        [agenteSelecionado.id]: [...historico, { role: 'assistant', content: 'Erro ao conectar. Tente novamente.', ts: new Date() }],
       }))
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -228,141 +433,140 @@ export default function AgentesPage() {
   }
 
   const badgeStyle: Record<string, React.CSSProperties> = {
-    ativo:      { background: '#E1F5EE', color: '#085041' },
-    beta:       { background: '#FAEEDA', color: '#633806' },
+    ativo: { background: '#E1F5EE', color: '#085041' },
+    beta: { background: '#FAEEDA', color: '#633806' },
     'em breve': { background: '#F1EFE8', color: '#5F5E5A' },
   }
 
   return (
-    <div style={{ display:'flex', height:'100vh', fontFamily:"'Nunito',sans-serif", background:'#f8f9f8', overflow:'hidden' }}>
-      <aside style={{ width:272, minWidth:272, borderRight:'1px solid #e8ede8', background:'#fff', display:'flex', flexDirection:'column', overflow:'hidden' }}>
-        <div style={{ padding:'18px 16px 14px', borderBottom:'1px solid #e8ede8', display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:30, height:30, borderRadius:8, background:'#1D9E75', display:'flex', alignItems:'center', justifyContent:'center' }}>
+    <div style={{ display: 'flex', height: '100vh', fontFamily: "'Nunito',sans-serif", background: '#f8f9f8', overflow: 'hidden' }}>
+      <aside style={{ width: 272, minWidth: 272, borderRight: '1px solid #e8ede8', background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid #e8ede8', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="#E1F5EE" strokeWidth="1.5"/>
-              <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z" fill="#E1F5EE"/>
+              <circle cx="12" cy="12" r="10" stroke="#E1F5EE" strokeWidth="1.5" />
+              <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z" fill="#E1F5EE" />
             </svg>
           </div>
           <div>
-            <div style={{ fontSize:13, fontWeight:700, color:'#1a1a1a' }}>iMoney</div>
-            <div style={{ fontSize:11, color:'#999' }}>Agentes internos</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a' }}>iMoney</div>
+            <div style={{ fontSize: 11, color: '#999' }}>Agentes internos</div>
           </div>
         </div>
-        <div style={{ flex:1, overflowY:'auto', padding:'8px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
           {AGENTES.map(agente => {
             const ativo = agente.id === agenteSelecionado.id
             const temMsgs = mensagens[agente.id].length > 0
             return (
               <button key={agente.id} onClick={() => { setAgenteSelecionado(agente); setInput('') }}
-                style={{ width:'100%', textAlign:'left', background: ativo ? '#f0faf6' : 'transparent',
-                  border: ativo ? `1px solid ${agente.cor}44` : '1px solid transparent',
-                  borderRadius:10, padding:'9px 10px', cursor:'pointer', marginBottom:3,
-                  display:'flex', alignItems:'center', gap:10, transition:'all .15s' }}>
-                <div style={{ width:34, height:34, borderRadius:8, flexShrink:0, background:`${agente.cor}18`,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:9, fontWeight:700, color:agente.cor, letterSpacing:'0.05em' }}>
+                style={{ width: '100%', textAlign: 'left', background: ativo ? '#f0faf6' : 'transparent', border: ativo ? `1px solid ${agente.cor}44` : '1px solid transparent', borderRadius: 10, padding: '9px 10px', cursor: 'pointer', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 10, transition: 'all .15s' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0, background: `${agente.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: agente.cor, letterSpacing: '0.05em' }}>
                   {agente.iniciais}
                 </div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#1a1a1a', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{agente.nome}</div>
-                  <div style={{ fontSize:11, color:'#999', marginTop:1 }}>{agente.cargo}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a1a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agente.nome}</div>
+                  <div style={{ fontSize: 11, color: '#999', marginTop: 1 }}>{agente.cargo}</div>
                 </div>
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3 }}>
-                  <span style={{ fontSize:10, padding:'2px 6px', borderRadius:20, fontWeight:600, ...badgeStyle[agente.status] }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                  <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 20, fontWeight: 600, ...badgeStyle[agente.status] }}>
                     {agente.status === 'em breve' ? 'Em breve' : agente.status.charAt(0).toUpperCase() + agente.status.slice(1)}
                   </span>
-                  {temMsgs && <div style={{ width:5, height:5, borderRadius:'50%', background:agente.cor }} />}
+                  {temMsgs && <div style={{ width: 5, height: 5, borderRadius: '50%', background: agente.cor }} />}
                 </div>
               </button>
             )
           })}
         </div>
-        <div style={{ padding:'10px 14px', borderTop:'1px solid #e8ede8', fontSize:11, color:'#bbb' }}>
+        <div style={{ padding: '10px 14px', borderTop: '1px solid #e8ede8', fontSize: 11, color: '#bbb' }}>
           5 agentes · Claude Sonnet · R$ 660/mês
         </div>
       </aside>
 
-      <main style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-        <div style={{ padding:'14px 22px', borderBottom:'1px solid #e8ede8', background:'#fff',
-          display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-            <div style={{ width:38, height:38, borderRadius:10, background:`${agenteSelecionado.cor}18`,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:10, fontWeight:700, color:agenteSelecionado.cor, letterSpacing:'0.05em' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 22px', borderBottom: '1px solid #e8ede8', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: agenteSelecionado.cor, letterSpacing: '0.05em' }}>
               {agenteSelecionado.iniciais}
             </div>
             <div>
-              <div style={{ fontSize:14, fontWeight:700, color:'#1a1a1a' }}>{agenteSelecionado.nome}</div>
-              <div style={{ fontSize:12, color:'#999' }}>{agenteSelecionado.descricao}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>{agenteSelecionado.nome}</div>
+              <div style={{ fontSize: 12, color: '#999' }}>{agenteSelecionado.descricao}</div>
             </div>
           </div>
           {msgs.length > 0 && (
             <button onClick={() => setMensagens(prev => ({ ...prev, [agenteSelecionado.id]: [] }))}
-              style={{ fontSize:12, color:'#aaa', background:'none', border:'1px solid #e8ede8', borderRadius:8, padding:'4px 12px', cursor:'pointer' }}>
+              style={{ fontSize: 12, color: '#aaa', background: 'none', border: '1px solid #e8ede8', borderRadius: 8, padding: '4px 12px', cursor: 'pointer' }}>
               Limpar
             </button>
           )}
         </div>
 
-        <div style={{ flex:1, overflowY:'auto', padding:'20px 22px', display:'flex', flexDirection:'column', gap:14 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {msgs.length === 0 && (
-            <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:20, padding:'40px 0' }}>
-              <div style={{ width:52, height:52, borderRadius:12, background:`${agenteSelecionado.cor}18`,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:14, fontWeight:700, color:agenteSelecionado.cor, letterSpacing:'0.05em' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '40px 0' }}>
+              <div style={{ width: 52, height: 52, borderRadius: 12, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: agenteSelecionado.cor, letterSpacing: '0.05em' }}>
                 {agenteSelecionado.iniciais}
               </div>
-              <div style={{ textAlign:'center' }}>
-                <div style={{ fontSize:15, fontWeight:700, color:'#1a1a1a', marginBottom:5 }}>{agenteSelecionado.nome}</div>
-                <div style={{ fontSize:13, color:'#888', maxWidth:340, lineHeight:1.6 }}>{agenteSelecionado.descricao}</div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a', marginBottom: 5 }}>{agenteSelecionado.nome}</div>
+                <div style={{ fontSize: 13, color: '#888', maxWidth: 340, lineHeight: 1.6 }}>{agenteSelecionado.descricao}</div>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, maxWidth:520, width:'100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, maxWidth: 520, width: '100%' }}>
                 {agenteSelecionado.sugestoes.map((s, i) => (
                   <button key={i} onClick={() => enviar(s)}
-                    style={{ textAlign:'left', padding:'9px 13px', background:'#fff', border:'1px solid #e8ede8',
-                      borderRadius:10, cursor:'pointer', fontSize:12, color:'#555', lineHeight:1.5, transition:'all .15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = agenteSelecionado.cor; e.currentTarget.style.color='#1a1a1a' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor='#e8ede8'; e.currentTarget.style.color='#555' }}>
+                    style={{ textAlign: 'left', padding: '9px 13px', background: '#fff', border: '1px solid #e8ede8', borderRadius: 10, cursor: 'pointer', fontSize: 12, color: '#555', lineHeight: 1.5, transition: 'all .15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = agenteSelecionado.cor; e.currentTarget.style.color = '#1a1a1a' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e8ede8'; e.currentTarget.style.color = '#555' }}>
                     {s}
                   </button>
                 ))}
               </div>
             </div>
           )}
+
           {msgs.map((msg, i) => (
-            <div key={i} style={{ display:'flex', justifyContent: msg.role==='user' ? 'flex-end' : 'flex-start' }}>
-              {msg.role==='assistant' && (
-                <div style={{ width:26, height:26, borderRadius:6, flexShrink:0, background:`${agenteSelecionado.cor}18`,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:8, fontWeight:700, color:agenteSelecionado.cor, marginRight:8, marginTop:2, letterSpacing:'0.05em' }}>
+            <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+              {msg.role === 'assistant' && (
+                <div style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: agenteSelecionado.cor, marginRight: 8, marginTop: 2, letterSpacing: '0.05em' }}>
                   {agenteSelecionado.iniciais}
                 </div>
               )}
-              <div style={{ maxWidth:'72%', background: msg.role==='user' ? agenteSelecionado.cor : '#fff',
-                color: msg.role==='user' ? '#fff' : '#1a1a1a',
-                borderRadius: msg.role==='user' ? '14px 14px 4px 14px' : '4px 14px 14px 14px',
-                padding:'10px 14px', fontSize:13, lineHeight:1.65,
-                border: msg.role==='assistant' ? '1px solid #e8ede8' : 'none',
-                whiteSpace:'pre-wrap', wordBreak:'break-word' }}>
-                {msg.content}
-                <div style={{ fontSize:10, marginTop:4, opacity:.5, textAlign: msg.role==='user' ? 'right' : 'left' }}>
-                  {msg.ts.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}
-                </div>
+              <div style={{ maxWidth: msg.cards || msg.diff || msg.actions ? '90%' : '72%', width: msg.cards || msg.diff || msg.actions ? '90%' : undefined }}>
+                {msg.role === 'user' ? (
+                  <div style={{ background: agenteSelecionado.cor, color: '#fff', borderRadius: '14px 14px 4px 14px', padding: '10px 14px', fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {msg.content}
+                    <div style={{ fontSize: 10, marginTop: 4, opacity: .5, textAlign: 'right' }}>{msg.ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                  </div>
+                ) : (
+                  <div>
+                    {msg.content && (
+                      <div style={{ background: '#fff', border: '1px solid #e8ede8', borderRadius: '4px 14px 14px 14px', padding: '10px 14px', fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: msg.cards || msg.diff || msg.actions ? 8 : 0 }}>
+                        {msg.content}
+                        <div style={{ fontSize: 10, marginTop: 4, opacity: .5 }}>{msg.ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                      </div>
+                    )}
+                    {msg.cards && msg.cards.map((card, ci) => <CardConteudo key={ci} card={card} />)}
+                    {msg.diff && msg.diff.map((block, di) => <CardDiff key={di} block={block} />)}
+                    {msg.actions && (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 8 }}>AÇÕES EXECUTADAS</div>
+                        {msg.actions.map((action, ai) => <CardAction key={ai} action={action} />)}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
+
           {loading && (
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ width:26, height:26, borderRadius:6, background:`${agenteSelecionado.cor}18`,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:8, fontWeight:700, color:agenteSelecionado.cor, letterSpacing:'0.05em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 26, height: 26, borderRadius: 6, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: agenteSelecionado.cor, letterSpacing: '0.05em' }}>
                 {agenteSelecionado.iniciais}
               </div>
-              <div style={{ background:'#fff', border:'1px solid #e8ede8', borderRadius:'4px 14px 14px 14px',
-                padding:'10px 16px', display:'flex', gap:4, alignItems:'center' }}>
-                {[0,1,2].map(j => (
-                  <div key={j} style={{ width:6, height:6, borderRadius:'50%', background:agenteSelecionado.cor,
-                    animation:`bounce 1.2s ${j*.2}s ease-in-out infinite` }} />
+              <div style={{ background: '#fff', border: '1px solid #e8ede8', borderRadius: '4px 14px 14px 14px', padding: '10px 16px', display: 'flex', gap: 4, alignItems: 'center' }}>
+                {[0, 1, 2].map(j => (
+                  <div key={j} style={{ width: 6, height: 6, borderRadius: '50%', background: agenteSelecionado.cor, animation: `bounce 1.2s ${j * .2}s ease-in-out infinite` }} />
                 ))}
               </div>
             </div>
@@ -370,25 +574,20 @@ export default function AgentesPage() {
           <div ref={bottomRef} />
         </div>
 
-        <div style={{ padding:'14px 22px', borderTop:'1px solid #e8ede8', background:'#fff', flexShrink:0 }}>
-          <div style={{ display:'flex', gap:10, alignItems:'flex-end', background:'#f8f9f8',
-            borderRadius:14, border:'1px solid #e8ede8', padding:'9px 12px' }}>
+        <div style={{ padding: '14px 22px', borderTop: '1px solid #e8ede8', background: '#fff', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: '#f8f9f8', borderRadius: 14, border: '1px solid #e8ede8', padding: '9px 12px' }}>
             <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
               placeholder={`Fale com o ${agenteSelecionado.nome}...`} rows={1}
-              style={{ flex:1, resize:'none', border:'none', background:'transparent', fontSize:13,
-                fontFamily:"'Nunito',sans-serif", color:'#1a1a1a', outline:'none', lineHeight:1.5, maxHeight:160 }} />
+              style={{ flex: 1, resize: 'none', border: 'none', background: 'transparent', fontSize: 13, fontFamily: "'Nunito',sans-serif", color: '#1a1a1a', outline: 'none', lineHeight: 1.5, maxHeight: 160 }} />
             <button onClick={() => enviar()} disabled={!input.trim() || loading}
-              style={{ width:32, height:32, borderRadius:8, flexShrink:0,
-                background: input.trim() && !loading ? agenteSelecionado.cor : '#e8ede8',
-                border:'none', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-                display:'flex', alignItems:'center', justifyContent:'center', transition:'background .15s' }}>
+              style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: input.trim() && !loading ? agenteSelecionado.cor : '#e8ede8', border: 'none', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                <path d="M22 2L11 13" stroke={input.trim()&&!loading?'#fff':'#aaa'} strokeWidth="2" strokeLinecap="round"/>
-                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={input.trim()&&!loading?'#fff':'#aaa'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22 2L11 13" stroke={input.trim() && !loading ? '#fff' : '#aaa'} strokeWidth="2" strokeLinecap="round" />
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={input.trim() && !loading ? '#fff' : '#aaa'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>
-          <div style={{ fontSize:11, color:'#bbb', marginTop:5, textAlign:'center' }}>Enter para enviar · Shift+Enter para nova linha</div>
+          <div style={{ fontSize: 11, color: '#bbb', marginTop: 5, textAlign: 'center' }}>Enter para enviar · Shift+Enter para nova linha</div>
         </div>
       </main>
       <style>{`
