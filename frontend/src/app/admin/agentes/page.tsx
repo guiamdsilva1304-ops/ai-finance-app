@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { marked } from 'marked'
 
 type AgentId = 'conteudo' | 'seo' | 'growth' | 'dados' | 'dev'
 
@@ -16,7 +17,6 @@ interface Message {
 interface Card {
   dia?: string
   formato?: string
-  cor?: string
   hook?: string
   titulo?: string
   roteiro?: string
@@ -71,18 +71,18 @@ const AGENTES: Agent[] = [
     systemPrompt: `Você é o agente de conteúdo da iMoney, app brasileiro de finanças pessoais com IA para jovens de 20–30 anos.
 Tom: amigo que entende de dinheiro. Direto, sem juridiquês.
 
-Quando o usuário pedir plano semanal, retorne EXATAMENTE este JSON (sem markdown, sem backticks):
+Quando o usuário pedir "plano da semana", "posts da semana" ou "gere os posts", retorne APENAS este JSON exato (sem markdown, sem backticks, sem texto antes ou depois):
 {"plano":[
   {"dia":"Segunda","formato":"Reels","hook":"...","roteiro":"...","cta":"...","legenda":"..."},
-  {"dia":"Terça","formato":"Carrossel","titulo":"...","slides":["slide1","slide2","slide3","slide4","slide5","slide6 com CTA"],"legenda":"..."},
+  {"dia":"Terça","formato":"Carrossel","titulo":"...","slides":["s1","s2","s3","s4","s5","s6 com CTA"],"legenda":"..."},
   {"dia":"Quarta","formato":"Reels","hook":"...","roteiro":"...","cta":"...","legenda":"..."},
   {"dia":"Quinta","formato":"Post","titulo":"...","texto":"...","legenda":"..."},
   {"dia":"Sexta","formato":"Reels","hook":"...","roteiro":"...","cta":"...","legenda":"..."},
-  {"dia":"Sábado","formato":"Carrossel","titulo":"...","slides":["slide1","slide2","slide3","slide4","slide5","slide6 com CTA"],"legenda":"..."}
+  {"dia":"Sábado","formato":"Carrossel","titulo":"...","slides":["s1","s2","s3","s4","s5","s6 com CTA"],"legenda":"..."}
 ]}
 
-Para outros pedidos, responda normalmente em texto.
-Nunca mencione o app nos primeiros posts — venda o resultado, não o produto.`,
+Para outros pedidos (hooks avulsos, ideias, análises), responda em texto normal usando markdown.
+Nunca mencione o app diretamente nos primeiros posts — venda o resultado, não o produto.`,
     sugestoes: [
       'Gere os posts para a semana — tema: reserva de emergência',
       'Gere os posts para a semana — tema: sair das dívidas',
@@ -103,7 +103,7 @@ Nunca mencione o app nos primeiros posts — venda o resultado, não o produto.`
 Especialista em SEO para finanças pessoais no Brasil. Concorrentes: Nubank blog, Neon, Mobills, Me Poupe.
 Vantagem da iMoney: voz humana, IA como ferramenta real.
 
-Quando pedirem para escrever e publicar um artigo, retorne EXATAMENTE este JSON (sem markdown, sem backticks):
+Quando pedirem para escrever e publicar um artigo, retorne APENAS este JSON (sem markdown, sem backticks):
 {"artigo":{
   "titulo":"...",
   "slug":"url-do-artigo",
@@ -112,10 +112,10 @@ Quando pedirem para escrever e publicar um artigo, retorne EXATAMENTE este JSON 
   "publicar_automaticamente": true
 }}
 
-Para publicar_automaticamente: use true para 70% dos casos (artigos informativos sobre finanças).
-Use false (rascunho) para artigos que mencionam preços, promoções ou dados sensíveis.
+Use publicar_automaticamente: true para artigos informativos (70% dos casos).
+Use false para artigos com preços, promoções ou dados sensíveis.
 
-Para outros pedidos (keywords, clusters, análises), responda normalmente em texto.`,
+Para outros pedidos (keywords, clusters, análises), responda em markdown normal.`,
     sugestoes: [
       'Escreva e publique: "Como montar reserva de emergência em 2025"',
       'Escreva e publique: "Quanto guardar por mês com salário de R$ 3.000"',
@@ -136,23 +136,17 @@ Para outros pedidos (keywords, clusters, análises), responda normalmente em tex
 Foco: converter cadastros gratuitos em pagantes (R$ 29,90/mês) e reduzir churn.
 Break-even: 22 usuários. Meta: 100 pagantes em 6 meses.
 
-Infraestrutura disponível:
-- Emails via Resend API (tabela email_queue no Supabase)
-- Segmentação de usuários via user_profiles
-- Cron job rodando a cada hora no Vercel
+Infraestrutura: Resend API (email_queue no Supabase), segmentação via user_profiles, cron job no Vercel.
 
-Quando o usuário pedir uma ação de growth, retorne EXATAMENTE este JSON (sem markdown, sem backticks):
+Quando pedirem uma ação de growth, retorne APENAS este JSON (sem markdown, sem backticks):
 {"acoes":[
   {"tipo":"email","descricao":"...","status":"executado","detalhe":"assunto e corpo do email"},
-  {"tipo":"segmentar","descricao":"...","status":"executado","detalhe":"critério de segmentação"},
-  {"tipo":"alerta","descricao":"...","status":"pendente","detalhe":"requer aprovação"}
+  {"tipo":"segmentar","descricao":"...","status":"executado","detalhe":"critério usado"},
+  {"tipo":"alerta","descricao":"...","status":"pendente","detalhe":"requer sua aprovação"}
 ]}
 
-Tipos válidos: "email" (insere na email_queue), "segmentar" (filtra user_profiles), "publicar" (cria post), "alerta" (notifica o founder).
-Use "executado" para ações que você executa automaticamente.
-Use "pendente" para ações que precisam de aprovação (mudanças de preço, campanhas novas).
-
-Para análises e estratégias, responda normalmente em texto.`,
+Use "executado" para ações automáticas. Use "pendente" para mudanças de preço ou campanhas novas.
+Para análises e estratégias, responda em markdown normal.`,
     sugestoes: [
       'Execute a sequência de boas-vindas para novos cadastros',
       'Identifique usuários inativos há 30 dias e reative',
@@ -170,7 +164,7 @@ Para análises e estratégias, responda normalmente em texto.`,
     iniciais: 'DAD',
     systemPrompt: `Você é o agente de dados da iMoney, app brasileiro de finanças pessoais com IA.
 
-Contexto do negócio:
+Contexto:
 - Burn mensal: R$ 660
 - Break-even: 22 usuários a R$ 29,90/mês
 - Meta fase 1 (6 meses): 100 pagantes
@@ -178,7 +172,7 @@ Contexto do negócio:
 
 Tabelas Supabase: user_profiles, transactions, metas, user_investments, chat_history, email_queue, openfinance_interest.
 
-Entregue: análises de retenção, projeções de MRR, queries SQL, relatórios semanais, alertas sobre métricas preocupantes.`,
+Entregue análises claras, queries SQL prontas para rodar, projeções de MRR e alertas acionáveis. Use markdown para formatar bem as respostas.`,
     sugestoes: [
       'Projete o MRR mês a mês até R$ 1M faturado',
       'Query SQL para calcular churn mensal no Supabase',
@@ -190,7 +184,7 @@ Entregue: análises de retenção, projeções de MRR, queries SQL, relatórios 
     id: 'dev',
     nome: 'Agente dev',
     cargo: 'CTO',
-    descricao: 'Revisa o código automaticamente, identifica bugs nos logs e gera patches prontos para aplicar.',
+    descricao: 'Revisa o código automaticamente, identifica bugs e gera patches prontos para aplicar.',
     status: 'ativo',
     cor: '#D85A30',
     iniciais: 'DEV',
@@ -202,115 +196,119 @@ Páginas: / /login /dashboard /dashboard/assessor /dashboard/transacoes /dashboa
 
 Tabelas Supabase: user_memory, transactions, metas, user_profiles, user_investments, chat_history, pluggy_connections, openfinance_interest, email_queue, admin_posts
 
-Quando identificar um bug ou melhoria, retorne EXATAMENTE este JSON (sem markdown, sem backticks):
+Quando identificar um bug ou melhoria de código, retorne APENAS este JSON (sem markdown, sem backticks):
 {"diff":[
   {
     "arquivo":"caminho/do/arquivo.tsx",
-    "antes":"código atual com problema",
+    "antes":"código atual",
     "depois":"código corrigido",
     "descricao":"o que foi corrigido e por quê"
   }
 ]}
 
-Para perguntas de arquitetura, análise de código ou discussão técnica, responda normalmente em texto.
-Sempre explique o raciocínio antes do diff.`,
+Para perguntas de arquitetura, análise ou discussão técnica, responda em markdown normal.`,
     sugestoes: [
       'Revise o código do /dashboard/assessor e aponte melhorias',
       'Analise a API route /api/chat e otimize para menor latência',
       'Identifique possíveis vazamentos de memória no frontend',
-      'Revise as políticas RLS do Supabase e aponte falhas de segurança',
+      'Revise as políticas RLS do Supabase e aponte falhas',
     ],
   },
 ]
 
-function parseResposta(content: string, agentId: AgentId): { texto: string; cards?: Card[]; diff?: DiffBlock[]; actions?: AgentAction[] } {
+function parseResposta(content: string, agentId: AgentId) {
   const clean = content.replace(/```json|```/g, '').trim()
   try {
-    const json = JSON.parse(clean)
-    if (agentId === 'conteudo' && json.plano) {
-      return { texto: '', cards: json.plano }
-    }
+    const first = clean.indexOf('{')
+    const last = clean.lastIndexOf('}')
+    if (first === -1 || last === -1) throw new Error('no json')
+    const json = JSON.parse(clean.slice(first, last + 1))
+    if (agentId === 'conteudo' && json.plano) return { texto: '', cards: json.plano }
     if (agentId === 'seo' && json.artigo) {
-      const card: Card = {
-        titulo: json.artigo.titulo,
-        texto: `📝 ${json.artigo.publicar_automaticamente ? 'Publicado automaticamente' : 'Salvo como rascunho'}\n\nSlug: /${json.artigo.slug}\n\nMeta: ${json.artigo.meta_description}`,
-        legenda: json.artigo.conteudo.slice(0, 300) + '...',
+      return {
+        texto: '', cards: [{
+          titulo: json.artigo.titulo,
+          texto: `${json.artigo.publicar_automaticamente ? '✅ Publicado automaticamente' : '📋 Salvo como rascunho'}\n\nSlug: /${json.artigo.slug}\n\nMeta: ${json.artigo.meta_description}`,
+          legenda: json.artigo.conteudo?.slice(0, 400) + '...',
+        }]
       }
-      return { texto: '', cards: [card] }
     }
-    if (agentId === 'growth' && json.acoes) {
-      return { texto: '', actions: json.acoes }
-    }
-    if (agentId === 'dev' && json.diff) {
-      return { texto: '', diff: json.diff }
-    }
-  } catch { /* não é JSON, trata como texto */ }
+    if (agentId === 'growth' && json.acoes) return { texto: '', actions: json.acoes }
+    if (agentId === 'dev' && json.diff) return { texto: '', diff: json.diff }
+  } catch { /* texto normal */ }
   return { texto: content }
+}
+
+function MarkdownText({ content }: { content: string }) {
+  const html = marked(content, { breaks: true, gfm: true }) as string
+  return (
+    <div
+      style={{ fontSize: 13, lineHeight: 1.7, color: '#1a1a1a' }}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
 }
 
 function CardConteudo({ card }: { card: Card }) {
   const [expandido, setExpandido] = useState(false)
   const cor = FORMAT_COLORS[card.formato || ''] || '#888'
-  const bgCor = cor + '15'
   return (
-    <div style={{ background: '#fff', border: `1px solid ${cor}33`, borderRadius: 12, overflow: 'hidden', marginBottom: 8 }}>
-      <div style={{ background: bgCor, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+    <div style={{ background: '#fff', border: `1px solid ${cor}44`, borderRadius: 12, overflow: 'hidden', marginBottom: 8 }}>
+      <div style={{ background: cor + '12', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
         onClick={() => setExpandido(!expandido)}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: cor, background: cor + '22', padding: '3px 10px', borderRadius: 20 }}>{card.formato}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: cor, background: cor + '22', padding: '3px 10px', borderRadius: 20 }}>{card.formato}</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a' }}>{card.dia}</span>
         </div>
-        <span style={{ fontSize: 12, color: '#888' }}>{expandido ? '▲ fechar' : '▼ ver'}</span>
+        <span style={{ fontSize: 11, color: '#aaa' }}>{expandido ? '▲ fechar' : '▼ ver tudo'}</span>
       </div>
       {expandido && (
-        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {card.hook && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>HOOK</div>
-              <div style={{ fontSize: 13, color: '#1a1a1a', fontWeight: 600, borderLeft: `3px solid ${cor}`, paddingLeft: 10, lineHeight: 1.5 }}>{card.hook}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', borderLeft: `3px solid ${cor}`, paddingLeft: 10, lineHeight: 1.5 }}>{card.hook}</div>
             </div>
           )}
           {card.titulo && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>TÍTULO</div>
-              <div style={{ fontSize: 13, color: '#1a1a1a', fontWeight: 600, borderLeft: `3px solid ${cor}`, paddingLeft: 10 }}>{card.titulo}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', borderLeft: `3px solid ${cor}`, paddingLeft: 10 }}>{card.titulo}</div>
             </div>
           )}
           {card.roteiro && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>ROTEIRO</div>
-              <div style={{ fontSize: 12, color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{card.roteiro}</div>
+              <div style={{ fontSize: 12, color: '#444', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{card.roteiro}</div>
             </div>
           )}
           {card.slides && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 6 }}>SLIDES</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {card.slides.map((s, i) => (
-                  <div key={i} style={{ fontSize: 12, color: '#444', background: '#f8f9f8', borderRadius: 8, padding: '6px 10px', display: 'flex', gap: 8 }}>
-                    <span style={{ fontWeight: 700, color: cor, minWidth: 20 }}>{i + 1}</span>
-                    <span>{s}</span>
-                  </div>
-                ))}
-              </div>
+              {card.slides.map((s, i) => (
+                <div key={i} style={{ fontSize: 12, color: '#444', background: '#f8f9f8', borderRadius: 8, padding: '7px 10px', marginBottom: 4, display: 'flex', gap: 8 }}>
+                  <span style={{ fontWeight: 700, color: cor, minWidth: 20 }}>{i + 1}</span>
+                  <span>{s}</span>
+                </div>
+              ))}
             </div>
           )}
           {card.texto && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>TEXTO</div>
-              <div style={{ fontSize: 12, color: '#444', lineHeight: 1.6 }}>{card.texto}</div>
+              <div style={{ fontSize: 12, color: '#444', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{card.texto}</div>
             </div>
           )}
           {card.cta && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>CTA</div>
-              <div style={{ fontSize: 12, color: '#1a1a1a', fontWeight: 600 }}>{card.cta}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a' }}>{card.cta}</div>
             </div>
           )}
           {card.legenda && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 4 }}>LEGENDA</div>
-              <div style={{ fontSize: 11, color: '#666', background: '#f8f9f8', borderRadius: 8, padding: '8px 10px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{card.legenda}</div>
+              <div style={{ fontSize: 11, color: '#666', background: '#f8f9f8', borderRadius: 8, padding: '8px 10px', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{card.legenda}</div>
             </div>
           )}
         </div>
@@ -320,33 +318,31 @@ function CardConteudo({ card }: { card: Card }) {
 }
 
 function CardDiff({ block }: { block: DiffBlock }) {
-  const [aplicado, setAplicado] = useState(false)
-  const comando = `cd /workspaces/ai-finance-app && claude "aplique este patch no arquivo ${block.arquivo}: ${block.descricao}"`
+  const [copiado, setCopiado] = useState(false)
+  const comando = `cd /workspaces/ai-finance-app && claude --print "aplique este patch em ${block.arquivo}: ${block.descricao}"`
   return (
     <div style={{ background: '#fff', border: '1px solid #D85A3033', borderRadius: 12, overflow: 'hidden', marginBottom: 8 }}>
-      <div style={{ background: '#D85A3012', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: '#D85A3010', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#D85A30', marginBottom: 2 }}>PATCH</div>
-          <div style={{ fontSize: 12, color: '#1a1a1a', fontWeight: 600 }}>{block.arquivo}</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#D85A30', marginBottom: 2, letterSpacing: '0.05em' }}>PATCH</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a' }}>{block.arquivo}</div>
         </div>
-        <button onClick={() => { navigator.clipboard.writeText(comando); setAplicado(true) }}
-          style={{ fontSize: 11, padding: '5px 12px', borderRadius: 8, border: 'none', background: aplicado ? '#1D9E75' : '#D85A30', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
-          {aplicado ? '✓ Copiado' : 'Copiar comando'}
+        <button onClick={() => { navigator.clipboard.writeText(comando); setCopiado(true); setTimeout(() => setCopiado(false), 2000) }}
+          style={{ fontSize: 11, padding: '5px 12px', borderRadius: 8, border: 'none', background: copiado ? '#1D9E75' : '#D85A30', color: '#fff', cursor: 'pointer', fontWeight: 600, transition: 'background .2s' }}>
+          {copiado ? '✓ Copiado!' : 'Copiar comando'}
         </button>
       </div>
       <div style={{ padding: '10px 14px' }}>
-        <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>{block.descricao}</div>
-        <div style={{ fontFamily: 'monospace', fontSize: 11, background: '#f8f9f8', borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{ fontSize: 11, color: '#888', marginBottom: 10 }}>{block.descricao}</div>
+        <div style={{ fontFamily: 'monospace', fontSize: 11, borderRadius: 8, overflow: 'hidden', border: '1px solid #eee' }}>
           {block.antes.split('\n').map((l, i) => (
-            <div key={`a${i}`} style={{ padding: '1px 10px', background: '#ffeef0', color: '#c0392b' }}>- {l}</div>
+            <div key={`a${i}`} style={{ padding: '2px 10px', background: '#ffeef0', color: '#b91c1c' }}>- {l}</div>
           ))}
           {block.depois.split('\n').map((l, i) => (
-            <div key={`d${i}`} style={{ padding: '1px 10px', background: '#e6ffed', color: '#196127' }}>+ {l}</div>
+            <div key={`d${i}`} style={{ padding: '2px 10px', background: '#f0fff4', color: '#166534' }}>+ {l}</div>
           ))}
         </div>
-        <div style={{ fontSize: 11, color: '#888', marginTop: 8, fontFamily: 'monospace', background: '#f0f0f0', borderRadius: 6, padding: '6px 10px', wordBreak: 'break-all' }}>
-          {comando}
-        </div>
+        <div style={{ fontSize: 10, color: '#999', marginTop: 8, fontFamily: 'monospace', background: '#f5f5f5', borderRadius: 6, padding: '6px 10px', wordBreak: 'break-all' }}>{comando}</div>
       </div>
     </div>
   )
@@ -354,8 +350,8 @@ function CardDiff({ block }: { block: DiffBlock }) {
 
 function CardAction({ action }: { action: AgentAction }) {
   const cores: Record<string, string> = { executado: '#1D9E75', pendente: '#EF9F27', erro: '#D85A30' }
+  const icones: Record<string, string> = { email: 'EMAIL', publicar: 'POST', segmentar: 'SEG', alerta: '⚠️' }
   const cor = cores[action.status] || '#888'
-  const icones: Record<string, string> = { email: 'EMAIL', publicar: 'POST', segmentar: 'SEG', alerta: 'ALERT' }
   return (
     <div style={{ background: '#fff', border: `1px solid ${cor}33`, borderRadius: 10, padding: '10px 14px', marginBottom: 6, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <div style={{ width: 36, height: 36, borderRadius: 8, background: cor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: cor, flexShrink: 0, letterSpacing: '0.04em' }}>
@@ -363,7 +359,7 @@ function CardAction({ action }: { action: AgentAction }) {
       </div>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', marginBottom: 2 }}>{action.descricao}</div>
-        {action.detalhe && <div style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>{action.detalhe}</div>}
+        {action.detalhe && <div style={{ fontSize: 11, color: '#888', lineHeight: 1.6 }}>{action.detalhe}</div>}
       </div>
       <span style={{ fontSize: 10, fontWeight: 700, color: cor, background: cor + '18', padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
         {action.status}
@@ -411,14 +407,10 @@ export default function AgentesPage() {
       })
       if (!res.ok) throw new Error('Erro na API')
       const data = await res.json()
-      const rawContent = data.content ?? 'Sem resposta.'
-      const parsed = parseResposta(rawContent, agenteSelecionado.id)
+      const parsed = parseResposta(data.content ?? 'Sem resposta.', agenteSelecionado.id)
       setMensagens(prev => ({
         ...prev,
-        [agenteSelecionado.id]: [
-          ...historico,
-          { role: 'assistant', content: parsed.texto, ts: new Date(), cards: parsed.cards, diff: parsed.diff, actions: parsed.actions },
-        ],
+        [agenteSelecionado.id]: [...historico, { role: 'assistant', content: parsed.texto, ts: new Date(), cards: parsed.cards, diff: parsed.diff, actions: parsed.actions }],
       }))
     } catch {
       setMensagens(prev => ({
@@ -453,7 +445,7 @@ export default function AgentesPage() {
             <div style={{ fontSize: 11, color: '#999' }}>Agentes internos</div>
           </div>
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
           {AGENTES.map(agente => {
             const ativo = agente.id === agenteSelecionado.id
             const temMsgs = mensagens[agente.id].length > 0
@@ -531,7 +523,7 @@ export default function AgentesPage() {
                   {agenteSelecionado.iniciais}
                 </div>
               )}
-              <div style={{ maxWidth: msg.cards || msg.diff || msg.actions ? '90%' : '72%', width: msg.cards || msg.diff || msg.actions ? '90%' : undefined }}>
+              <div style={{ maxWidth: msg.cards || msg.diff || msg.actions ? '92%' : '72%', width: msg.cards || msg.diff || msg.actions ? '92%' : undefined }}>
                 {msg.role === 'user' ? (
                   <div style={{ background: agenteSelecionado.cor, color: '#fff', borderRadius: '14px 14px 4px 14px', padding: '10px 14px', fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {msg.content}
@@ -540,16 +532,16 @@ export default function AgentesPage() {
                 ) : (
                   <div>
                     {msg.content && (
-                      <div style={{ background: '#fff', border: '1px solid #e8ede8', borderRadius: '4px 14px 14px 14px', padding: '10px 14px', fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: msg.cards || msg.diff || msg.actions ? 8 : 0 }}>
-                        {msg.content}
-                        <div style={{ fontSize: 10, marginTop: 4, opacity: .5 }}>{msg.ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                      <div style={{ background: '#fff', border: '1px solid #e8ede8', borderRadius: '4px 14px 14px 14px', padding: '12px 16px', marginBottom: msg.cards || msg.diff || msg.actions ? 8 : 0 }}>
+                        <MarkdownText content={msg.content} />
+                        <div style={{ fontSize: 10, marginTop: 6, opacity: .4 }}>{msg.ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
                       </div>
                     )}
                     {msg.cards && msg.cards.map((card, ci) => <CardConteudo key={ci} card={card} />)}
                     {msg.diff && msg.diff.map((block, di) => <CardDiff key={di} block={block} />)}
                     {msg.actions && (
                       <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 8 }}>AÇÕES EXECUTADAS</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 8, paddingLeft: 2 }}>AÇÕES EXECUTADAS</div>
                         {msg.actions.map((action, ai) => <CardAction key={ai} action={action} />)}
                       </div>
                     )}
@@ -590,11 +582,21 @@ export default function AgentesPage() {
           <div style={{ fontSize: 11, color: '#bbb', marginTop: 5, textAlign: 'center' }}>Enter para enviar · Shift+Enter para nova linha</div>
         </div>
       </main>
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
         @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
         ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent}
         ::-webkit-scrollbar-thumb{background:#d0d0d0;border-radius:4px}
+        .prose h1,.prose h2,.prose h3{font-weight:700;margin:0.8em 0 0.4em;color:#1a1a1a}
+        .prose h2{font-size:14px} .prose h3{font-size:13px}
+        .prose p{margin:0.4em 0;line-height:1.7}
+        .prose ul,.prose ol{padding-left:1.4em;margin:0.4em 0}
+        .prose li{margin:0.2em 0}
+        .prose strong{font-weight:700;color:#1a1a1a}
+        .prose code{background:#f0f0f0;padding:1px 5px;border-radius:4px;font-size:11px;font-family:monospace}
+        .prose pre{background:#f5f5f5;border-radius:8px;padding:10px;overflow-x:auto;font-size:11px}
+        .prose blockquote{border-left:3px solid #e0e0e0;margin:0.5em 0;padding-left:10px;color:#666}
       `}</style>
     </div>
   )
