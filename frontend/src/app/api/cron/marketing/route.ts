@@ -87,7 +87,7 @@ Retorne JSON: {"subject":"📱 Prompts de hoje: [tema resumido]","body":"PROMPT 
     const { subject, body } = JSON.parse(match[0]);
 
     await resend.emails.send({
-      from: "iMoney Marketing <onboarding@resend.dev>",
+      from: "Gui da iMoney <gui@imoney.ia.br>",
       to: "guiamdsilva1304@gmail.com",
       subject,
       html: buildEmailHTML(subject, body),

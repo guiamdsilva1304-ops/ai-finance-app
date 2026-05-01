@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
-const FROM_EMAIL = "iMoney <onboarding@resend.dev>";
+const FROM_EMAIL = "Gui da iMoney <gui@imoney.ia.br>";
 const RESEND_KEY = process.env.RESEND_API_KEY!;
 
 async function sendEmail(to: string, subject: string, html: string) {

@@ -53,7 +53,7 @@ async function generateEmailWithAI(prompt: string): Promise<{ subject: string; b
 
 async function sendEmail(to: string, subject: string, body: string) {
   return resend.emails.send({
-    from: "iMoney <onboarding@resend.dev>",
+    from: "Gui da iMoney <gui@imoney.ia.br>",
     to,
     subject,
     html: buildEmailHTML(subject, body),
