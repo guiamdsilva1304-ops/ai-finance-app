@@ -56,3 +56,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
+
+export async function GET() {
+  // Agente de conteudo nao tem historico persistente ainda
+  return Response.json({ messages: [] })
+}
