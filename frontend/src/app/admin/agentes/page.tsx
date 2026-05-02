@@ -372,8 +372,7 @@ export default function AgentesPage() {
           ))}
         </div>
 
-        {aba === 'agentes' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 8, display: aba === 'agentes' ? 'block' : 'none' }}>
             {AGENTES.map(agente => {
               const ativo = agente.id === agenteSelecionado.id
               const count = memoriaCount[agente.id]
@@ -397,8 +396,7 @@ export default function AgentesPage() {
           </div>
         )}
 
-        {aba === 'videos' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 8px', display: aba === 'videos' ? 'block' : 'none' }}>
             <div style={{ fontSize: 11, color: '#aaa', textAlign: 'center', padding: '8px 0' }}>
               Veja a fila completa na área principal →
             </div>
