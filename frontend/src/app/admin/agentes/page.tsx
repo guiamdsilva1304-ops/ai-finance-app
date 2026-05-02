@@ -168,18 +168,25 @@ Para arquitetura, análise ou discussão técnica responda em markdown normal.`,
   },
 ]
 
+function tentarParsearJSON(text: string) {
+  // Remove blocos de código markdown
+  const sem_md = text.replace(/```json[\s\S]*?```/g, s => s.replace(/```json|\n```/g, '')).replace(/```/g, '')
+  // Tenta encontrar JSON em qualquer posição do texto
+  const matches = sem_md.match(/\{[\s\S]*\}/g) ?? []
+  for (const match of matches) {
+    try { return JSON.parse(match) } catch { continue }
+  }
+  return null
+}
+
 function parseResposta(content: string, agentId: AgentId) {
-  const clean = content.replace(/```json|```/g, '').trim()
-  try {
-    const first = clean.indexOf('{')
-    const last = clean.lastIndexOf('}')
-    if (first === -1 || last === -1) throw new Error('no json')
-    const json = JSON.parse(clean.slice(first, last + 1))
+  const json = tentarParsearJSON(content)
+  if (json) {
     if (agentId === 'conteudo' && json.plano) return { texto: '', cards: json.plano }
-    if (agentId === 'seo' && json.artigo) return { texto: '', cards: [{ titulo: json.artigo.titulo, texto: `${json.artigo.publicar_automaticamente ? '✅ Publicado automaticamente' : '📋 Salvo como rascunho'}\n\nSlug: /${json.artigo.slug}\n\nMeta: ${json.artigo.meta_description}`, legenda: json.artigo.conteudo?.slice(0, 400) + '...' }] }
+    if (agentId === 'seo' && json.artigo) return { texto: '', cards: [{ titulo: json.artigo.titulo, texto: (json.artigo.publicar_automaticamente ? '✅ Publicado automaticamente' : '📋 Salvo como rascunho') + '\n\nSlug: /' + json.artigo.slug + '\n\nMeta: ' + json.artigo.meta_description, legenda: (json.artigo.conteudo ?? '').slice(0, 400) + '...' }] }
     if (agentId === 'growth' && json.acoes) return { texto: '', actions: json.acoes }
     if (agentId === 'dev' && json.diff) return { texto: '', diff: json.diff }
-  } catch { /* texto normal */ }
+  }
   return { texto: content }
 }
 
