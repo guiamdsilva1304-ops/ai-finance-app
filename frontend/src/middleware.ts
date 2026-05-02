@@ -5,17 +5,23 @@ const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || "imoney-admin-secret-
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Nunca bloqueia rotas de API
+  if (pathname.startsWith("/api/")) return NextResponse.next();
+
   if (!pathname.startsWith("/admin")) return NextResponse.next();
   if (pathname === "/admin/login") return NextResponse.next();
+
   const session = req.cookies.get(ADMIN_COOKIE)?.value;
   if (session !== SESSION_SECRET) {
     const loginUrl = new URL("/admin/login", req.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
   }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*"],
 };
