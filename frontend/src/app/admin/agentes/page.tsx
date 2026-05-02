@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { marked } from 'marked'
 import VideoQueue from './VideoQueue'
+import ConteudoCards from './ConteudoCards'
 
 type AgentId = 'conteudo' | 'seo' | 'growth' | 'dados' | 'dev'
 type Aba = 'agentes' | 'videos'
@@ -143,7 +144,7 @@ function tentarParsearJSON(text: string) {
 function parseResposta(content: string, agentId: AgentId) {
   const json = tentarParsearJSON(content)
   if (json) {
-    if (agentId === 'conteudo' && json.plano) return { texto: '', cards: json.plano }
+    if (agentId === 'conteudo' && json.plano) return { texto: '', cards: json.plano, tipoCards: "conteudo" }
     if (agentId === 'seo' && json.artigo) return { texto: '', cards: [{ titulo: json.artigo.titulo, texto: (json.artigo.publicar_automaticamente ? 'Publicado automaticamente' : 'Salvo como rascunho') + '\n\nSlug: /' + json.artigo.slug + '\n\nMeta: ' + json.artigo.meta_description, legenda: (json.artigo.conteudo ?? '').slice(0, 400) + '...' }] }
     if (agentId === 'growth' && json.acoes) return { texto: '', actions: json.acoes }
     if (agentId === 'dev' && json.diff) return { texto: '', diff: json.diff }
@@ -270,7 +271,8 @@ export default function AgentesPage() {
     setInput('')
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/agentes', {
+      const endpoint = agenteSelecionado.id === 'conteudo' ? '/api/admin/conteudo' : '/api/admin/agentes';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: historico.map(m => ({ role: m.role, content: m.content })), systemPrompt: agenteSelecionado.systemPrompt, agentId: agenteSelecionado.id }),
@@ -411,7 +413,7 @@ export default function AgentesPage() {
                           <div style={{ fontSize: 10, marginTop: 6, opacity: .4 }}>{msg.ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
                         </div>
                       )}
-                      {msg.cards && msg.cards.map((card, ci) => (<CardConteudo key={ci} card={card} />))}
+                      {msg.cards && agenteSelecionado.id === 'conteudo' ? <ConteudoCards cards={msg.cards as never} /> : msg.cards.map((card, ci) => (<CardConteudo key={ci} card={card} />))}
                       {msg.diff && msg.diff.map((block, di) => (<CardDiff key={di} block={block} />))}
                       {msg.actions && (
                         <div>
