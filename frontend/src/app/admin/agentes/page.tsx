@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { marked } from 'marked'
+import VideoQueue from './VideoQueue'
 
 type AgentId = 'conteudo' | 'seo' | 'growth' | 'dados' | 'dev'
+type Aba = 'agentes' | 'videos'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -134,7 +136,7 @@ Para análises e estratégias responda em markdown normal.`,
     status: 'beta', cor: '#EF9F27', iniciais: 'DAD',
     systemPrompt: `Você é o agente de dados da iMoney, app brasileiro de finanças pessoais com IA.
 Burn: R$ 660/mês. Break-even: 22 usuários a R$ 29,90. Meta: 100 pagantes em 6 meses.
-Tabelas Supabase: user_profiles, transactions, metas, user_investments, chat_history, email_queue, openfinance_interest.
+Tabelas Supabase: user_profiles, transactions, metas, user_investments, chat_history, email_queue, openfinance_interest, video_queue.
 Entregue análises claras, queries SQL prontas, projeções de MRR e alertas acionáveis em markdown.`,
     sugestoes: [
       'Projete o MRR mês a mês até R$ 1M faturado',
@@ -149,9 +151,9 @@ Entregue análises claras, queries SQL prontas, projeções de MRR e alertas aci
     cargo: 'CTO',
     descricao: 'Revisa o código automaticamente, identifica bugs e gera patches prontos para aplicar.',
     status: 'ativo', cor: '#D85A30', iniciais: 'DEV',
-    systemPrompt: `Você é o agente dev da iMoney. Stack: Next.js 14, TypeScript, Supabase, Claude Sonnet, Vercel, Resend.
+    systemPrompt: `Você é o agente dev da iMoney. Stack: Next.js 14, TypeScript, Supabase, Claude Sonnet, Vercel, Resend, Atlas Cloud (Seedance API para vídeos).
 Páginas: / /login /dashboard /dashboard/assessor /dashboard/transacoes /dashboard/metas /dashboard/investimentos /dashboard/perfil /dashboard/renda /dashboard/openfinance /admin /admin/agentes
-Tabelas: user_memory, transactions, metas, user_profiles, user_investments, chat_history, pluggy_connections, openfinance_interest, email_queue, admin_posts
+Tabelas: user_memory, transactions, metas, user_profiles, user_investments, chat_history, pluggy_connections, openfinance_interest, email_queue, admin_posts, blog_posts, video_queue
 
 Quando identificar bug ou melhoria de código, retorne APENAS este JSON (sem markdown, sem backticks):
 {"diff":[{"arquivo":"caminho/arquivo.tsx","antes":"código atual","depois":"código corrigido","descricao":"o que foi corrigido"}]}
@@ -257,12 +259,13 @@ function MemoryBadge({ count }: { count: number }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#888', background: '#f0faf6', border: '1px solid #b8e8d4', borderRadius: 20, padding: '3px 10px' }}>
       <span style={{ fontSize: 10 }}>🧠</span>
-      <span>{count} mensagens na memória</span>
+      <span>{count} na memória</span>
     </div>
   )
 }
 
 export default function AgentesPage() {
+  const [aba, setAba] = useState<Aba>('agentes')
   const [agenteSelecionado, setAgenteSelecionado] = useState<Agent>(AGENTES[0])
   const [mensagens, setMensagens] = useState<Record<AgentId, Message[]>>({ conteudo: [], seo: [], growth: [], dados: [], dev: [] })
   const [memoriaCount, setMemoriaCount] = useState<Record<AgentId, number>>({ conteudo: 0, seo: 0, growth: 0, dados: 0, dev: 0 })
@@ -328,11 +331,6 @@ export default function AgentesPage() {
     } finally { setLoading(false) }
   }
 
-  async function limparMemoria() {
-    setMensagens(prev => ({ ...prev, [agenteSelecionado.id]: [] }))
-    setMemoriaCount(prev => ({ ...prev, [agenteSelecionado.id]: 0 }))
-  }
-
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() }
   }
@@ -345,6 +343,8 @@ export default function AgentesPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: "'Nunito',sans-serif", background: '#f8f9f8', overflow: 'hidden' }}>
+
+      {/* Sidebar */}
       <aside style={{ width: 272, minWidth: 272, borderRight: '1px solid #e8ede8', background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid #e8ede8', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 30, height: 30, borderRadius: 8, background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -352,139 +352,179 @@ export default function AgentesPage() {
           </div>
           <div><div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a' }}>iMoney</div><div style={{ fontSize: 11, color: '#999' }}>Agentes internos</div></div>
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
-          {AGENTES.map(agente => {
-            const ativo = agente.id === agenteSelecionado.id
-            const count = memoriaCount[agente.id]
-            return (
-              <button key={agente.id} onClick={() => { setAgenteSelecionado(agente); setInput('') }}
-                style={{ width: '100%', textAlign: 'left', background: ativo ? '#f0faf6' : 'transparent', border: ativo ? `1px solid ${agente.cor}44` : '1px solid transparent', borderRadius: 10, padding: '9px 10px', cursor: 'pointer', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 10, transition: 'all .15s' }}>
-                <div style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0, background: `${agente.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: agente.cor, letterSpacing: '0.05em' }}>{agente.iniciais}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a1a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agente.nome}</div>
-                  <div style={{ fontSize: 11, color: '#999', marginTop: 1 }}>{agente.cargo}</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-                  <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 20, fontWeight: 600, ...badgeStyle[agente.status] }}>
-                    {agente.status === 'em breve' ? 'Em breve' : agente.status.charAt(0).toUpperCase() + agente.status.slice(1)}
-                  </span>
-                  {count > 0 && <div style={{ fontSize: 9, color: '#1D9E75', fontWeight: 700 }}>🧠 {count}</div>}
-                </div>
-              </button>
-            )
-          })}
+
+        {/* Abas */}
+        <div style={{ display: 'flex', borderBottom: '1px solid #e8ede8' }}>
+          {(['agentes', 'videos'] as Aba[]).map(a => (
+            <button key={a} onClick={() => setAba(a)}
+              style={{ flex: 1, padding: '10px 0', border: 'none', background: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                color: aba === a ? '#1D9E75' : '#aaa',
+                borderBottom: aba === a ? '2px solid #1D9E75' : '2px solid transparent' }}>
+              {a === 'agentes' ? 'Agentes' : '🎬 Vídeos'}
+            </button>
+          ))}
         </div>
-        <div style={{ padding: '10px 14px', borderTop: '1px solid #e8ede8', fontSize: 11, color: '#bbb' }}>5 agentes · Claude Sonnet · R$ 660/mês</div>
+
+        {aba === 'agentes' && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+            {AGENTES.map(agente => {
+              const ativo = agente.id === agenteSelecionado.id
+              const count = memoriaCount[agente.id]
+              return (
+                <button key={agente.id} onClick={() => { setAgenteSelecionado(agente); setInput('') }}
+                  style={{ width: '100%', textAlign: 'left', background: ativo ? '#f0faf6' : 'transparent', border: ativo ? `1px solid ${agente.cor}44` : '1px solid transparent', borderRadius: 10, padding: '9px 10px', cursor: 'pointer', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 10, transition: 'all .15s' }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0, background: `${agente.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: agente.cor, letterSpacing: '0.05em' }}>{agente.iniciais}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a1a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agente.nome}</div>
+                    <div style={{ fontSize: 11, color: '#999', marginTop: 1 }}>{agente.cargo}</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 20, fontWeight: 600, ...badgeStyle[agente.status] }}>
+                      {agente.status === 'em breve' ? 'Em breve' : agente.status.charAt(0).toUpperCase() + agente.status.slice(1)}
+                    </span>
+                    {count > 0 && <div style={{ fontSize: 9, color: '#1D9E75', fontWeight: 700 }}>🧠 {count}</div>}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {aba === 'videos' && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
+            <div style={{ fontSize: 11, color: '#aaa', textAlign: 'center', padding: '8px 0' }}>
+              Veja a fila completa na área principal →
+            </div>
+          </div>
+        )}
+
+        <div style={{ padding: '10px 14px', borderTop: '1px solid #e8ede8', fontSize: 11, color: '#bbb' }}>
+          5 agentes · Seedance · R$ 660/mês
+        </div>
       </aside>
 
+      {/* Main */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ padding: '14px 22px', borderBottom: '1px solid #e8ede8', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: agenteSelecionado.cor, letterSpacing: '0.05em' }}>{agenteSelecionado.iniciais}</div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>{agenteSelecionado.nome}</div>
-              <div style={{ fontSize: 12, color: '#999' }}>{agenteSelecionado.descricao}</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {carregandoMemoria && <span style={{ fontSize: 11, color: '#aaa' }}>Carregando memória...</span>}
-            <MemoryBadge count={memoriaCount[agenteSelecionado.id]} />
-            {msgs.length > 0 && (
-              <button onClick={limparMemoria} style={{ fontSize: 12, color: '#aaa', background: 'none', border: '1px solid #e8ede8', borderRadius: 8, padding: '4px 12px', cursor: 'pointer' }}>
-                Limpar sessão
-              </button>
-            )}
-          </div>
-        </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {msgs.length === 0 && !carregandoMemoria && (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '40px 0' }}>
-              <div style={{ width: 52, height: 52, borderRadius: 12, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: agenteSelecionado.cor, letterSpacing: '0.05em' }}>{agenteSelecionado.iniciais}</div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a', marginBottom: 5 }}>{agenteSelecionado.nome}</div>
-                <div style={{ fontSize: 13, color: '#888', maxWidth: 340, lineHeight: 1.6 }}>{agenteSelecionado.descricao}</div>
+        {/* Aba vídeos */}
+        {aba === 'videos' && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+            <VideoQueue />
+          </div>
+        )}
+
+        {/* Aba agentes */}
+        {aba === 'agentes' && (
+          <>
+            <div style={{ padding: '14px 22px', borderBottom: '1px solid #e8ede8', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: agenteSelecionado.cor, letterSpacing: '0.05em' }}>{agenteSelecionado.iniciais}</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>{agenteSelecionado.nome}</div>
+                  <div style={{ fontSize: 12, color: '#999' }}>{agenteSelecionado.descricao}</div>
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, maxWidth: 520, width: '100%' }}>
-                {agenteSelecionado.sugestoes.map((s, i) => (
-                  <button key={i} onClick={() => enviar(s)}
-                    style={{ textAlign: 'left', padding: '9px 13px', background: '#fff', border: '1px solid #e8ede8', borderRadius: 10, cursor: 'pointer', fontSize: 12, color: '#555', lineHeight: 1.5, transition: 'all .15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = agenteSelecionado.cor; e.currentTarget.style.color = '#1a1a1a' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e8ede8'; e.currentTarget.style.color = '#555' }}>
-                    {s}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {carregandoMemoria && <span style={{ fontSize: 11, color: '#aaa' }}>Carregando memória...</span>}
+                <MemoryBadge count={memoriaCount[agenteSelecionado.id]} />
+                {msgs.length > 0 && (
+                  <button onClick={() => setMensagens(prev => ({ ...prev, [agenteSelecionado.id]: [] }))}
+                    style={{ fontSize: 12, color: '#aaa', background: 'none', border: '1px solid #e8ede8', borderRadius: 8, padding: '4px 12px', cursor: 'pointer' }}>
+                    Limpar sessão
                   </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {msgs.map((msg, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-              {msg.role === 'assistant' && (
-                <div style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: agenteSelecionado.cor, marginRight: 8, marginTop: 2, letterSpacing: '0.05em' }}>{agenteSelecionado.iniciais}</div>
-              )}
-              <div style={{ maxWidth: msg.cards || msg.diff || msg.actions ? '92%' : '72%', width: msg.cards || msg.diff || msg.actions ? '92%' : undefined }}>
-                {msg.role === 'user' ? (
-                  <div style={{ background: agenteSelecionado.cor, color: '#fff', borderRadius: '14px 14px 4px 14px', padding: '10px 14px', fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                    {msg.content}
-                    <div style={{ fontSize: 10, marginTop: 4, opacity: .5, textAlign: 'right' }}>{msg.ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
-                  </div>
-                ) : (
-                  <div>
-                    {msg.content && (
-                      <div style={{ background: '#fff', border: '1px solid #e8ede8', borderRadius: '4px 14px 14px 14px', padding: '12px 16px', marginBottom: msg.cards || msg.diff || msg.actions ? 8 : 0 }}>
-                        <MarkdownText content={msg.content} />
-                        <div style={{ fontSize: 10, marginTop: 6, opacity: .4 }}>{msg.ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
-                      </div>
-                    )}
-                    {msg.cards && msg.cards.map((card, ci) => <CardConteudo key={ci} card={card} />)}
-                    {msg.diff && msg.diff.map((block, di) => <CardDiff key={di} block={block} />)}
-                    {msg.actions && (
-                      <div>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 8, paddingLeft: 2 }}>AÇÕES EXECUTADAS</div>
-                        {msg.actions.map((action, ai) => <CardAction key={ai} action={action} />)}
-                      </div>
-                    )}
-                  </div>
                 )}
               </div>
             </div>
-          ))}
 
-          {loading && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 26, height: 26, borderRadius: 6, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: agenteSelecionado.cor, letterSpacing: '0.05em' }}>{agenteSelecionado.iniciais}</div>
-              <div style={{ background: '#fff', border: '1px solid #e8ede8', borderRadius: '4px 14px 14px 14px', padding: '10px 16px', display: 'flex', gap: 4, alignItems: 'center' }}>
-                {[0, 1, 2].map(j => <div key={j} style={{ width: 6, height: 6, borderRadius: '50%', background: agenteSelecionado.cor, animation: `bounce 1.2s ${j * .2}s ease-in-out infinite` }} />)}
-              </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {msgs.length === 0 && !carregandoMemoria && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '40px 0' }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 12, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: agenteSelecionado.cor, letterSpacing: '0.05em' }}>{agenteSelecionado.iniciais}</div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a', marginBottom: 5 }}>{agenteSelecionado.nome}</div>
+                    <div style={{ fontSize: 13, color: '#888', maxWidth: 340, lineHeight: 1.6 }}>{agenteSelecionado.descricao}</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, maxWidth: 520, width: '100%' }}>
+                    {agenteSelecionado.sugestoes.map((s, i) => (
+                      <button key={i} onClick={() => enviar(s)}
+                        style={{ textAlign: 'left', padding: '9px 13px', background: '#fff', border: '1px solid #e8ede8', borderRadius: 10, cursor: 'pointer', fontSize: 12, color: '#555', lineHeight: 1.5, transition: 'all .15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = agenteSelecionado.cor; e.currentTarget.style.color = '#1a1a1a' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#e8ede8'; e.currentTarget.style.color = '#555' }}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {msgs.map((msg, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  {msg.role === 'assistant' && (
+                    <div style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: agenteSelecionado.cor, marginRight: 8, marginTop: 2, letterSpacing: '0.05em' }}>{agenteSelecionado.iniciais}</div>
+                  )}
+                  <div style={{ maxWidth: msg.cards || msg.diff || msg.actions ? '92%' : '72%', width: msg.cards || msg.diff || msg.actions ? '92%' : undefined }}>
+                    {msg.role === 'user' ? (
+                      <div style={{ background: agenteSelecionado.cor, color: '#fff', borderRadius: '14px 14px 4px 14px', padding: '10px 14px', fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                        {msg.content}
+                        <div style={{ fontSize: 10, marginTop: 4, opacity: .5, textAlign: 'right' }}>{msg.ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                      </div>
+                    ) : (
+                      <div>
+                        {msg.content && (
+                          <div style={{ background: '#fff', border: '1px solid #e8ede8', borderRadius: '4px 14px 14px 14px', padding: '12px 16px', marginBottom: msg.cards || msg.diff || msg.actions ? 8 : 0 }}>
+                            <MarkdownText content={msg.content} />
+                            <div style={{ fontSize: 10, marginTop: 6, opacity: .4 }}>{msg.ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                          </div>
+                        )}
+                        {msg.cards && msg.cards.map((card, ci) => <CardConteudo key={ci} card={card} />)}
+                        {msg.diff && msg.diff.map((block, di) => <CardDiff key={di} block={block} />)}
+                        {msg.actions && (
+                          <div>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 8, paddingLeft: 2 }}>AÇÕES EXECUTADAS</div>
+                            {msg.actions.map((action, ai) => <CardAction key={ai} action={action} />)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {loading && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 6, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: agenteSelecionado.cor, letterSpacing: '0.05em' }}>{agenteSelecionado.iniciais}</div>
+                  <div style={{ background: '#fff', border: '1px solid #e8ede8', borderRadius: '4px 14px 14px 14px', padding: '10px 16px', display: 'flex', gap: 4, alignItems: 'center' }}>
+                    {[0, 1, 2].map(j => <div key={j} style={{ width: 6, height: 6, borderRadius: '50%', background: agenteSelecionado.cor, animation: `bounce 1.2s ${j * .2}s ease-in-out infinite` }} />)}
+                  </div>
+                </div>
+              )}
+              <div ref={bottomRef} />
             </div>
-          )}
-          <div ref={bottomRef} />
-        </div>
 
-        <div style={{ padding: '14px 22px', borderTop: '1px solid #e8ede8', background: '#fff', flexShrink: 0 }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: '#f8f9f8', borderRadius: 14, border: '1px solid #e8ede8', padding: '9px 12px' }}>
-            <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-              placeholder={`Fale com o ${agenteSelecionado.nome}...`} rows={1}
-              style={{ flex: 1, resize: 'none', border: 'none', background: 'transparent', fontSize: 13, fontFamily: "'Nunito',sans-serif", color: '#1a1a1a', outline: 'none', lineHeight: 1.5, maxHeight: 160 }} />
-            <button onClick={() => enviar()} disabled={!input.trim() || loading}
-              style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: input.trim() && !loading ? agenteSelecionado.cor : '#e8ede8', border: 'none', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                <path d="M22 2L11 13" stroke={input.trim() && !loading ? '#fff' : '#aaa'} strokeWidth="2" strokeLinecap="round"/>
-                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={input.trim() && !loading ? '#fff' : '#aaa'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
-          <div style={{ fontSize: 11, color: '#bbb', marginTop: 5, textAlign: 'center' }}>Enter para enviar · Shift+Enter para nova linha</div>
-        </div>
+            <div style={{ padding: '14px 22px', borderTop: '1px solid #e8ede8', background: '#fff', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: '#f8f9f8', borderRadius: 14, border: '1px solid #e8ede8', padding: '9px 12px' }}>
+                <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
+                  placeholder={`Fale com o ${agenteSelecionado.nome}...`} rows={1}
+                  style={{ flex: 1, resize: 'none', border: 'none', background: 'transparent', fontSize: 13, fontFamily: "'Nunito',sans-serif", color: '#1a1a1a', outline: 'none', lineHeight: 1.5, maxHeight: 160 }} />
+                <button onClick={() => enviar()} disabled={!input.trim() || loading}
+                  style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: input.trim() && !loading ? agenteSelecionado.cor : '#e8ede8', border: 'none', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <path d="M22 2L11 13" stroke={input.trim() && !loading ? '#fff' : '#aaa'} strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={input.trim() && !loading ? '#fff' : '#aaa'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: '#bbb', marginTop: 5, textAlign: 'center' }}>Enter para enviar · Shift+Enter para nova linha</div>
+            </div>
+          </>
+        )}
       </main>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
         @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
         ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:#d0d0d0;border-radius:4px}
-        .prose h1,.prose h2,.prose h3{font-weight:700;margin:0.8em 0 0.4em;color:#1a1a1a}
-        .prose h2{font-size:14px} .prose h3{font-size:13px}
+        .prose h2{font-size:14px;font-weight:500;margin:0.8em 0 0.4em;color:#1a1a1a} .prose h3{font-size:13px;font-weight:500;margin:0.6em 0 0.3em;color:#1a1a1a}
         .prose p{margin:0.4em 0;line-height:1.7} .prose ul,.prose ol{padding-left:1.4em;margin:0.4em 0}
         .prose li{margin:0.2em 0} .prose strong{font-weight:700;color:#1a1a1a}
         .prose code{background:#f0f0f0;padding:1px 5px;border-radius:4px;font-size:11px;font-family:monospace}
