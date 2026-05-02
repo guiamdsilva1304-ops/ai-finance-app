@@ -6,9 +6,10 @@ const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || "imoney-admin-secret-
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Nunca bloqueia rotas de API
+  // Rotas de API nunca são bloqueadas
   if (pathname.startsWith("/api/")) return NextResponse.next();
 
+  // Só protege páginas /admin
   if (!pathname.startsWith("/admin")) return NextResponse.next();
   if (pathname === "/admin/login") return NextResponse.next();
 
@@ -23,5 +24,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  // Só aplica em páginas admin — NÃO em /api/
+  matcher: ["/admin/:path*"],
 };
