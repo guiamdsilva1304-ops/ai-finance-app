@@ -133,8 +133,16 @@ const AGENTES: Agent[] = [
 ]
 
 function tentarParsearJSON(text: string) {
-  const sem_md = text.replace(/```[\s\S]*?```/g, '').replace(/`/g, '')
-  const matches = sem_md.match(/\{[\s\S]*\}/g) ?? []
+  // Remove blocos markdown e extrai JSON
+  let limpo = text
+  // Extrai conteudo de bloco json se existir
+  const blocoJson = text.match(/```json([\s\S]*?)```/)
+  if (blocoJson) limpo = blocoJson[1].trim()
+  else limpo = text.replace(/```[\s\S]*?```/g, '').replace(/`/g, '').trim()
+  // Tenta parsear direto
+  try { return JSON.parse(limpo) } catch { }
+  // Tenta extrair objeto JSON do texto
+  const matches = limpo.match(/\{[\s\S]*\}/g) ?? []
   for (const match of matches) {
     try { return JSON.parse(match) } catch { continue }
   }
