@@ -414,15 +414,12 @@ export default function AgentesPage() {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Aba vídeos */}
-        {aba === 'videos' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'videos' ? 'block' : 'none' }}>
             <VideoQueue />
           </div>
-        )}
 
         {/* Aba agentes */}
-        {aba === 'agentes' && (
-          <>
+        <div style={{ display: aba === 'agentes' ? 'contents' : 'none' }}>
             <div style={{ padding: '14px 22px', borderBottom: '1px solid #e8ede8', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: `${agenteSelecionado.cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: agenteSelecionado.cor, letterSpacing: '0.05em' }}>{agenteSelecionado.iniciais}</div>
@@ -524,7 +521,7 @@ export default function AgentesPage() {
               <div style={{ fontSize: 11, color: '#bbb', marginTop: 5, textAlign: 'center' }}>Enter para enviar · Shift+Enter para nova linha</div>
             </div>
           </>
-        )}
+        </div>
       </main>
 
       <style>{`
