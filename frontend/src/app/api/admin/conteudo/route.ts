@@ -30,7 +30,7 @@ Quando pedirem plano semanal, retorne APENAS JSON valido sem markdown sem backti
 {"dia":"Sabado","formato":"Carrossel","titulo":"titulo do carrossel","slides_html":["<div style=\"width:1080px;height:1080px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;box-sizing:border-box;font-family:Arial,sans-serif\"><p style=\"color:#1D9E75;font-size:24px;font-weight:900;margin:0 0 20px;text-align:center\">slide 1 de 6</p><p style=\"font-size:52px;font-weight:900;color:#1a1a1a;text-align:center;line-height:1.2;margin:0\">texto principal</p></div>"],"legenda":"legenda com hashtags"}
 ]}
 
-Para outros pedidos responda em markdown normal.`
+Para outros pedidos responda em markdown normal. IMPORTANTE: Quando retornar JSON, retorne APENAS o JSON puro, sem backticks, sem ```json, sem nenhum texto antes ou depois.`
 
 export async function POST(req: NextRequest) {
   try {
