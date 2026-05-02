@@ -229,6 +229,8 @@ export default function AgentesPage() {
   const [carregandoMemoria, setCarregandoMemoria] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [videoRoteiro, setVideoRoteiro] = useState("")
+  const [videoLegenda, setVideoLegenda] = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const msgs = mensagens[agenteSelecionado.id]
@@ -347,7 +349,7 @@ export default function AgentesPage() {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'videos' ? 'flex' : 'none', flexDirection: 'column' }}>
-          <VideoQueue />
+          <VideoQueue roteiro={videoRoteiro} legenda={videoLegenda} onRoteiroChange={setVideoRoteiro} onLegendaChange={setVideoLegenda} />
         </div>
 
         <div style={{ flex: 1, flexDirection: 'column', overflow: 'hidden', display: aba === 'agentes' ? 'flex' : 'none' }}>

@@ -16,12 +16,17 @@ interface Video {
   criado_em: string
 }
 
-export default function VideoQueue() {
+interface Props {
+  roteiro: string
+  legenda: string
+  onRoteiroChange: (v: string) => void
+  onLegendaChange: (v: string) => void
+}
+
+export default function VideoQueue({ roteiro, legenda, onRoteiroChange, onLegendaChange }: Props) {
   const [videos, setVideos] = useState<Video[]>([])
   const [loading, setLoading] = useState(true)
   const [gerando, setGerando] = useState(false)
-  const [roteiro, setRoteiro] = useState('')
-  const [legenda, setLegenda] = useState('')
 
   const carregarFila = useCallback(async () => {
     try {
@@ -48,14 +53,11 @@ export default function VideoQueue() {
     }
   }, [carregarFila])
 
-  useEffect(() => {
-    carregarFila()
-  }, [carregarFila])
+  useEffect(() => { carregarFila() }, [carregarFila])
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const emGeracao = videos.filter(v => v.status === 'gerando')
-      emGeracao.forEach(v => verificarStatus(v))
+      videos.filter(v => v.status === 'gerando').forEach(v => verificarStatus(v))
     }, 15000)
     return () => clearInterval(interval)
   }, [videos, verificarStatus])
@@ -67,16 +69,18 @@ export default function VideoQueue() {
       const res = await fetch('/api/admin/video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roteiro, legenda, formato: 'Reels', duracao: 30 }),
+        body: JSON.stringify({ roteiro, legenda, formato: 'Reels', duracao: 8 }),
       })
       const data = await res.json()
       if (data.sucesso) {
-        setRoteiro('')
-        setLegenda('')
+        onRoteiroChange('')
+        onLegendaChange('')
         await carregarFila()
+      } else {
+        alert('Erro: ' + (data.error ?? 'Falha ao gerar vídeo'))
       }
     } catch {
-      // silencioso
+      alert('Erro ao conectar com a API de vídeo')
     } finally {
       setGerando(false)
     }
@@ -92,15 +96,10 @@ export default function VideoQueue() {
   }
 
   const statusCor: Record<string, string> = {
-    gerando: '#EF9F27',
-    pronto: '#1D9E75',
-    erro: '#D85A30',
+    gerando: '#EF9F27', pronto: '#1D9E75', erro: '#D85A30',
   }
-
   const statusLabel: Record<string, string> = {
-    gerando: 'Gerando...',
-    pronto: 'Pronto',
-    erro: 'Erro',
+    gerando: 'Gerando...', pronto: 'Pronto', erro: 'Erro',
   }
 
   return (
@@ -114,29 +113,22 @@ export default function VideoQueue() {
         <div style={{ fontSize: 12, fontWeight: 700, color: '#aaa', letterSpacing: '0.05em', marginBottom: 10 }}>NOVO VÍDEO</div>
         <textarea
           value={roteiro}
-          onChange={e => setRoteiro(e.target.value)}
+          onChange={e => onRoteiroChange(e.target.value)}
           placeholder="Cole o roteiro do vídeo aqui..."
           rows={4}
           style={{ width: '100%', resize: 'none', border: '1px solid #e8ede8', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: "'Nunito',sans-serif", outline: 'none', boxSizing: 'border-box', color: '#1a1a1a', lineHeight: 1.6 }}
         />
         <textarea
           value={legenda}
-          onChange={e => setLegenda(e.target.value)}
+          onChange={e => onLegendaChange(e.target.value)}
           placeholder="Legenda para o post (com hashtags)..."
           rows={2}
           style={{ width: '100%', resize: 'none', border: '1px solid #e8ede8', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: "'Nunito',sans-serif", outline: 'none', boxSizing: 'border-box', marginTop: 8, color: '#1a1a1a', lineHeight: 1.6 }}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-          <div style={{ fontSize: 11, color: '#aaa' }}>Seedance 2.0 · ~US$ 0,66/vídeo · 30s · 9:16</div>
-          <button
-            onClick={gerarVideo}
-            disabled={!roteiro.trim() || gerando}
-            style={{
-              padding: '8px 18px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,
-              background: roteiro.trim() && !gerando ? '#1D9E75' : '#e8ede8',
-              color: roteiro.trim() && !gerando ? '#fff' : '#aaa',
-              cursor: roteiro.trim() && !gerando ? 'pointer' : 'not-allowed',
-            }}>
+          <div style={{ fontSize: 11, color: '#aaa' }}>Seedance 2.0 · ~US$ 0,18/vídeo · 8s · 9:16</div>
+          <button onClick={gerarVideo} disabled={!roteiro.trim() || gerando}
+            style={{ padding: '8px 18px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600, background: roteiro.trim() && !gerando ? '#1D9E75' : '#e8ede8', color: roteiro.trim() && !gerando ? '#fff' : '#aaa', cursor: roteiro.trim() && !gerando ? 'pointer' : 'not-allowed' }}>
             {gerando ? 'Enviando...' : 'Gerar vídeo'}
           </button>
         </div>
@@ -156,9 +148,7 @@ export default function VideoQueue() {
                     {statusLabel[video.status]}
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 600, color: '#1a1a1a' }}>{video.formato} · {video.duracao_segundos}s</span>
-                  {video.aprovado && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#1D9E75', background: '#E1F5EE', padding: '2px 8px', borderRadius: 20 }}>Aprovado</span>
-                  )}
+                  {video.aprovado && (<span style={{ fontSize: 10, fontWeight: 700, color: '#1D9E75', background: '#E1F5EE', padding: '2px 8px', borderRadius: 20 }}>Aprovado</span>)}
                 </div>
                 <span style={{ fontSize: 10, color: '#aaa' }}>
                   {new Date(video.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -189,13 +179,8 @@ export default function VideoQueue() {
 
                 {video.status === 'pronto' && !video.postado && (
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      onClick={() => aprovar(video.id, !video.aprovado)}
-                      style={{
-                        flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                        background: video.aprovado ? '#ffeef0' : '#E1F5EE',
-                        color: video.aprovado ? '#D85A30' : '#1D9E75',
-                      }}>
+                    <button onClick={() => aprovar(video.id, !video.aprovado)}
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', background: video.aprovado ? '#ffeef0' : '#E1F5EE', color: video.aprovado ? '#D85A30' : '#1D9E75' }}>
                       {video.aprovado ? 'Remover aprovação' : 'Aprovar para postar'}
                     </button>
                     {video.video_url && (
