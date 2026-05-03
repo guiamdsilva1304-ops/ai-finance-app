@@ -76,7 +76,7 @@ export default function ProPage() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: 'calc(100vh - 60px)',
       background: '#f8f9f8',
       fontFamily: "'Nunito', sans-serif",
       padding: '0 0 80px',
@@ -90,7 +90,7 @@ export default function ProPage() {
       {/* Header */}
       <div style={{
         background: 'linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)',
-        padding: '60px 20px 80px',
+        padding: '40px 20px 60px',
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden',
