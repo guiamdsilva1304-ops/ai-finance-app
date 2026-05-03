@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,29 +8,29 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, MessageCircle, Receipt, Target,
   TrendingUp, User, BarChart3, Landmark, LogOut,
-  ChevronLeft, ChevronRight, Menu, X,
+  ChevronLeft, ChevronRight, Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 
 const NAV_ITEMS = [
-  { href: "/dashboard",              icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/dashboard/assessor",     icon: MessageCircle,   label: "Assessor" },
-  { href: "/dashboard/transacoes",   icon: Receipt,         label: "Transações" },
-  { href: "/dashboard/metas",        icon: Target,          label: "Metas" },
-  { href: "/dashboard/investimentos",icon: TrendingUp,      label: "Investimentos" },
-  { href: "/dashboard/renda",        icon: BarChart3,       label: "Renda Variável" },
-  { href: "/dashboard/perfil",       icon: User,            label: "Meu Perfil" },
-  { href: "/dashboard/openfinance",  icon: Landmark,        label: "Open Finance" },
+  { href: "/dashboard",               icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/dashboard/assessor",      icon: MessageCircle,   label: "Assessor" },
+  { href: "/dashboard/transacoes",    icon: Receipt,         label: "Transações" },
+  { href: "/dashboard/metas",         icon: Target,          label: "Metas" },
+  { href: "/dashboard/investimentos", icon: TrendingUp,      label: "Investimentos" },
+  { href: "/dashboard/renda",         icon: BarChart3,       label: "Renda Variável" },
+  { href: "/dashboard/perfil",        icon: User,            label: "Meu Perfil" },
+  { href: "/dashboard/openfinance",   icon: Landmark,        label: "Open Finance" },
 ];
 
 interface SidebarProps {
   email?: string;
+  plan?: string;
 }
 
-export function Sidebar({ email }: SidebarProps) {
+export function Sidebar({ email, plan = 'free' }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const supabase = createSupabaseBrowser();
 
   async function logout() {
@@ -60,7 +60,6 @@ export function Sidebar({ email }: SidebarProps) {
             <Link
               key={href}
               href={href}
-              onClick={() => setMobileOpen(false)}
               className={cn(
                 "nav-link",
                 active && "active",
@@ -75,38 +74,38 @@ export function Sidebar({ email }: SidebarProps) {
         })}
       </nav>
 
-      {/* Pro Badge */}
-      {!collapsed {/* Bottom */}{/* Bottom */} (
-        <div className="px-3 pt-3">
-          <a href="/dashboard/pro" className="block w-full bg-gradient-to-r from-[#0a3d28] to-[#1D9E75] text-white text-center py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity">
-            ✨ Assinar Pro — R$ 29,90/mês
-          </a>
+      {/* Botão Pro */}
+      {!collapsed && plan === 'free' && (
+        <div className="px-3 pb-3">
+          <Link
+            href="/dashboard/pro"
+            className="flex items-center gap-2 w-full justify-center py-2.5 px-4 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)' }}
+          >
+            <Sparkles size={14} />
+            Assinar Pro
+          </Link>
         </div>
       )}
+
+      {!collapsed && plan === 'pro' && (
+        <div className="px-3 pb-3">
+          <div className="flex items-center gap-2 w-full justify-center py-2 px-4 rounded-xl text-xs font-bold" style={{ background: '#E1F5EE', color: '#085041' }}>
+            <Sparkles size={12} />
+            iMoney Pro ativo
+          </div>
+        </div>
+      )}
+
       {/* Bottom */}
       <div className="px-3 pb-5 border-t border-[#e4f5e9] pt-3 space-y-1">
         <button
           onClick={logout}
-          className={cn(
-            "nav-link w-full text-red-500 hover:bg-red-50 hover:text-red-600",
-            collapsed && "justify-center px-2"
-          )}
+          className={cn("nav-link w-full text-left text-red-400 hover:text-red-500 hover:bg-red-50", collapsed && "justify-center px-2")}
           title={collapsed ? "Sair" : undefined}
         >
-          <LogOut size={16} className="shrink-0" />
+          <LogOut size={18} className="shrink-0" />
           {!collapsed && <span>Sair</span>}
-        </button>
-
-        {/* Collapse toggle */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="nav-link w-full hidden lg:flex"
-          title={collapsed ? "Expandir" : "Recolher"}
-        >
-          {collapsed
-            ? <ChevronRight size={16} />
-            : <><ChevronLeft size={16} /><span>Recolher</span></>
-          }
         </button>
       </div>
     </div>
@@ -114,45 +113,38 @@ export function Sidebar({ email }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile toggle button */}
-      <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-white border border-[#e4f5e9] rounded-xl p-2.5 shadow-card"
-      >
-        {mobileOpen ? <X size={20} className="text-[#15803d]" /> : <Menu size={20} className="text-[#15803d]" />}
-      </button>
-
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/20 z-30"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
       {/* Desktop sidebar */}
-      <aside
-        className={cn(
-          "hidden lg:flex flex-col h-screen sticky top-0",
-          "bg-white border-r border-[#e4f5e9] shadow-[1px_0_8px_rgba(20,83,45,0.06)]",
-          "transition-all duration-200 shrink-0",
-          collapsed ? "w-16" : "w-56"
-        )}
-      >
+      <aside className={cn(
+        "hidden md:flex flex-col h-screen sticky top-0 border-r border-[#e4f5e9] bg-white transition-all duration-300",
+        collapsed ? "w-16" : "w-56"
+      )}>
         <SidebarContent />
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-6 bg-white border border-[#e4f5e9] rounded-full p-0.5 shadow-sm hover:bg-[#f0faf6] transition-colors"
+        >
+          {collapsed ? <ChevronRight size={14} className="text-[#1D9E75]" /> : <ChevronLeft size={14} className="text-[#1D9E75]" />}
+        </button>
       </aside>
 
-      {/* Mobile drawer */}
-      <aside
-        className={cn(
-          "lg:hidden fixed left-0 top-0 h-full z-40 w-64 bg-white border-r border-[#e4f5e9] shadow-card",
-          "transition-transform duration-250",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <SidebarContent />
-      </aside>
+      {/* Mobile header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#e4f5e9] px-4 py-3 flex items-center justify-between">
+        <Logo size={120} showText={false} showTagline={false} />
+        <div className="flex items-center gap-3">
+          {plan === 'free' && (
+            <Link href="/dashboard/pro" className="text-xs font-bold px-3 py-1.5 rounded-lg text-white" style={{ background: '#1D9E75' }}>
+              Pro
+            </Link>
+          )}
+          <nav className="flex gap-1">
+            {NAV_ITEMS.slice(0, 4).map(({ href, icon: Icon }) => (
+              <Link key={href} href={href} className={cn("p-2 rounded-lg", pathname === href || pathname.startsWith(href) ? "bg-[#E1F5EE] text-[#1D9E75]" : "text-gray-400")}>
+                <Icon size={18} />
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </div>
     </>
   );
 }
-// PATCH APLICADO ABAIXO — ignorar, patch via sed
