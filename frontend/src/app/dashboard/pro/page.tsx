@@ -129,8 +129,8 @@ export default function ProPage() {
         {/* Toggle mensal/anual */}
         <div style={{
           background: '#fff', borderRadius: 16, padding: 6,
-          display: 'flex', gap: 4, marginTop: -24, marginBottom: 28,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+          display: 'flex', gap: 4, marginTop: -28, marginBottom: 28,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.15)', position: 'relative', zIndex: 10,
         }}>
           {(['mensal', 'anual'] as const).map(p => (
             <button key={p} onClick={() => setPeriodo(p)}
