@@ -75,6 +75,14 @@ export function Sidebar({ email }: SidebarProps) {
         })}
       </nav>
 
+      {/* Pro Badge */}
+      {!collapsed {/* Bottom */}{/* Bottom */} (
+        <div className="px-3 pt-3">
+          <a href="/dashboard/pro" className="block w-full bg-gradient-to-r from-[#0a3d28] to-[#1D9E75] text-white text-center py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity">
+            ✨ Assinar Pro — R$ 29,90/mês
+          </a>
+        </div>
+      )}
       {/* Bottom */}
       <div className="px-3 pb-5 border-t border-[#e4f5e9] pt-3 space-y-1">
         <button
@@ -147,3 +155,4 @@ export function Sidebar({ email }: SidebarProps) {
     </>
   );
 }
+// PATCH APLICADO ABAIXO — ignorar, patch via sed
