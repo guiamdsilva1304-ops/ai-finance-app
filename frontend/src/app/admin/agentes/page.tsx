@@ -4,9 +4,11 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { marked } from 'marked'
 import VideoQueue from './VideoQueue'
 import ConteudoCards from './ConteudoCards'
+import Hub from './Hub'
+import Hub from './Hub'
 
 type AgentId = 'conteudo' | 'seo' | 'growth' | 'dados' | 'dev'
-type Aba = 'agentes' | 'videos'
+type Aba = 'hub' | 'agentes' | 'videos'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -231,7 +233,7 @@ function CardAction({ action }: { action: AgentAction }) {
 }
 
 export default function AgentesPage() {
-  const [aba, setAba] = useState<Aba>('agentes')
+  const [aba, setAba] = useState<Aba>('hub')
   const [agenteSelecionado, setAgenteSelecionado] = useState<Agent>(AGENTES[0])
   const [mensagens, setMensagens] = useState<Record<AgentId, Message[]>>({ conteudo: [], seo: [], growth: [], dados: [], dev: [] })
   const [memoriaCount, setMemoriaCount] = useState<Record<AgentId, number>>({ conteudo: 0, seo: 0, growth: 0, dados: 0, dev: 0 })
@@ -318,9 +320,9 @@ export default function AgentesPage() {
         </div>
 
         <div style={{ display: 'flex', borderBottom: '1px solid #e8ede8' }}>
-          {(['agentes', 'videos'] as Aba[]).map(a => (
+          {(['hub', 'agentes', 'videos'] as Aba[]).map(a => (
             <button key={a} onClick={() => setAba(a)} style={{ flex: 1, padding: '10px 0', border: 'none', background: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: aba === a ? '#1D9E75' : '#aaa', borderBottom: aba === a ? '2px solid #1D9E75' : '2px solid transparent' }}>
-              {a === 'agentes' ? 'Agentes' : 'Videos'}
+              {a === 'hub' ? '⚡ Hub' : a === 'agentes' ? 'Agentes' : 'Videos'}
             </button>
           ))}
         </div>
@@ -358,6 +360,10 @@ export default function AgentesPage() {
       </aside>
 
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        <div style={{ flex: 1, overflowY: 'auto', display: aba === 'hub' ? 'block' : 'none' }}><Hub /></div>
+
+        <div style={{ flex: 1, overflowY: 'auto', display: aba === 'hub' ? 'block' : 'none' }}><Hub /></div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'videos' ? 'flex' : 'none', flexDirection: 'column' }}>
           <VideoQueue roteiro={videoRoteiro} legenda={videoLegenda} onRoteiroChange={setVideoRoteiro} onLegendaChange={setVideoLegenda} />
