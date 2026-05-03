@@ -9,21 +9,36 @@ const supabase = createClient(
 export async function POST(req: NextRequest) {
   try {
     const { titulo, slug, meta_description, conteudo, publicar_automaticamente } = await req.json()
-
     if (!titulo || !slug || !conteudo)
       return NextResponse.json({ error: 'titulo, slug e conteudo são obrigatórios' }, { status: 400 })
 
-    const status = publicar_automaticamente ? 'publicado' : 'rascunho'
+    const published = publicar_automaticamente === true
+
+    // Calcula tempo de leitura (200 palavras por minuto)
+    const palavras = conteudo.split(/\s+/).length
+    const reading_time_min = Math.max(1, Math.ceil(palavras / 200))
+
+    // Gera excerpt do início do conteúdo
+    const excerpt = conteudo.replace(/#+\s/g, '').replace(/\*\*/g, '').slice(0, 200).trim() + '...'
 
     const { data, error } = await supabase
-      .from('admin_posts')
+      .from('blog_posts')
       .insert({
-        titulo,
+        title: titulo,
         slug,
-        meta_description: meta_description ?? '',
-        conteudo,
-        status,
-        criado_em: new Date().toISOString(),
+        excerpt,
+        content: conteudo,
+        seo_title: titulo,
+        seo_description: meta_description ?? '',
+        author: 'Gui da iMoney',
+        category: 'educacao-financeira',
+        tags: [],
+        reading_time_min,
+        published,
+        published_at: published ? new Date().toISOString() : null,
+        generated_by: 'agente-seo',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single()
@@ -32,25 +47,26 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       sucesso: true,
-      status,
+      published,
       id: data.id,
-      mensagem: status === 'publicado'
-        ? `Artigo publicado automaticamente: /${slug}`
-        : `Artigo salvo como rascunho aguardando sua aprovação`,
+      url: published ? `https://imoney.ia.br/blog/${slug}` : null,
+      mensagem: published
+        ? `Artigo publicado: imoney.ia.br/blog/${slug}`
+        : `Artigo salvo como rascunho — aguardando aprovação`,
     })
-
   } catch (error) {
-    console.error('[/api/admin/blog/publicar]', error)
-    return NextResponse.json({ error: 'Erro ao publicar artigo' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('[/api/admin/blog/publicar]', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
 
 export async function GET() {
   try {
     const { data, error } = await supabase
-      .from('admin_posts')
-      .select('id, titulo, slug, status, criado_em')
-      .order('criado_em', { ascending: false })
+      .from('blog_posts')
+      .select('id, title, slug, published, published_at, reading_time_min, created_at')
+      .order('created_at', { ascending: false })
       .limit(20)
 
     if (error) throw error

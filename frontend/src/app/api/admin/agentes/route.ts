@@ -9,7 +9,7 @@ const supabase = createClient(
 )
 
 const MEMORIA_ADMIN_ID = '00000000-0000-0000-0000-000000000001'
-const MAX_MEMORIA = 40 // últimas 40 mensagens por agente
+const MAX_MEMORIA = 40
 
 async function carregarMemoria(agentId: string) {
   const { data } = await supabase
@@ -36,13 +36,31 @@ async function publicarArtigo(artigo: {
   titulo: string; slug: string; meta_description: string
   conteudo: string; publicar_automaticamente: boolean
 }) {
-  const status = artigo.publicar_automaticamente ? 'publicado' : 'rascunho'
-  await supabase.from('admin_posts').insert({
-    titulo: artigo.titulo, slug: artigo.slug,
-    meta_description: artigo.meta_description, conteudo: artigo.conteudo,
-    status, criado_em: new Date().toISOString(),
+  const published = artigo.publicar_automaticamente
+  const palavras = artigo.conteudo.split(/\s+/).length
+  const reading_time_min = Math.max(1, Math.ceil(palavras / 200))
+  const excerpt = artigo.conteudo.replace(/#+\s/g, '').replace(/\*\*/g, '').slice(0, 200).trim() + '...'
+
+  const { error } = await supabase.from('blog_posts').insert({
+    title: artigo.titulo,
+    slug: artigo.slug,
+    excerpt,
+    content: artigo.conteudo,
+    seo_title: artigo.titulo,
+    seo_description: artigo.meta_description ?? '',
+    author: 'Gui da iMoney',
+    category: 'educacao-financeira',
+    tags: [],
+    reading_time_min,
+    published,
+    published_at: published ? new Date().toISOString() : null,
+    generated_by: 'agente-seo',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   })
-  return status
+
+  if (error) throw error
+  return published ? 'publicado' : 'rascunho'
 }
 
 async function executarAcoesGrowth(acoes: Array<{ tipo: string; descricao: string; status: string; detalhe?: string }>) {
@@ -58,7 +76,11 @@ async function executarAcoesGrowth(acoes: Array<{ tipo: string; descricao: strin
 }
 
 function extrairJSON(text: string) {
-  const clean = text.replace(/```json|```/g, '').trim()
+  const blocoJson = text.match(/```json([\s\S]*?)```/)
+  if (blocoJson) {
+    try { return JSON.parse(blocoJson[1].trim()) } catch { }
+  }
+  const clean = text.replace(/```[\s\S]*?```/g, '').trim()
   const first = clean.indexOf('{')
   const last = clean.lastIndexOf('}')
   if (first === -1 || last === -1) return null
@@ -76,15 +98,12 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, systemPrompt, agentId } = await req.json()
     if (!messages || !Array.isArray(messages))
-      return NextResponse.json({ error: 'messages obrigatório' }, { status: 400 })
-
-    // última mensagem do usuário para salvar
-    const ultimaUser = messages[messages.length - 1]
+      return NextResponse.json({ error: 'messages obrigatorio' }, { status: 400 })
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      system: systemPrompt ?? 'Você é um assistente interno da iMoney. Seja direto e prático.',
+      max_tokens: 8192,
+      system: systemPrompt,
       messages: messages.map((m: { role: string; content: string }) => ({
         role: m.role as 'user' | 'assistant',
         content: m.content,
@@ -92,29 +111,32 @@ export async function POST(req: NextRequest) {
     })
 
     const content = response.content[0]?.type === 'text' ? response.content[0].text : 'Sem resposta.'
+
+    // Salva na memória
+    if (agentId) {
+      const lastUser = messages[messages.length - 1]
+      if (lastUser?.role === 'user') await salvarMensagem(agentId, 'user', lastUser.content)
+      await salvarMensagem(agentId, 'assistant', content)
+    }
+
+    // Executa ações automáticas
     const json = extrairJSON(content)
-
-    // salva no Supabase (memória persistente)
-    if (agentId && ultimaUser?.role === 'user') {
-      await salvarMensagem(agentId, 'user', ultimaUser.content).catch(() => null)
-      await salvarMensagem(agentId, 'assistant', content).catch(() => null)
+    if (json && agentId === 'seo' && json.artigo) {
+      try {
+        const status = await publicarArtigo(json.artigo)
+        console.log(`[SEO] Artigo ${status}: ${json.artigo.slug}`)
+      } catch (e) {
+        console.error('[SEO] Erro ao publicar:', e)
+      }
+    }
+    if (json && agentId === 'growth' && json.acoes) {
+      await executarAcoesGrowth(json.acoes).catch(e => console.error('[Growth]', e))
     }
 
-    // agente SEO — publica artigo
-    if (agentId === 'seo' && json?.artigo) {
-      const status = await publicarArtigo(json.artigo).catch(() => 'erro')
-      return NextResponse.json({ content: JSON.stringify({ ...json, artigo: { ...json.artigo, status_publicacao: status } }) })
-    }
-
-    // agente growth — executa ações
-    if (agentId === 'growth' && json?.acoes) {
-      await executarAcoesGrowth(json.acoes).catch(() => null)
-    }
-
-    return NextResponse.json({ content })
-
+    return NextResponse.json({ content, agentId })
   } catch (error) {
-    console.error('[/api/admin/agentes]', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('[/api/admin/agentes]', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
