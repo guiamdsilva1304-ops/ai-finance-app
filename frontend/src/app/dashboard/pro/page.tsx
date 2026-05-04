@@ -49,16 +49,22 @@ export default function ProPage() {
   }, [])
 
   async function assinar() {
+    // Usa usuario ja carregado no estado
+    if (!user) {
+      window.location.href = '/login'
+      return
+    }
     setLoading(true)
     try {
-      // Busca sessao no momento do clique — mais confiavel que estado
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { alert('Sessão expirada. Faça login novamente.'); window.location.href = '/login'; return }
+      // Confirma usuario ainda logado
+      const { data: { user: confirmaUser } } = await supabase.auth.getUser()
+      if (!confirmaUser) { window.location.href = '/login'; return }
+      
       console.log('[Pro] user:', user.id, user.email)
       const res = await fetch('/api/payment/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, email: user.email, periodo }),
+        body: JSON.stringify({ user_id: confirmaUser.id, email: confirmaUser.email, periodo }),
       })
       const data = await res.json()
       console.log('[Pro] response:', data)
