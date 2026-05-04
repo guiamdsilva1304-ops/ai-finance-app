@@ -20,6 +20,8 @@ export default function AssessorPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [limiteAtingido, setLimiteAtingido] = useState(false);
+  const [infoLimite, setInfoLimite] = useState<{usadas:number;limite:number;plano:string}|null>(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = createSupabaseBrowser();
@@ -228,7 +230,24 @@ export default function AssessorPage() {
       </div>
 
       <div className="shrink-0 mt-3">
-        <form onSubmit={(e) => { e.preventDefault(); send(input); }}
+        {limiteAtingido && infoLimite && (
+        <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0a3d28, #1D9E75)', borderTop: '1px solid #1D9E75' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+                Limite diário atingido — {infoLimite.usadas}/{infoLimite.limite} mensagens
+              </div>
+              <div style={{ fontSize: 12, color: '#9FE1CB' }}>
+                Assine o Pro para acesso ilimitado ao Assessor IA
+              </div>
+            </div>
+            <a href="/dashboard/pro" style={{ background: '#fff', color: '#1D9E75', fontWeight: 800, fontSize: 13, padding: '10px 20px', borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              Assinar Pro
+            </a>
+          </div>
+        </div>
+      )}
+      <form onSubmit={(e) => { e.preventDefault(); send(input); }}
           className="flex gap-2 bg-white border border-[#e4f5e9] rounded-2xl p-2 shadow-sm">
           <textarea
             value={input}

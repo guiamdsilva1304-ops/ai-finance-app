@@ -24,7 +24,7 @@ export async function GET() {
       { count: missoes_concluidas },
       { count: pagantes },
     ] = await Promise.all([
-      supabase.from('user_profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('user_profiles').select('id', { count: 'exact', head: true }),
       supabase.from('user_profiles').select('*', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
       supabase.from('user_profiles').select('*', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 86400000).toISOString()),
       supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('published', true),

@@ -5,14 +5,21 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState<string>();
+  const [plan, setPlan] = useState<string>('free');
   const [mounted, setMounted] = useState(false);
   const supabase = createSupabaseBrowser();
 
   useEffect(() => {
     setMounted(true);
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) window.location.href = "/";
-      else setEmail(data.user.email ?? undefined);
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { window.location.href = "/"; return; }
+      setEmail(data.user.email ?? undefined);
+      const { data: perfil } = await supabase
+        .from('user_profiles')
+        .select('plan')
+        .eq('id', data.user.id)
+        .single();
+      if (perfil?.plan) setPlan(perfil.plan);
     });
   }, []);
 
@@ -24,7 +31,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-[#f8fdf9]">
-      <Sidebar email={email} />
+      <Sidebar email={email} plan={plan} />
       <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>
     </div>
   );

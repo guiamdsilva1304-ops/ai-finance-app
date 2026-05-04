@@ -45,7 +45,7 @@ export default function DashboardPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const metasRes = await supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).eq("principal", true).single();
+    const metasRes = await supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).single();
     if (metasRes.data) setMainMeta(metasRes.data);
     const [ecoRes, summaryRes] = await Promise.allSettled([
       fetch("/api/rates/eco"),
