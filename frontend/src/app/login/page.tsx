@@ -23,11 +23,8 @@ export default function AuthPage() {
   useEffect(() => {
     setMounted(true);
     const supabase = createSupabaseBrowser();
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (data.session?.user) {
-        const { data: perfil } = await supabase.from('user_profiles').select('onboarding_completo').eq('id', data.session.user.id).single();
-        window.location.href = perfil?.onboarding_completo ? '/dashboard' : '/onboarding';
-      }
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) window.location.href = '/dashboard';
     });
   }, []);
 
@@ -81,11 +78,7 @@ export default function AuthPage() {
           "Primary Currency": "BRL",
         });
         setSuccess("Login realizado! Redirecionando...");
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: perfil } = await supabase.from('user_profiles').select('onboarding_completo').eq('id', user.id).single();
-          setTimeout(() => { window.location.href = perfil?.onboarding_completo ? '/dashboard' : '/onboarding'; }, 500);
-        }
+        setTimeout(() => { window.location.href = '/dashboard'; }, 500);
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro inesperado.");
@@ -106,7 +99,7 @@ export default function AuthPage() {
       const supabase = createSupabaseBrowser();
       const { data, error: err } = await supabase.auth.signUp({
         email: em, password,
-        options: { emailRedirectTo: window.location.origin + "/onboarding" },
+        options: { emailRedirectTo: window.location.origin + "/dashboard" },
       });
       if (err) { setError(parseErr(err)); return; }
       if (!data.user) { setError("Nao foi possivel criar a conta. Tente novamente."); return; }
