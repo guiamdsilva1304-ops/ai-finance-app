@@ -124,7 +124,7 @@ export default function AuthPage() {
           "Notification Opt-In": true,
         });
         setSuccess("Conta criada! Redirecionando...");
-        setTimeout(() => { window.location.href = "/dashboard"; }, 500);
+        setTimeout(() => { window.location.href = "/onboarding"; }, 500);
       } else {
         setSuccess("Conta criada! Verifique seu email para confirmar e depois faca login.");
         setTab("login"); setPassword(""); setConfirmPassword("");
