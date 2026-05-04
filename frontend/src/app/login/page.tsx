@@ -23,7 +23,7 @@ export default function AuthPage() {
   useEffect(() => {
     setMounted(true);
     const supabase = createSupabaseBrowser();
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (data.session?.user) {
         const { data: perfil } = await supabase.from('user_profiles').select('onboarding_completo').eq('id', data.session.user.id).single();
         window.location.href = perfil?.onboarding_completo ? '/dashboard' : '/onboarding';
