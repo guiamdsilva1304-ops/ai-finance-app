@@ -63,18 +63,6 @@ async function publicarArtigo(artigo: {
   return published ? 'publicado' : 'rascunho'
 }
 
-async function executarAcoesGrowth(acoes: Array<{ tipo: string; descricao: string; status: string; detalhe?: string }>) {
-  for (const acao of acoes) {
-    if (acao.status !== 'executado') continue
-    if (acao.tipo === 'email' && acao.detalhe) {
-      await supabase.from('email_queue').insert({
-        tipo: 'growth', conteudo: acao.detalhe, descricao: acao.descricao,
-        criado_em: new Date().toISOString(), status: 'pendente',
-      })
-    }
-  }
-}
-
 function extrairJSON(text: string) {
   const blocoJson = text.match(/```json([\s\S]*?)```/)
   if (blocoJson) {
@@ -85,6 +73,31 @@ function extrairJSON(text: string) {
   const last = clean.lastIndexOf('}')
   if (first === -1 || last === -1) return null
   try { return JSON.parse(clean.slice(first, last + 1)) } catch { return null }
+}
+
+const SYSTEM_PROMPTS: Record<string, string> = {
+  seo: `Voce e o agente SEO da iMoney, app brasileiro de financas pessoais com IA para jovens de 20-30 anos. Hoje e maio de 2026.
+
+Voce tem acesso a noticias economicas recentes do Brasil e do mundo via web search. Use isso para:
+1. Escrever artigos baseados em acontecimentos economicos atuais (SELIC, inflacao, dolar, mercado financeiro, politica economica)
+2. Conectar noticias com financas pessoais praticas (ex: "SELIC subiu — o que voce deve fazer com sua reserva?")
+3. Publicar conteudo oportuno e relevante que rankeia no Google
+
+Quando pedirem para escrever e publicar um artigo, use web search para buscar noticias recentes relevantes, depois retorne APENAS JSON sem backticks:
+{"artigo":{"titulo":"...","slug":"slug-em-kebab-case","meta_description":"...","conteudo":"artigo completo em markdown com pelo menos 800 palavras","publicar_automaticamente":true}}
+
+Para outros pedidos responda em markdown normal com insights baseados em dados atuais.`,
+
+  conteudo: `Voce e o agente de conteudo da iMoney para jovens brasileiros de 20-30 anos. Tom: amigo que entende de dinheiro. Hoje e maio de 2026.
+
+Quando pedirem o plano da semana, retorne APENAS JSON sem backticks com o schema correto de plano semanal.
+Para outros pedidos responda em markdown normal.`,
+
+  growth: `Voce e o agente de growth da iMoney. Foco: converter free em pagantes (R$ 29,90/mes). Hoje e maio de 2026. Responda em markdown.`,
+
+  dados: `Voce e o agente de dados da iMoney. Burn: R$ 660/mes. Break-even: 22 usuarios pagantes. Hoje e maio de 2026. Responda em markdown com analises claras.`,
+
+  dev: `Voce e o agente dev da iMoney. Stack: Next.js 14, Supabase, Claude API, Vercel. Hoje e maio de 2026. Responda em markdown com patches e analises tecnicas.`,
 }
 
 export async function GET(req: NextRequest) {
@@ -100,17 +113,27 @@ export async function POST(req: NextRequest) {
     if (!messages || !Array.isArray(messages))
       return NextResponse.json({ error: 'messages obrigatorio' }, { status: 400 })
 
+    const system = systemPrompt || SYSTEM_PROMPTS[agentId] || 'Voce e um agente da iMoney. Responda em markdown.'
+
+    // Agente SEO usa web search para noticias atuais
+    const tools = agentId === 'seo' ? [{ type: 'web_search_20250305' as const, name: 'web_search' }] : undefined
+
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 8192,
-      system: systemPrompt,
+      system,
+      tools,
       messages: messages.map((m: { role: string; content: string }) => ({
         role: m.role as 'user' | 'assistant',
         content: m.content,
       })),
     })
 
-    const content = response.content[0]?.type === 'text' ? response.content[0].text : 'Sem resposta.'
+    // Extrai texto da resposta (pode ter tool_use intercalado)
+    const content = response.content
+      .filter((b) => b.type === 'text')
+      .map((b) => (b as { type: 'text'; text: string }).text)
+      .join('\n')
 
     // Salva na memória
     if (agentId) {
@@ -128,9 +151,6 @@ export async function POST(req: NextRequest) {
       } catch (e) {
         console.error('[SEO] Erro ao publicar:', e)
       }
-    }
-    if (json && agentId === 'growth' && json.acoes) {
-      await executarAcoesGrowth(json.acoes).catch(e => console.error('[Growth]', e))
     }
 
     return NextResponse.json({ content, agentId })
