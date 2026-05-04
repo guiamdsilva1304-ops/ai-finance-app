@@ -1,4 +1,7 @@
 "use client";
+import { useEffect, useState } from "react";
+import { createSupabaseBrowser } from "@/lib/supabase";
+import { ProBanner } from "@/components/ui/ProBanner";
 
 import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
@@ -18,6 +21,18 @@ const PAISES = ["Brasil","Estados Unidos","Europa","Reino Unido","Japão","China
 const PIE_COLORS = ["#16a34a","#22c55e","#4ade80","#86efac","#f59e0b","#fb923c","#6366f1","#a855f7","#14b8a6","#ef4444"];
 
 export default function InvestimentosPage() {
+  const supabase = createSupabaseBrowser()
+  const [plano, setPlano] = useState<string | null>(null)
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) {
+        const { data: p } = await supabase.from("user_profiles").select("plan").eq("id", data.user.id).single()
+        setPlano(p?.plan ?? "free")
+      }
+    })
+  }, [])
+  if (plano === null) return null
+  if (plano !== "pro") return <ProBanner feature="Controle de Investimentos" descricao="Registre seus ativos, acompanhe a rentabilidade e veja se sua carteira está alinhada com seus objetivos. Exclusivo para assinantes Pro." />
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [rates, setRates] = useState<Record<string, ExchangeRate>>({});
   const [loading, setLoading] = useState(true);
