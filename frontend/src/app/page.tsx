@@ -68,6 +68,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 72, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Image src="/logo.png" alt="iMoney" width={140} height={40} style={{ objectFit: "contain" }} />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Link href="/blog" style={{ fontSize: 14, fontWeight: 700, color: "#5a6472", textDecoration: "none" }}>Blog</Link>
             <Link href="/login" style={{ fontSize: 14, fontWeight: 700, color: "#5a6472", textDecoration: "none" }}>Entrar</Link>
             <Link href="/login" style={{ background: "#1D9E75", color: "#fff", fontSize: 14, fontWeight: 800, padding: "10px 20px", borderRadius: 12, textDecoration: "none" }}>
               Criar conta grátis →
@@ -259,6 +260,28 @@ export default function LandingPage() {
                 </Link>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* BLOG */}
+      <section className="section-pad" style={{ padding: "100px 24px", background: "#fff" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#1D9E75", letterSpacing: "0.08em", textTransform: "uppercase" }}>Blog</span>
+            <h2 style={{ fontSize: 40, fontWeight: 900, color: "#0d2414", marginTop: 8 }}>Aprenda sobre finanças</h2>
+            <p style={{ fontSize: 16, color: "#6b9e80", marginTop: 12 }}>Artigos práticos sobre como organizar, investir e crescer seu dinheiro.</p>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <Link href="/blog" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "#f0fdf4", border: "2px solid #1D9E75",
+              color: "#085041", fontWeight: 800, fontSize: 16,
+              padding: "16px 32px", borderRadius: 16, textDecoration: "none",
+              transition: "all .2s",
+            }}>
+              📚 Ver todos os artigos →
+            </Link>
           </div>
         </div>
       </section>
