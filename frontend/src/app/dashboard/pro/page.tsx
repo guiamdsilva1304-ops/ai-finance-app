@@ -29,6 +29,7 @@ const FEATURES_PRO = [
 export default function ProPage() {
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<{ id: string; email: string } | null>(null)
+  const [userLoaded, setUserLoaded] = useState(false)
   const [plano, setPlano] = useState<string>('free')
   const [periodo, setPeriodo] = useState<'mensal' | 'anual'>('mensal')
 
@@ -215,7 +216,7 @@ export default function ProPage() {
             <div style={{ fontSize: 13, color: '#1D9E75', marginTop: 4 }}>Aproveite todos os recursos ilimitados.</div>
           </div>
         ) : (
-          <button onClick={assinar} disabled={loading} style={{
+          <button onClick={assinar} disabled={loading || !userLoaded} style={{
             width: '100%', padding: '18px 0',
             background: loading ? '#ccc' : 'linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)',
             color: '#fff', border: 'none', borderRadius: 16,
