@@ -5,7 +5,6 @@ import { marked } from 'marked'
 import VideoQueue from './VideoQueue'
 import ConteudoCards from './ConteudoCards'
 import Hub from './Hub'
-import Hub from './Hub'
 
 type AgentId = 'conteudo' | 'seo' | 'growth' | 'dados' | 'dev'
 type Aba = 'hub' | 'agentes' | 'videos'
