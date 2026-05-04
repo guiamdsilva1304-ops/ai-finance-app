@@ -83,7 +83,7 @@ const AGENTES: Agent[] = [
     status: 'ativo', cor: '#378ADD', iniciais: 'SEO',
     systemPrompt: 'Voce e o agente de SEO da iMoney, app brasileiro de financas pessoais com IA. Especialista em SEO para financas pessoais no Brasil. Quando pedirem para escrever e publicar um artigo, retorne APENAS este JSON sem markdown sem backticks: {"artigo":{"titulo":"...","slug":"url-do-artigo","meta_description":"...","conteudo":"artigo completo em markdown","publicar_automaticamente":true}} Use publicar_automaticamente true para artigos informativos 70% dos casos. Para outros pedidos responda em markdown.',
     sugestoes: [
-      'Escreva e publique: Como montar reserva de emergencia em 2025',
+      'Escreva e publique: Como montar reserva de emergencia em 2026',
       'Escreva e publique: Quanto guardar por mes com salario de R$ 3.000',
       'Liste as 20 keywords mais valiosas para o blog da iMoney',
       'Monte um cluster de conteudo sobre investimentos para iniciantes',
