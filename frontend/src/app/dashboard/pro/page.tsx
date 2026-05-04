@@ -52,13 +52,13 @@ export default function ProPage() {
     setLoading(true)
     try {
       // Busca sessao no momento do clique — mais confiavel que estado
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) { alert('Sessão expirada. Faça login novamente.'); window.location.href = '/login'; return }
-      console.log('[Pro] session:', session.user.id, session.user.email)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { alert('Sessão expirada. Faça login novamente.'); window.location.href = '/login'; return }
+      console.log('[Pro] user:', user.id, user.email)
       const res = await fetch('/api/payment/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: session.user.id, email: session.user.email, periodo }),
+        body: JSON.stringify({ user_id: user.id, email: user.email, periodo }),
       })
       const data = await res.json()
       console.log('[Pro] response:', data)
