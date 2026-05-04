@@ -4,7 +4,6 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 import { ProBanner } from "@/components/ui/ProBanner";
 
 import { useEffect, useState, useCallback } from "react";
-import { createSupabaseBrowser } from "@/lib/supabase";
 import { formatBRL, formatPct } from "@/lib/utils";
 import { Plus, Trash2, RefreshCw, Globe, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
