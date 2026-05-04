@@ -1,12 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { createSupabaseBrowser } from '@/lib/supabase'
 
 interface Post {
   id: string
@@ -28,6 +23,7 @@ function slugify(text: string) {
 }
 
 export default function AdminBlogPage() {
+  const supabase = createSupabaseBrowser()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [modo, setModo] = useState<'lista' | 'novo' | 'editar'>('lista')
@@ -122,8 +118,11 @@ export default function AdminBlogPage() {
 
   if (modo === 'novo' || modo === 'editar') return (
     <div style={{ ...s, padding: 32, maxWidth: 800, margin: '0 auto' }}>
+      <div style={{ marginBottom: 12 }}>
+        <a href="/admin" style={{ fontSize: 13, fontWeight: 700, color: '#1D9E75', textDecoration: 'none' }}>← Voltar ao admin</a>
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
-        <button onClick={() => setModo('lista')} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e8ede8', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>← Voltar</button>
+        <button onClick={() => setModo('lista')} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e8ede8', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>← Lista de artigos</button>
         <h1 style={{ fontSize: 20, fontWeight: 800, color: '#1a1a1a', margin: 0 }}>{editandoId ? 'Editar artigo' : 'Novo artigo'}</h1>
       </div>
 
@@ -183,6 +182,9 @@ export default function AdminBlogPage() {
 
   return (
     <div style={{ ...s, padding: 32 }}>
+      <div style={{ marginBottom: 16 }}>
+        <a href="/admin" style={{ fontSize: 13, fontWeight: 700, color: '#1D9E75', textDecoration: 'none' }}>← Voltar ao admin</a>
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', margin: '0 0 4px' }}>Blog da iMoney</h1>
