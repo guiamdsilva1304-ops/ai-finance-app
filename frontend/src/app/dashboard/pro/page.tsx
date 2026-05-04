@@ -49,13 +49,15 @@ export default function ProPage() {
   }, [])
 
   async function assinar() {
-    if (!user) { window.location.href = '/login'; return }
     setLoading(true)
     try {
+      // Busca sessao no momento do clique — mais confiavel que estado
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) { window.location.href = '/login'; return }
       const res = await fetch('/api/payment/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, email: user.email, periodo }),
+        body: JSON.stringify({ user_id: session.user.id, email: session.user.email, periodo }),
       })
       const data = await res.json()
       if (data.checkout_url) {
