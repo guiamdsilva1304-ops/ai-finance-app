@@ -53,15 +53,17 @@ export default function ProPage() {
     try {
       // Busca sessao no momento do clique — mais confiavel que estado
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) { window.location.href = '/login'; return }
+      if (!session?.user) { alert('Sessão expirada. Faça login novamente.'); window.location.href = '/login'; return }
+      console.log('[Pro] session:', session.user.id, session.user.email)
       const res = await fetch('/api/payment/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: session.user.id, email: session.user.email, periodo }),
       })
       const data = await res.json()
+      console.log('[Pro] response:', data)
       if (data.checkout_url) {
-        window.location.href = data.checkout_url
+        window.open(data.checkout_url, '_blank')
       } else {
         alert('Erro ao iniciar assinatura. Tente novamente.')
       }
