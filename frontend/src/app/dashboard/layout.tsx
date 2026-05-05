@@ -18,8 +18,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .from('user_profiles')
         .select('plan')
         .eq('id', data.user.id)
-        .single();
-      if (perfil?.plan) setPlan(perfil.plan);
+        .maybeSingle();
+      setPlan(perfil?.plan ?? 'free');
     });
   }, []);
 
