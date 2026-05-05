@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 
 const EMOJIS: Record<string, string> = {
@@ -14,7 +16,7 @@ export async function GET() {
 
     const res = await fetch(
       `https://economia.awesomeapi.com.br/json/last/${pares}`,
-      { next: { revalidate: 300 } } // cache 5 minutos
+      { next: { revalidate: 3600 } } // cache 1 hora
     );
 
     if (!res.ok) throw new Error("AwesomeAPI falhou");

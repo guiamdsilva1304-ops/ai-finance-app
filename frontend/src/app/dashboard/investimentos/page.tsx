@@ -24,6 +24,7 @@ export default function InvestimentosPage() {
   const [investments, setInvestments] = useState<Investment[]>([]);
 
   const [rates, setRates] = useState<Record<string, ExchangeRate>>({});
+  const [ratesLoaded, setRatesLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -58,6 +59,7 @@ export default function InvestimentosPage() {
     ]);
     setInvestments(invRes.data ?? []);
     setRates(ratesRes);
+    setRatesLoaded(true);
     setLoading(false);
   }, [supabase]);
 
@@ -65,6 +67,7 @@ export default function InvestimentosPage() {
 
   function toBRL(val: number, m: string): number {
     if (m === "BRL") return val;
+    if (!ratesLoaded && m !== "BRL") return 0;
     const rate = rates[m]?.rate ?? 1;
     return val * rate;
   }
@@ -270,7 +273,7 @@ export default function InvestimentosPage() {
                         <div>
                           <p className="text-xs text-[#8db89d]">Valor em BRL</p>
                           <p className="font-black text-sm text-[#16a34a]" style={{ fontFamily: "Nunito, sans-serif" }}>
-                            {formatBRL(valAtual)}
+                            {!ratesLoaded && inv.moeda !== "BRL" ? "Carregando..." : formatBRL(valAtual)}
                           </p>
                         </div>
                         {inv.moeda !== "BRL" && rates[inv.moeda] && (
