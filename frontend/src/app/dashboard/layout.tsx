@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen bg-[#f8fdf9]">
       <Sidebar email={email} plan={plan} />
-      <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>
+      <main className="flex-1 min-w-0 overflow-x-hidden pb-20 md:pb-0">{children}</main>
     </div>
   );
 }
