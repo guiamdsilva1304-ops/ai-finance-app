@@ -47,7 +47,6 @@ export default function InvestimentosPage() {
   const [notas, setNotas] = useState("");
   const [formError, setFormError] = useState("");
 
-  const supabase = createSupabaseBrowser();
 
   const load = useCallback(async () => {
     setLoading(true);

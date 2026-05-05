@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     const system = systemPrompt || SYSTEM_PROMPTS[agentId] || 'Voce e um agente da iMoney. Responda em markdown.'
 
     // Agente SEO usa web search para noticias atuais
-    const tools = agentId === 'seo' ? [{ type: 'web_search_20250305' as const, name: 'web_search' }] : undefined
+    const tools: Anthropic.Tool[] | undefined = agentId === 'seo' ? [{ type: 'web_search_20250305' as const, name: 'web_search' } as unknown as Anthropic.Tool] : undefined
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
