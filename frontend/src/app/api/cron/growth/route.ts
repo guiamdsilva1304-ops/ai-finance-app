@@ -228,7 +228,7 @@ export async function GET(req: NextRequest) {
       .in('id', userIds)
       .eq('plan', 'free')
 
-    const freeUsers = (perfis ?? []).map(p => {
+    const freeUsers = (perfis ?? []).map((p: { id: string; nome: string; plan: string }) => {
       const u = users.find(u => u.id === p.id)
       return { id: p.id, email: u?.email ?? '', nome: p.nome ?? '', created_at: u?.created_at ?? '' }
     }).filter(u => u.email)
