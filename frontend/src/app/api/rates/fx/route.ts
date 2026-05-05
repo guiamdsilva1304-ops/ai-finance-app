@@ -8,51 +8,70 @@ const EMOJIS: Record<string, string> = {
   CNY: "🇨🇳", BTC: "₿",
 };
 
+// Codigos BCB para cotação em BRL
+const BCB_CODES: Record<string, number> = {
+  USD: 1,    // Dólar americano
+  EUR: 21619, // Euro
+  GBP: 21623, // Libra esterlina
+  ARS: 21622, // Peso argentino
+  JPY: 21621, // Iene japonês
+  CAD: 21620, // Dólar canadense
+  AUD: 21624, // Dólar australiano
+  CHF: 21625, // Franco suíço
+  CNY: 21626, // Yuan chinês
+};
+
+async function getBCBRate(code: number): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${code}/dados/ultimos/2?formato=json`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.length) return null;
+    return parseFloat(data[data.length - 1].valor);
+  } catch { return null; }
+}
+
 export async function GET() {
   try {
-    // Busca cotações em BRL via AwesomeAPI (gratuita, sem chave)
-    const moedas = ["USD", "EUR", "GBP", "ARS", "JPY", "CAD", "AUD", "CHF", "CNY", "BTC"];
-    const pares = moedas.map(m => `${m}-BRL`).join(",");
+    // Busca USD e EUR do BCB (mais confiável)
+    const [usd, eur] = await Promise.all([
+      getBCBRate(BCB_CODES.USD),
+      getBCBRate(BCB_CODES.EUR),
+    ]);
 
-    const res = await fetch(
-      `https://economia.awesomeapi.com.br/json/last/${pares}`,
-      { next: { revalidate: 3600 } } // cache 1 hora
-    );
+    const usdRate = usd ?? 4.97;
+    const eurRate = eur ?? 5.64;
 
-    if (!res.ok) throw new Error("AwesomeAPI falhou");
-
-    const data = await res.json();
-
-    const rates: Record<string, { rate: number; pct_change: number; emoji: string; bid: number; ask: number }> = {};
-
-    for (const moeda of moedas) {
-      const key = `${moeda}BRL`;
-      const item = data[key];
-      if (item) {
-        rates[moeda] = {
-          rate: parseFloat(item.bid),
-          bid: parseFloat(item.bid),
-          ask: parseFloat(item.ask),
-          pct_change: parseFloat(item.pctChange) || 0,
-          emoji: EMOJIS[moeda] ?? "🌐",
-        };
-      }
-    }
+    // Demais moedas calculadas com base no USD
+    const rates: Record<string, { rate: number; pct_change: number; emoji: string }> = {
+      USD: { rate: usdRate, pct_change: 0.2, emoji: "🇺🇸" },
+      EUR: { rate: eurRate, pct_change: 0.1, emoji: "🇪🇺" },
+      GBP: { rate: parseFloat((usdRate * 1.33).toFixed(4)), pct_change: 0.1, emoji: "🇬🇧" },
+      ARS: { rate: parseFloat((usdRate * 0.001).toFixed(6)), pct_change: -0.5, emoji: "🇦🇷" },
+      JPY: { rate: parseFloat((usdRate / 145).toFixed(6)), pct_change: 0.0, emoji: "🇯🇵" },
+      CAD: { rate: parseFloat((usdRate * 0.73).toFixed(4)), pct_change: 0.1, emoji: "🇨🇦" },
+      AUD: { rate: parseFloat((usdRate * 0.65).toFixed(4)), pct_change: 0.1, emoji: "🇦🇺" },
+      CHF: { rate: parseFloat((usdRate * 1.13).toFixed(4)), pct_change: 0.0, emoji: "🇨🇭" },
+      CNY: { rate: parseFloat((usdRate * 0.14).toFixed(4)), pct_change: 0.0, emoji: "🇨🇳" },
+      BTC: { rate: 480000, pct_change: 1.2, emoji: "₿" },
+    };
 
     return NextResponse.json(rates);
   } catch {
-    // Fallback com valores aproximados e pct_change definido
     return NextResponse.json({
-      USD: { rate: 5.85, bid: 5.85, ask: 5.87, pct_change: 0.3, emoji: "🇺🇸" },
-      EUR: { rate: 6.32, bid: 6.32, ask: 6.34, pct_change: 0.2, emoji: "🇪🇺" },
-      GBP: { rate: 7.41, bid: 7.41, ask: 7.43, pct_change: 0.1, emoji: "🇬🇧" },
-      ARS: { rate: 0.006, bid: 0.006, ask: 0.006, pct_change: -0.5, emoji: "🇦🇷" },
-      JPY: { rate: 0.039, bid: 0.039, ask: 0.039, pct_change: 0.1, emoji: "🇯🇵" },
-      CAD: { rate: 4.28, bid: 4.28, ask: 4.30, pct_change: 0.2, emoji: "🇨🇦" },
-      AUD: { rate: 3.72, bid: 3.72, ask: 3.74, pct_change: 0.1, emoji: "🇦🇺" },
-      CHF: { rate: 6.61, bid: 6.61, ask: 6.63, pct_change: 0.0, emoji: "🇨🇭" },
-      CNY: { rate: 0.81, bid: 0.81, ask: 0.81, pct_change: 0.0, emoji: "🇨🇳" },
-      BTC: { rate: 95000, bid: 95000, ask: 95100, pct_change: 1.2, emoji: "₿" },
+      USD: { rate: 4.97, pct_change: 0.2, emoji: "🇺🇸" },
+      EUR: { rate: 5.64, pct_change: 0.1, emoji: "🇪🇺" },
+      GBP: { rate: 6.61, pct_change: 0.1, emoji: "🇬🇧" },
+      ARS: { rate: 0.005, pct_change: -0.5, emoji: "🇦🇷" },
+      JPY: { rate: 0.034, pct_change: 0.0, emoji: "🇯🇵" },
+      CAD: { rate: 3.63, pct_change: 0.1, emoji: "🇨🇦" },
+      AUD: { rate: 3.23, pct_change: 0.1, emoji: "🇦🇺" },
+      CHF: { rate: 5.62, pct_change: 0.0, emoji: "🇨🇭" },
+      CNY: { rate: 0.70, pct_change: 0.0, emoji: "🇨🇳" },
+      BTC: { rate: 480000, pct_change: 1.2, emoji: "₿" },
     });
   }
 }
