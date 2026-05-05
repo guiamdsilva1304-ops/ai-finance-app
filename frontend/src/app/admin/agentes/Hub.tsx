@@ -16,57 +16,63 @@ interface Missao {
   execucoes_total: number
 }
 
-const AGENT_COR: Record<string, string> = {
-  seo: '#378ADD',
-  conteudo: '#1D9E75',
-  growth: '#7F77DD',
-  dados: '#EF9F27',
-  dev: '#D85A30',
+interface Metricas {
+  total_usuarios: number
+  novos_semana: number
+  novos_hoje: number
+  artigos_publicados: number
+  artigos_semana: number
+  emails_enviados: number
+  aprovacoes_pendentes: number
+  missoes_concluidas: number
+  pagantes: number
+  mrr: number
+  break_even: number
+  progresso_break_even: number
 }
 
-const AGENT_LABEL: Record<string, string> = {
-  seo: 'SEO',
-  conteudo: 'MKT',
-  growth: 'GRW',
-  dados: 'DAD',
-  dev: 'DEV',
+const AGENT_CONFIG: Record<string, { cor: string; bg: string; label: string; icon: string }> = {
+  seo:      { cor: '#378ADD', bg: '#EBF4FF', label: 'SEO',     icon: '🔍' },
+  conteudo: { cor: '#1D9E75', bg: '#E1F5EE', label: 'MKT',     icon: '📱' },
+  growth:   { cor: '#7F77DD', bg: '#F0EFFF', label: 'GRW',     icon: '🚀' },
+  dados:    { cor: '#EF9F27', bg: '#FFF8EC', label: 'DAD',     icon: '📊' },
+  dev:      { cor: '#D85A30', bg: '#FFEDE8', label: 'DEV',     icon: '💻' },
 }
 
-const STATUS_COR: Record<string, string> = {
-  pendente: '#aaa',
-  executando: '#EF9F27',
-  concluido: '#1D9E75',
-  erro: '#D85A30',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  pendente: 'Pendente',
-  executando: 'Executando...',
-  concluido: 'Concluído',
-  erro: 'Erro',
+const STATUS_CONFIG: Record<string, { cor: string; bg: string; label: string; dot: string }> = {
+  pendente:   { cor: '#888',    bg: '#f5f5f5', label: 'Pendente',    dot: '○' },
+  executando: { cor: '#EF9F27', bg: '#FFF8EC', label: 'Executando',  dot: '◉' },
+  concluido:  { cor: '#1D9E75', bg: '#E1F5EE', label: 'Concluído',   dot: '●' },
+  erro:       { cor: '#D85A30', bg: '#FFEDE8', label: 'Erro',        dot: '✕' },
 }
 
 export default function Hub() {
   const [missoes, setMissoes] = useState<Missao[]>([])
+  const [metricas, setMetricas] = useState<Metricas | null>(null)
   const [loading, setLoading] = useState(true)
   const [executando, setExecutando] = useState<string | null>(null)
   const [resultados, setResultados] = useState<Record<string, string>>({})
+  const [expandido, setExpandido] = useState<string | null>(null)
 
-  const carregarMissoes = useCallback(async () => {
+  const carregar = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/hub')
-      const data = await res.json()
-      setMissoes(data.missoes ?? [])
+      const [mRes, metrRes] = await Promise.all([
+        fetch('/api/admin/hub'),
+        fetch('/api/admin/metricas'),
+      ])
+      const mData = await mRes.json()
+      const metrData = await metrRes.json()
+      setMissoes(mData.missoes ?? [])
+      if (!metrData.error) setMetricas(metrData)
     } catch { } finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { carregarMissoes() }, [carregarMissoes])
+  useEffect(() => { carregar() }, [carregar])
 
   async function executarMissao(missao: Missao) {
     if (executando) return
     setExecutando(missao.id)
-    setResultados(prev => ({ ...prev, [missao.id]: 'Executando...' }))
-
+    setResultados(prev => ({ ...prev, [missao.id]: '⟳ Executando...' }))
     try {
       const res = await fetch('/api/admin/hub', {
         method: 'POST',
@@ -74,50 +80,84 @@ export default function Hub() {
         body: JSON.stringify({ missao_id: missao.id, agent_id: missao.agent_id, prompt: missao.prompt }),
       })
       const data = await res.json()
-      setResultados(prev => ({ ...prev, [missao.id]: data.resultado ?? 'Concluído' }))
-      await carregarMissoes()
+      setResultados(prev => ({ ...prev, [missao.id]: data.resultado ?? '✓ Concluído' }))
+      await carregar()
     } catch {
-      setResultados(prev => ({ ...prev, [missao.id]: 'Erro ao executar' }))
-    } finally {
-      setExecutando(null)
-    }
+      setResultados(prev => ({ ...prev, [missao.id]: '✕ Erro ao executar' }))
+    } finally { setExecutando(null) }
   }
 
   async function executarTodos() {
-    for (const missao of missoes.filter(m => m.status !== 'executando')) {
+    for (const missao of missoes) {
       await executarMissao(missao)
-      await new Promise(r => setTimeout(r, 2000))
+      await new Promise(r => setTimeout(r, 1500))
     }
   }
 
   const agentes = [...new Set(missoes.map(m => m.agent_id))]
-  const totalConcluidas = missoes.filter(m => m.status === 'concluido').length
-  const totalPendentes = missoes.filter(m => m.status === 'pendente').length
+  const concluidas = missoes.filter(m => m.status === 'concluido').length
+  const pendentes = missoes.filter(m => m.status === 'pendente').length
+  const pctBreakEven = metricas ? Math.min(100, Math.round((metricas.pagantes / metricas.break_even) * 100)) : 0
+  const pctBlog = metricas ? Math.min(100, Math.round((metricas.artigos_publicados / 10) * 100)) : 0
 
   return (
-    <div style={{ padding: '24px 28px', fontFamily: "'Nunito',sans-serif" }}>
+    <div style={{ padding: '20px 24px', fontFamily: "'Nunito',sans-serif", minHeight: '100%', background: '#f8f9f8' }}>
+
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#1a1a1a', marginBottom: 4 }}>Hub de Missões</div>
-          <div style={{ fontSize: 13, color: '#888' }}>Agentes trabalhando para crescer a iMoney</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#0d2414', letterSpacing: '-0.02em' }}>
+            ⚡ Hub de Missões
+          </div>
+          <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+            Agentes trabalhando para crescer a iMoney — {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+          </div>
         </div>
         <button onClick={executarTodos} disabled={!!executando}
-          style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: executando ? '#e8ede8' : '#1D9E75', color: executando ? '#aaa' : '#fff', fontSize: 13, fontWeight: 700, cursor: executando ? 'not-allowed' : 'pointer' }}>
-          {executando ? 'Executando...' : '▶ Executar todos'}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 10, border: 'none', background: executando ? '#e8ede8' : 'linear-gradient(135deg,#0a3d28,#1D9E75)', color: executando ? '#aaa' : '#fff', fontSize: 13, fontWeight: 700, cursor: executando ? 'not-allowed' : 'pointer', transition: 'all .2s' }}>
+          {executando ? '⟳ Executando...' : '▶ Executar todos'}
         </button>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+      {/* KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
-          { label: 'Missões ativas', valor: missoes.length, cor: '#1D9E75' },
-          { label: 'Concluídas hoje', valor: totalConcluidas, cor: '#085041' },
-          { label: 'Pendentes', valor: totalPendentes, cor: '#EF9F27' },
-        ].map(s => (
-          <div key={s.label} style={{ background: '#fff', border: '1px solid #e8ede8', borderRadius: 12, padding: '14px 16px' }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: s.cor }}>{s.valor}</div>
-            <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{s.label}</div>
+          { label: 'MRR', valor: `R$ ${(metricas?.mrr ?? 0).toFixed(0)}`, sub: `${metricas?.pagantes ?? 0} pagantes`, cor: '#1D9E75', destaque: true },
+          { label: 'Usuários', valor: metricas?.total_usuarios ?? '—', sub: `+${metricas?.novos_semana ?? 0} esta semana`, cor: '#378ADD', destaque: false },
+          { label: 'Novos hoje', valor: metricas?.novos_hoje ?? '—', sub: 'cadastros', cor: '#7F77DD', destaque: false },
+          { label: 'Artigos', valor: metricas?.artigos_publicados ?? '—', sub: `+${metricas?.artigos_semana ?? 0} esta semana`, cor: '#085041', destaque: false },
+          { label: 'Missões ✓', valor: concluidas, sub: `${pendentes} pendentes`, cor: '#EF9F27', destaque: false },
+          { label: 'Aprovações', valor: metricas?.aprovacoes_pendentes ?? 0, sub: 'aguardando review', cor: metricas?.aprovacoes_pendentes ? '#D85A30' : '#aaa', destaque: false },
+        ].map(k => (
+          <div key={k.label} style={{
+            background: k.destaque ? 'linear-gradient(135deg,#0a3d28,#1D9E75)' : '#fff',
+            border: k.destaque ? 'none' : `1px solid ${k.cor}22`,
+            borderRadius: 12, padding: '12px 14px',
+            boxShadow: k.destaque ? '0 4px 16px rgba(29,158,117,0.25)' : '0 1px 3px rgba(0,0,0,0.04)',
+          }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: k.destaque ? 'rgba(255,255,255,0.7)' : '#aaa', letterSpacing: '0.06em', marginBottom: 4, textTransform: 'uppercase' }}>{k.label}</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: k.destaque ? '#fff' : k.cor, lineHeight: 1 }}>{k.valor}</div>
+            <div style={{ fontSize: 10, color: k.destaque ? 'rgba(255,255,255,0.6)' : '#aaa', marginTop: 3 }}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Progress bars */}
+      <div style={{ background: '#fff', borderRadius: 12, padding: '14px 18px', marginBottom: 20, border: '1px solid #e8ede8' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a1a', marginBottom: 12 }}>Progresso para break-even</div>
+        {[
+          { label: `Pagantes ${metricas?.pagantes ?? 0}/${metricas?.break_even ?? 22}`, pct: pctBreakEven, cor: '#1D9E75' },
+          { label: `Blog ${metricas?.artigos_publicados ?? 0}/10 artigos`, pct: pctBlog, cor: '#378ADD' },
+          { label: `Missões ${concluidas}/${missoes.length} executadas`, pct: missoes.length ? Math.round((concluidas / missoes.length) * 100) : 0, cor: '#7F77DD' },
+        ].map(p => (
+          <div key={p.label} style={{ marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+              <span style={{ color: '#666', fontWeight: 600 }}>{p.label}</span>
+              <span style={{ color: p.cor, fontWeight: 700 }}>{p.pct}%</span>
+            </div>
+            <div style={{ height: 6, background: '#f0f0f0', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${p.pct}%`, background: p.cor, borderRadius: 3, transition: 'width 1s ease' }} />
+            </div>
           </div>
         ))}
       </div>
@@ -126,64 +166,76 @@ export default function Hub() {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0', fontSize: 13, color: '#aaa' }}>Carregando missões...</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {agentes.map(agentId => {
-            const cor = AGENT_COR[agentId] || '#888'
+            const cfg = AGENT_CONFIG[agentId] || { cor: '#888', bg: '#f5f5f5', label: agentId.toUpperCase(), icon: '🤖' }
             const missoesDeste = missoes.filter(m => m.agent_id === agentId)
+            const todosConcluidos = missoesDeste.every(m => m.status === 'concluido')
+
             return (
-              <div key={agentId} style={{ background: '#fff', border: `1px solid ${cor}22`, borderRadius: 14, overflow: 'hidden' }}>
-                {/* Header do agente */}
-                <div style={{ background: cor + '10', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${cor}22` }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: cor + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: cor, letterSpacing: '0.05em' }}>
-                    {AGENT_LABEL[agentId] || agentId.toUpperCase()}
+              <div key={agentId} style={{ background: '#fff', border: `1px solid ${cfg.cor}22`, borderRadius: 14, overflow: 'hidden' }}>
+                {/* Header */}
+                <div style={{ background: cfg.bg, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${cfg.cor}18` }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: cfg.cor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                    {cfg.icon}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', textTransform: 'capitalize' }}>
-                    Agente {agentId}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0d2414', textTransform: 'capitalize' }}>Agente {agentId}</div>
+                    <div style={{ fontSize: 11, color: '#888' }}>{missoesDeste.length} missão{missoesDeste.length !== 1 ? 'ões' : ''} · {missoesDeste.filter(m => m.status === 'concluido').length} concluída{missoesDeste.filter(m => m.status === 'concluido').length !== 1 ? 's' : ''}</div>
                   </div>
-                  <span style={{ fontSize: 11, color: cor, background: cor + '15', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>
-                    {missoesDeste.length} missão{missoesDeste.length !== 1 ? 'ões' : ''}
-                  </span>
+                  {todosConcluidos && (
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#1D9E75', background: '#E1F5EE', padding: '3px 10px', borderRadius: 20 }}>✓ Tudo ok</div>
+                  )}
                 </div>
 
-                {/* Lista de missões */}
-                <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Missões */}
+                <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {missoesDeste.map(missao => {
-                    const isExecutando = executando === missao.id
+                    const isExec = executando === missao.id
+                    const statusKey = isExec ? 'executando' : missao.status
+                    const stCfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.pendente
                     const resultado = resultados[missao.id]
-                    const statusAtual = isExecutando ? 'executando' : missao.status
+                    const exp = expandido === missao.id
+
                     return (
-                      <div key={missao.id} style={{ background: '#f8f9f8', borderRadius: 10, padding: '12px 14px', border: `1px solid ${STATUS_COR[statusAtual]}22` }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a' }}>{missao.titulo}</span>
-                              <span style={{ fontSize: 10, fontWeight: 600, color: STATUS_COR[statusAtual], background: STATUS_COR[statusAtual] + '18', padding: '1px 7px', borderRadius: 20 }}>
-                                {STATUS_LABEL[statusAtual]}
-                              </span>
-                              <span style={{ fontSize: 10, color: '#bbb', background: '#f0f0f0', padding: '1px 7px', borderRadius: 20 }}>
-                                {missao.frequencia}
-                              </span>
+                      <div key={missao.id} style={{ border: `1px solid ${stCfg.cor}20`, borderRadius: 10, overflow: 'hidden', transition: 'all .2s' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', background: stCfg.bg + '40' }}
+                          onClick={() => setExpandido(exp ? null : missao.id)}>
+                          <div style={{ fontSize: 14, color: stCfg.cor, flexShrink: 0, animation: isExec ? 'spin 1s linear infinite' : 'none' }}>
+                            {stCfg.dot}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0d2414', marginBottom: 2 }}>{missao.titulo}</div>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 10, fontWeight: 600, color: stCfg.cor, background: stCfg.bg, padding: '1px 7px', borderRadius: 20 }}>{stCfg.label}</span>
+                              <span style={{ fontSize: 10, color: '#bbb', background: '#f5f5f5', padding: '1px 7px', borderRadius: 20 }}>{missao.frequencia}</span>
+                              {missao.execucoes_total > 0 && (
+                                <span style={{ fontSize: 10, color: '#bbb', background: '#f5f5f5', padding: '1px 7px', borderRadius: 20 }}>{missao.execucoes_total}x executada</span>
+                              )}
                             </div>
-                            <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5, marginBottom: resultado ? 8 : 0 }}>
-                              {missao.descricao}
-                            </div>
-                            {resultado && (
-                              <div style={{ fontSize: 11, color: '#444', background: '#fff', border: '1px solid #e8ede8', borderRadius: 8, padding: '6px 10px', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: 120, overflow: 'auto' }}>
-                                {resultado}
+                          </div>
+                          <button onClick={e => { e.stopPropagation(); executarMissao(missao) }} disabled={!!executando}
+                            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 700, cursor: executando ? 'not-allowed' : 'pointer', flexShrink: 0, background: isExec ? '#FFF8EC' : cfg.bg, color: isExec ? '#EF9F27' : cfg.cor, transition: 'all .2s' }}>
+                            {isExec ? '⟳' : '▶'}
+                          </button>
+                          <span style={{ fontSize: 10, color: '#ccc' }}>{exp ? '▲' : '▼'}</span>
+                        </div>
+
+                        {exp && (
+                          <div style={{ padding: '10px 12px', borderTop: `1px solid ${stCfg.cor}15`, background: '#fafafa' }}>
+                            <div style={{ fontSize: 12, color: '#666', marginBottom: 8, lineHeight: 1.6 }}>{missao.descricao}</div>
+                            {(resultado || missao.ultimo_resultado) && (
+                              <div style={{ fontSize: 11, color: '#444', background: '#fff', border: '1px solid #e8ede8', borderRadius: 8, padding: '8px 12px', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: 120, overflow: 'auto', fontFamily: 'monospace' }}>
+                                {resultado || missao.ultimo_resultado}
                               </div>
                             )}
                             {missao.ultima_execucao && (
                               <div style={{ fontSize: 10, color: '#bbb', marginTop: 6 }}>
                                 Última execução: {new Date(missao.ultima_execucao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                {missao.execucoes_total > 0 && ` · ${missao.execucoes_total}x executada`}
                               </div>
                             )}
                           </div>
-                          <button onClick={() => executarMissao(missao)} disabled={!!executando}
-                            style={{ padding: '7px 14px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 700, cursor: executando ? 'not-allowed' : 'pointer', flexShrink: 0, background: isExecutando ? '#EF9F2720' : cor + '15', color: isExecutando ? '#EF9F27' : cor, transition: 'all .2s', whiteSpace: 'nowrap' }}>
-                            {isExecutando ? '⟳ Executando' : '▶ Executar'}
-                          </button>
-                        </div>
+                        )}
                       </div>
                     )
                   })}
@@ -193,6 +245,10 @@ export default function Hub() {
           })}
         </div>
       )}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg) } }
+      `}</style>
     </div>
   )
 }
