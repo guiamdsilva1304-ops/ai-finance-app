@@ -21,17 +21,8 @@ const PIE_COLORS = ["#16a34a","#22c55e","#4ade80","#86efac","#f59e0b","#fb923c",
 export default function InvestimentosPage() {
   const supabase = createSupabaseBrowser()
   const [plano, setPlano] = useState<string | null>(null)
-  useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (data.user) {
-        const { data: p } = await supabase.from("user_profiles").select("plan").eq("id", data.user.id).single()
-        setPlano(p?.plan ?? "free")
-      }
-    })
-  }, [])
-  if (plano === null) return null
-  if (plano !== "pro") return <ProBanner feature="Controle de Investimentos" descricao="Registre seus ativos, acompanhe a rentabilidade e veja se sua carteira está alinhada com seus objetivos. Exclusivo para assinantes Pro." />
   const [investments, setInvestments] = useState<Investment[]>([]);
+
   const [rates, setRates] = useState<Record<string, ExchangeRate>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -47,6 +38,15 @@ export default function InvestimentosPage() {
   const [notas, setNotas] = useState("");
   const [formError, setFormError] = useState("");
 
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) {
+        const { data: p } = await supabase.from("user_profiles").select("plan").eq("id", data.user.id).single()
+        setPlano(p?.plan ?? "free")
+      } else { setPlano("free") }
+    })
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true);
