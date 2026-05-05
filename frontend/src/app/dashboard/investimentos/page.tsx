@@ -193,7 +193,7 @@ export default function InvestimentosPage() {
             <div>
               <label className="label">Moeda</label>
               <select value={moeda} onChange={e => setMoeda(e.target.value)} className="input">
-                {MOEDAS.map(m => <option key={m}>{m} {rates[m]?.emoji ?? ""}</option>)}
+                {MOEDAS.map(m => <option key={m} value={m}>{m} {rates[m]?.emoji ?? ""}</option>)}
               </select>
             </div>
             <div>
