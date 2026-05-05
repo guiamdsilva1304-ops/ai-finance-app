@@ -127,23 +127,44 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
         </button>
       </aside>
 
-      {/* Mobile header */}
+      {/* Mobile top header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#e4f5e9] px-4 py-3 flex items-center justify-between">
-        <Logo size={120} showText={false} showTagline={false} />
-        <div className="flex items-center gap-3">
+        <Logo size={100} showText={false} showTagline={false} />
+        <div className="flex items-center gap-2">
           {plan === 'free' && (
-            <Link href="/dashboard/pro" className="text-xs font-bold px-3 py-1.5 rounded-lg text-white" style={{ background: '#1D9E75' }}>
-              Pro
+            <Link href="/dashboard/pro" className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex items-center gap-1" style={{ background: '#1D9E75' }}>
+              <Sparkles size={12} /> Pro
             </Link>
           )}
-          <nav className="flex gap-1">
-            {NAV_ITEMS.slice(0, 4).map(({ href, icon: Icon }) => (
-              <Link key={href} href={href} className={cn("p-2 rounded-lg", pathname === href || pathname.startsWith(href) ? "bg-[#E1F5EE] text-[#1D9E75]" : "text-gray-400")}>
-                <Icon size={18} />
-              </Link>
-            ))}
-          </nav>
+          {plan === 'pro' && (
+            <span className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1" style={{ background: '#E1F5EE', color: '#085041' }}>
+              <Sparkles size={12} /> Pro
+            </span>
+          )}
         </div>
+      </div>
+
+      {/* Mobile bottom navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e4f5e9] px-2 py-1 flex items-center justify-around" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {[
+          { href: "/dashboard", icon: LayoutDashboard, label: "Início" },
+          { href: "/dashboard/assessor", icon: MessageCircle, label: "Assessor" },
+          { href: "/dashboard/transacoes", icon: Receipt, label: "Gastos" },
+          { href: "/dashboard/metas", icon: Target, label: "Metas" },
+          { href: "/dashboard/investimentos", icon: TrendingUp, label: "Invest." },
+          { href: "/dashboard/perfil", icon: User, label: "Perfil" },
+        ].map(({ href, icon: Icon, label }) => {
+          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+          return (
+            <Link key={href} href={href} className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all"
+              style={{ color: active ? '#1D9E75' : '#aaa' }}>
+              <div className={cn("p-1.5 rounded-xl transition-all", active && "bg-[#E1F5EE]")}>
+                <Icon size={20} />
+              </div>
+              <span style={{ fontSize: 9, fontWeight: active ? 700 : 500 }}>{label}</span>
+            </Link>
+          );
+        })}
       </div>
     </>
   );
