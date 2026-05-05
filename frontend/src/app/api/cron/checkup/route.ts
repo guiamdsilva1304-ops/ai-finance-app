@@ -129,6 +129,42 @@ async function enviarResumoMensal(email: string, nome: string) {
   })
 }
 
+
+// Email "Oi, sumido!" para usuários inativos há 14+ dias
+async function enviarReativacao(email: string, nome: string) {
+  await resend.emails.send({
+    from: FROM,
+    to: email,
+    subject: `Oi${nome ? ` ${nome}` : ''}, sumido! 👋`,
+    html: `
+      <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:linear-gradient(135deg,#0a3d28,#1D9E75);padding:32px;text-align:center;border-radius:12px 12px 0 0">
+          <div style="font-size:48px;margin-bottom:8px">👋</div>
+          <h1 style="color:#fff;font-size:22px;font-weight:900;margin:0">Oi${nome ? ` ${nome}` : ''}, sumido!</h1>
+          <p style="color:#9FE1CB;margin:8px 0 0;font-size:14px">Sentimos sua falta na iMoney</p>
+        </div>
+        <div style="padding:28px;background:#fff">
+          <p style="font-size:15px;color:#444;line-height:1.7">Faz um tempo que você não aparece por aqui. Enquanto isso, sua situação financeira continuou evoluindo — e a gente quer te ajudar a entender ela melhor.</p>
+          <div style="background:#f0fdf4;border-radius:12px;padding:20px;margin:20px 0">
+            <p style="font-size:14px;font-weight:700;color:#085041;margin:0 0 12px">O que você pode fazer agora:</p>
+            <p style="font-size:14px;color:#1D9E75;margin:8px 0">→ Registrar suas últimas transações</p>
+            <p style="font-size:14px;color:#1D9E75;margin:8px 0">→ Perguntar ao Assessor IA como está sua situação</p>
+            <p style="font-size:14px;color:#1D9E75;margin:8px 0">→ Verificar o progresso das suas metas</p>
+          </div>
+          <div style="text-align:center;margin:24px 0">
+            <a href="https://imoney.ia.br/dashboard" style="background:#1D9E75;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">
+              Voltar para a iMoney →
+            </a>
+          </div>
+          <p style="font-size:13px;color:#888;line-height:1.6">Se precisar de ajuda ou tiver alguma dúvida, é só responder esse email. Sou o Gui, fundador da iMoney, e leio tudo.</p>
+        </div>
+        <div style="background:#f8f9f8;padding:16px;text-align:center;border-radius:0 0 12px 12px">
+          <p style="font-size:12px;color:#aaa;margin:0">iMoney · <a href="https://imoney.ia.br" style="color:#1D9E75;">imoney.ia.br</a></p>
+        </div>
+      </div>`
+  })
+}
+
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '')
   if (secret !== process.env.CRON_SECRET)
@@ -167,6 +203,16 @@ export async function GET(req: NextRequest) {
       if (diaSemana === 3) {
         await enviarDicaSemanal(user.email, nome, ocupacao)
         enviados++
+      }
+
+      // Sexta-feira: verifica inativos há 14+ dias
+      if (diaSemana === 5) {
+        const ultimoLogin = user.last_sign_in_at ? new Date(user.last_sign_in_at) : new Date(user.created_at)
+        const diasInativo = Math.floor((Date.now() - ultimoLogin.getTime()) / 86400000)
+        if (diasInativo >= 14) {
+          await enviarReativacao(user.email, nome)
+          enviados++
+        }
       }
 
       // Dia 1 de cada mês: relatório mensal
