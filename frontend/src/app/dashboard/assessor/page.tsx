@@ -80,6 +80,15 @@ export default function AssessorPage() {
       const gastos = summary?.gastos ?? mem.last_gastos ?? 0;
       const gastosCat = summary?.gastosCat ?? mem.gastos_categorias ?? {};
 
+      // Busca investimentos e transacoes para contexto do Assessor
+      const [invRes, transRes] = await Promise.allSettled([
+        supabase.from("user_investments").select("nome,tipo,moeda,valor_original,valor_brl").eq("user_id", user!.id),
+        supabase.from("transactions").select("descricao,valor,tipo,categoria,data").eq("user_id", user!.id).order("data", { ascending: false }).limit(20),
+      ]);
+      const dadosInvestimentos = invRes.status === "fulfilled" ? invRes.value.data ?? [] : [];
+      const dadosTransacoes = transRes.status === "fulfilled" ? transRes.value.data ?? [] : [];
+      const patrimonioTotal = dadosInvestimentos.reduce((s: number, i: Record<string, number>) => s + (i.valor_brl ?? i.valor_original ?? 0), 0);
+
       const startTime = Date.now();
       const conversationId = messages[0]?.content?.slice(0,8) || "new";
       amplitude.track("AI Message Sent", {
@@ -105,7 +114,7 @@ export default function AssessorPage() {
             gastosCat,
             investimentos: dadosInvestimentos,
             transacoes_recentes: dadosTransacoes,
-            patrimonio_total: dadosInvestimentos.reduce((s: number, i: { valor_brl?: number; valor_original?: number }) => s + (i.valor_brl ?? i.valor_original ?? 0), 0),
+            patrimonio_total: patrimonioTotal, 0),
             perfilUsuario: perfil,
             idade: perfil.idade,
             cidade: perfil.cidade,
