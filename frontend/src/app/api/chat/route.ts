@@ -40,6 +40,26 @@ async function verificarLimite(userId: string): Promise<{ permitido: boolean; us
   return { permitido: usadas < limite, usadas, limite, plano }
 }
 
+
+
+
+async function callAnthropicWithRetry(client: any, params: any, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await client.messages.create(params);
+    } catch (error: any) {
+      const isOverloaded = error?.status === 529 || error?.error?.type === 'overloaded_error';
+      const isRateLimit = error?.status === 429;
+      if ((isOverloaded || isRateLimit) && attempt < maxRetries - 1) {
+        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+        console.warn(`Anthropic overloaded, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1})`);
+        await new Promise(res => setTimeout(res, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+}
 export async function POST(req: NextRequest) {
   try {
     const auth = req.headers.get("authorization");
@@ -122,7 +142,7 @@ COMO RESPONDER:
 - Máximo 250 palavras por resposta
 - Se não souber algo do usuário, pergunte de forma simples antes de responder`
 
-    const response = await client.messages.create({
+    const response = await callAnthropicWithRetry(client, {
       model: "claude-sonnet-4-6",
       max_tokens: 1024,
       system: systemPrompt,
