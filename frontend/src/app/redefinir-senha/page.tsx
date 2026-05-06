@@ -1,55 +1,42 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createSupabaseBrowser as createClientComponentClient } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function RedefinirSenhaPage() {
-  const supabase = createClientComponentClient();
+  const supabase = createSupabaseBrowser();
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
-  const [sessionReady, setSessionReady] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setSessionReady(true);
-      }
-    });
-    return () => listener.subscription.unsubscribe();
-  }, [supabase]);
+    // Processa o token da URL (formato #access_token=... ou ?code=...)
+    const hash = window.location.hash;
+    const params = new URLSearchParams(hash.replace("#", "?"));
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
 
-  const validate = () => {
-    if (password.length < 8) return "A senha deve ter no mínimo 8 caracteres.";
-    if (password !== confirm) return "As senhas não coincidem.";
-    return null;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const validationError = validate();
-    if (validationError) { setError(validationError); return; }
-
-    setLoading(true);
-    setError("");
-
-    const { error } = await supabase.auth.updateUser({ password });
-
-    setLoading(false);
-
-    if (error) {
-      setError("Não foi possível atualizar a senha. Tente novamente.");
-      return;
+    if (accessToken && refreshToken) {
+      // Formato antigo: token direto no hash
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(() => setReady(true));
+    } else {
+      // Formato novo (PKCE): sessão já foi trocada pelo callback, só verifica
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          setReady(true);
+        } else {
+          setError("Link inválido ou expirado. Solicite um novo link de recuperação.");
+        }
+      });
     }
-
-    setSuccess(true);
-    setTimeout(() => router.push("/dashboard"), 2500);
-  };
+  }, []);
 
   const strength = (() => {
     if (!password) return 0;
@@ -65,7 +52,48 @@ export default function RedefinirSenhaPage() {
   const strengthLabel = ["", "Fraca", "Fraca", "Regular", "Boa", "Forte"][strength];
   const strengthColor = ["", "#ef4444", "#f97316", "#eab308", "#00C853", "#00C853"][strength];
 
-  if (!sessionReady) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password.length < 8) { setError("A senha deve ter no mínimo 8 caracteres."); return; }
+    if (password !== confirm) { setError("As senhas não coincidem."); return; }
+
+    setLoading(true);
+    setError("");
+
+    const { error } = await supabase.auth.updateUser({ password });
+    setLoading(false);
+
+    if (error) {
+      setError("Não foi possível atualizar a senha. Solicite um novo link.");
+      return;
+    }
+
+    setSuccess(true);
+    setTimeout(() => router.push("/dashboard"), 2500);
+  }
+
+  // Erro de link inválido
+  if (error && !ready) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Link inválido ou expirado</h2>
+          <p className="text-gray-500 text-sm mb-6">{error}</p>
+          <a href="/esqueci-senha" className="text-[#00C853] hover:underline text-sm font-semibold">
+            Solicitar novo link →
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading enquanto processa token
+  if (!ready) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -104,10 +132,8 @@ export default function RedefinirSenhaPage() {
                 {password && (
                   <div className="mt-2 flex items-center gap-2">
                     <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{ width: `${(strength / 5) * 100}%`, backgroundColor: strengthColor }}
-                      />
+                      <div className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${(strength / 5) * 100}%`, backgroundColor: strengthColor }} />
                     </div>
                     <span className="text-xs" style={{ color: strengthColor }}>{strengthLabel}</span>
                   </div>
