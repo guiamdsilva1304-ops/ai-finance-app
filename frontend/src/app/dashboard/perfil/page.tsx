@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { CheckCircle2, User } from "lucide-react";
+import TwoFactorSetup from "@/components/TwoFactorSetup";
 import { cn } from "@/lib/utils";
 
 // Brazilian states and cities data
@@ -52,7 +53,7 @@ const OCUPACOES = [
 ];
 
 interface Profile {
-  idade?: number; filhos?: number;
+  nome?: string; data_nascimento?: string; nome?: string; data_nascimento?: string; idade?: number; filhos?: number;
   estado?: string; cidade?: string; ocupacao?: string;
 }
 
@@ -65,6 +66,10 @@ export default function PerfilPage() {
   const [email, setEmail] = useState("");
 
   // Form
+  const [nome, setNome] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
+  const [nome, setNome] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
   const [idade, setIdade] = useState("");
   const [filhos, setFilhos] = useState("0");
   const [ocupacao, setOcupacao] = useState(OCUPACOES[0]);
@@ -82,6 +87,10 @@ export default function PerfilPage() {
         .select("*").eq("user_id", user.id).single();
       if (data) {
         setProfile(data);
+        setNome(data.nome ?? "");
+        setDataNascimento(data.data_nascimento ?? "");
+        setNome(data.nome ?? "");
+        setDataNascimento(data.data_nascimento ?? "");
         setIdade(data.idade?.toString() ?? "");
         setFilhos(data.filhos?.toString() ?? "0");
         setOcupacao(data.ocupacao ?? OCUPACOES[0]);
@@ -99,7 +108,14 @@ export default function PerfilPage() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setError(""); setSaved(false);
-    const idadeN = parseInt(idade);
+    // Calcula idade pela data de nascimento se disponivel
+    let idadeCalculada = parseInt(idade);
+    if (dataNascimento) {
+      const nasc = new Date(dataNascimento);
+      const hoje = new Date();
+      idadeCalculada = hoje.getFullYear() - nasc.getFullYear() - (hoje < new Date(hoje.getFullYear(), nasc.getMonth(), nasc.getDate()) ? 1 : 0);
+    }
+    const idadeN = idadeCalculada;
     if (idade && (isNaN(idadeN) || idadeN < 1 || idadeN > 120)) {
       setError("Idade inválida."); return;
     }
@@ -248,6 +264,12 @@ export default function PerfilPage() {
           )}
         </div>
       )}
+      <div className="mt-5">
+        <p className="font-bold text-[#0d2414] mb-3" style={{ fontFamily: "Nunito, sans-serif" }}>
+          🔐 Segurança
+        </p>
+        <TwoFactorSetup />
+      </div>
     </div>
   );
 }

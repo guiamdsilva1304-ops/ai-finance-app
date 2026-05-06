@@ -77,6 +77,11 @@ export default function AuthPage() {
           "AI Feature Access": true,
           "Primary Currency": "BRL",
         });
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
+          window.location.href = '/verificacao-2fa';
+          return;
+        }
         setSuccess("Login realizado! Redirecionando...");
         setTimeout(() => { window.location.href = '/dashboard'; }, 500);
       }
@@ -283,7 +288,7 @@ export default function AuthPage() {
                   </button>
                 </form>
               )}
-              <p className="text-center text-xs text-[#8db89d] mt-6">Esqueceu a senha? Entre em contato com o suporte.</p>
+              <p className="text-center text-xs text-[#8db89d] mt-6">Esqueceu a senha?{" "}<a href="/esqueci-senha" className="text-[#00C853] hover:underline font-semibold">Redefinir senha</a></p>
             </div>
           </div>
         </div>

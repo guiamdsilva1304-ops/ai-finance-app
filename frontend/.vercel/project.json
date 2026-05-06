@@ -1,1 +1,16 @@
-{"projectId":"prj_IVtMCBbdArEmJXIWwZo6ZB0n4ADL","orgId":"team_EGtRX58fzgkM3qfKdJLc6zlZ","projectName":"ai-finance-app"}
+{
+  "projectId": "prj_IVtMCBbdArEmJXIWwZo6ZB0n4ADL",
+  "orgId": "team_EGtRX58fzgkM3qfKdJLc6zlZ",
+  "projectName": "ai-finance-app",
+  "settings": {
+    "createdAt": 1776526205497,
+    "framework": "nextjs",
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": null,
+    "outputDirectory": null,
+    "rootDirectory": "frontend",
+    "directoryListing": false,
+    "nodeVersion": "24.x"
+  }
+}
