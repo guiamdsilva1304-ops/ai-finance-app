@@ -53,7 +53,7 @@ const OCUPACOES = [
 ];
 
 interface Profile {
-  nome?: string; data_nascimento?: string; nome?: string; data_nascimento?: string; idade?: number; filhos?: number;
+
   estado?: string; cidade?: string; ocupacao?: string;
 }
 
@@ -66,9 +66,7 @@ export default function PerfilPage() {
   const [email, setEmail] = useState("");
 
   // Form
-  const [nome, setNome] = useState("");
-  const [dataNascimento, setDataNascimento] = useState("");
-  const [nome, setNome] = useState("");
+const [nome, setNome] = useState("");
   const [dataNascimento, setDataNascimento] = useState("");
   const [idade, setIdade] = useState("");
   const [filhos, setFilhos] = useState("0");
@@ -87,9 +85,7 @@ export default function PerfilPage() {
         .select("*").eq("user_id", user.id).single();
       if (data) {
         setProfile(data);
-        setNome(data.nome ?? "");
-        setDataNascimento(data.data_nascimento ?? "");
-        setNome(data.nome ?? "");
+setNome(data.nome ?? "");
         setDataNascimento(data.data_nascimento ?? "");
         setIdade(data.idade?.toString() ?? "");
         setFilhos(data.filhos?.toString() ?? "0");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createSupabaseBrowser as createClientComponentClient } from "@/lib/supabase";
 
 type Step = "idle" | "qr" | "verify" | "done";
 
