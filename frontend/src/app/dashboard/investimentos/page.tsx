@@ -297,7 +297,7 @@ export default function InvestimentosPage() {
           </div>
 
           {/* Pie chart */}
-          {pieData.length > 1 && (
+          {pieData.length >= 1 && (
             <div className="card">
               <p className="text-sm font-bold text-[#0d2414] mb-3" style={{ fontFamily: "Nunito, sans-serif" }}>
                 Distribuição por tipo

@@ -138,13 +138,7 @@ export default function AssessorPage() {
       const assistantMsg = { role: "assistant" as const, content: data.reply };
       setMessages(prev => [...prev, assistantMsg]);
 
-      // Save to chat_history
-      if (user) {
-        await supabase.from("chat_history").insert([
-          { user_id: user.id, role: "user", content },
-          { user_id: user.id, role: "assistant", content: data.reply },
-        ]);
-      }
+      // histórico salvo pelo backend (/api/chat)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro desconhecido";
       setMessages(prev => [...prev, { role: "assistant", content: `❌ ${msg}` }]);
