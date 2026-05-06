@@ -114,7 +114,7 @@ export default function AssessorPage() {
             gastosCat,
             investimentos: dadosInvestimentos,
             transacoes_recentes: dadosTransacoes,
-            patrimonio_total: patrimonioTotal, 0),
+            patrimonio_total: patrimonioTotal,
             perfilUsuario: perfil,
             idade: perfil.idade,
             cidade: perfil.cidade,
