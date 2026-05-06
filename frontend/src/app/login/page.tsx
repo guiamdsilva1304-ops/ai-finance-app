@@ -99,7 +99,7 @@ export default function AuthPage() {
       const supabase = createSupabaseBrowser();
       const { data, error: err } = await supabase.auth.signUp({
         email: em, password,
-        options: { emailRedirectTo: window.location.origin + "/dashboard" },
+        options: { emailRedirectTo: window.location.origin + "/onboarding" },
       });
       if (err) { setError(parseErr(err)); return; }
       if (!data.user) { setError("Nao foi possivel criar a conta. Tente novamente."); return; }
