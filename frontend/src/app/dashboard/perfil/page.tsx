@@ -269,7 +269,6 @@ setNome(data.nome ?? "");
     </div>
   );
 }
-
 import { useMFA } from "@/hooks/useMFA";
 
 export function SecurityCard() {
