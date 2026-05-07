@@ -269,7 +269,6 @@ setNome(data.nome ?? "");
     </div>
   );
 }
-"use client";
 
 import { useMFA } from "@/hooks/useMFA";
 
