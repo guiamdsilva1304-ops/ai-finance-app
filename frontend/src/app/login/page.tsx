@@ -110,7 +110,6 @@ export default function AuthPage() {
       if (!data.user) { setError("Nao foi possivel criar a conta. Tente novamente."); return; }
       const { data: ld, error: le } = await supabase.auth.signInWithPassword({ email: em, password });
       if (!le && ld.user) {
-        // Agenda emails de boas-vindas
         fetch("/api/emails/welcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: ld.user.id, email: em }) }).catch(() => {});
         amplitude.track("Login Completed", {
           auth_method: "email",
@@ -139,7 +138,6 @@ export default function AuthPage() {
     } finally { setLoading(false); }
   }
 
-  // Track login started
   if (typeof window !== "undefined" && mounted) {
     amplitude.track("Login Started", {
       auth_method: "email",
@@ -267,13 +265,9 @@ export default function AuthPage() {
                     )}
                   </div>
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-[#f0faf4] border border-[#c8e6c9]">
-                    <input
-                      type="checkbox"
-                      id="consent"
-                      checked={consent}
+                    <input type="checkbox" id="consent" checked={consent}
                       onChange={e => setConsent(e.target.checked)}
-                      className="mt-1 w-4 h-4 accent-[#00C853] cursor-pointer flex-shrink-0"
-                    />
+                      className="mt-1 w-4 h-4 accent-[#00C853] cursor-pointer flex-shrink-0"/>
                     <label htmlFor="consent" className="text-xs text-[#1a3a1a] leading-relaxed cursor-pointer">
                       Li e concordo com os{" "}
                       <a href="/termos" target="_blank" className="text-[#00C853] font-bold underline">Termos de Uso</a>
@@ -296,50 +290,3 @@ export default function AuthPage() {
     </div>
   );
 }
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  const { pathname } = req.nextUrl;
-
-  // Rotas públicas — sempre permitidas
-  const publicPaths = ["/", "/login", "/privacidade", "/termos", "/blog"];
-  const isPublic = publicPaths.some(
-    (p) => pathname === p || pathname.startsWith("/blog/")
-  );
-
-  if (isPublic) return res;
-
-  // Sem sessão → redireciona para login
-  if (!session) {
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
-
-  // Verifica nível do assurance level (MFA)
-  // aal1 = só senha | aal2 = senha + 2FA verificado
-  const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-
-  const currentLevel = mfaData?.currentLevel;
-  const nextLevel = mfaData?.nextLevel;
-
-  // Usuário tem 2FA ativo (nextLevel = aal2) mas ainda não verificou (currentLevel = aal1)
-  // Precisa ir para a página de verificação 2FA
-  if (
-    nextLevel === "aal2" &&
-    currentLevel === "aal1" &&
-    pathname !== "/login/2fa"
-  ) {
-    return NextResponse.redirect(new URL("/login/2fa", req.url));
-  }
-
-  return res;
-}
-
