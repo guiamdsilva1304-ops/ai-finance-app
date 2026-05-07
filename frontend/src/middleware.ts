@@ -1,29 +1,49 @@
-import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-const ADMIN_COOKIE = "imoney_admin_session";
-const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || "imoney-admin-secret-2025";
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
 
-export function middleware(req: NextRequest) {
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return req.cookies.getAll(); },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            req.cookies.set(name, value);
+            res.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  const { data: { session } } = await supabase.auth.getSession();
   const { pathname } = req.nextUrl;
 
-  // Rotas de API nunca são bloqueadas
-  if (pathname.startsWith("/api/")) return NextResponse.next();
+  const publicPaths = ["/", "/login", "/privacidade", "/termos", "/blog", "/verificacao-2fa"];
+  const isPublic = publicPaths.some((p) => pathname === p || pathname.startsWith("/blog/") || pathname.startsWith("/api/cron") || pathname.startsWith("/api/webhooks"));
 
-  // Só protege páginas /admin
-  if (!pathname.startsWith("/admin")) return NextResponse.next();
-  if (pathname === "/admin/login") return NextResponse.next();
+  if (isPublic) return res;
 
-  const session = req.cookies.get(ADMIN_COOKIE)?.value;
-  if (session !== SESSION_SECRET) {
-    const loginUrl = new URL("/admin/login", req.url);
-    loginUrl.searchParams.set("from", pathname);
-    return NextResponse.redirect(loginUrl);
+  if (!session) {
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  return NextResponse.next();
+  const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const currentLevel = mfaData?.currentLevel;
+  const nextLevel = mfaData?.nextLevel;
+
+  if (nextLevel === "aal2" && currentLevel === "aal1" && pathname !== "/verificacao-2fa") {
+    return NextResponse.redirect(new URL("/verificacao-2fa", req.url));
+  }
+
+  return res;
 }
 
 export const config = {
-  // Só aplica em páginas admin — NÃO em /api/
-  matcher: ["/admin/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|logo.png|og-image.png).*)"],
 };

@@ -1,0 +1,52 @@
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  const supabase = createMiddlewareClient({ req, res });
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const { pathname } = req.nextUrl;
+
+  // Rotas públicas — sempre permitidas
+  const publicPaths = ["/", "/login", "/privacidade", "/termos", "/blog"];
+  const isPublic = publicPaths.some(
+    (p) => pathname === p || pathname.startsWith("/blog/")
+  );
+
+  if (isPublic) return res;
+
+  // Sem sessão → redireciona para login
+  if (!session) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  // Verifica nível do assurance level (MFA)
+  // aal1 = só senha | aal2 = senha + 2FA verificado
+  const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+  const currentLevel = mfaData?.currentLevel;
+  const nextLevel = mfaData?.nextLevel;
+
+  // Usuário tem 2FA ativo (nextLevel = aal2) mas ainda não verificou (currentLevel = aal1)
+  // Precisa ir para a página de verificação 2FA
+  if (
+    nextLevel === "aal2" &&
+    currentLevel === "aal1" &&
+    pathname !== "/login/2fa"
+  ) {
+    return NextResponse.redirect(new URL("/login/2fa", req.url));
+  }
+
+  return res;
+}
+
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|logo.png|og-image.png|api/cron|api/webhooks).*)",
+  ],
+};
