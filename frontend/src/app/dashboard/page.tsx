@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { MetricCard, MetricCardSkeleton } from "@/components/ui/MetricCard";
@@ -9,6 +7,7 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
 } from "recharts";
+import MonthlySummaryCard from "@/components/MonthlySummaryCard";
 
 const CATEGORY_COLORS = [
   "#16a34a","#22c55e","#4ade80","#86efac",
@@ -38,6 +37,7 @@ export default function DashboardPage() {
   const [dash, setDash] = useState<DashData | null>(null);
   const [loading, setLoading] = useState(true);
   const [mainMeta, setMainMeta] = useState<Meta | null>(null);
+  const [isPro, setIsPro] = useState(false);
   const supabase = createSupabaseBrowser();
 
   const load = useCallback(async () => {
@@ -47,6 +47,10 @@ export default function DashboardPage() {
 
     const metasRes = await supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).single();
     if (metasRes.data) setMainMeta(metasRes.data);
+
+    const profileRes = await supabase.from("user_profiles").select("plan").eq("user_id", session.user.id).single();
+    if (profileRes.data) setIsPro(profileRes.data.plan === "pro");
+
     const [ecoRes, summaryRes] = await Promise.allSettled([
       fetch("/api/rates/eco"),
       fetch("/api/dashboard/summary", {
@@ -176,10 +180,14 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Resumo Mensal */}
+      <div className="mb-6">
+        <MonthlySummaryCard isPro={isPro} />
+      </div>
+
       {/* Charts */}
       {dash && pieData.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-          {/* Pie chart */}
           <div className="card">
             <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
               Gastos por Categoria
@@ -206,7 +214,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Projeção */}
           {projecaoData.length > 0 && dash.sobra > 0 && (
             <div className="card">
               <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
