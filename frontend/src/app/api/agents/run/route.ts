@@ -4,11 +4,13 @@ import { AGENT_PROMPTS } from '@/lib/agent-prompts'
 
 // Protege a rota com CRON_SECRET (mesmo padrão dos outros crons da iMoney)
 function isAuthorized(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization')
   const secret = process.env.imoneycronsecret2026
   if (!secret) return false
-  return auth === `Bearer ${secret}`
-}
+  const auth = req.headers.get('authorization')
+  if (auth === `Bearer ${secret}`) return true
+  const { searchParams } = new URL(req.url)
+  const token = searchParams.get('secret')
+  return token === secret
 
 // Mensagens de execução autônoma padrão por agente
 function getDefaultUserMessage(agentId: AgentId, pendingTasksCount: number): string {

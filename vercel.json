@@ -9,23 +9,23 @@
       "schedule": "0 10 * * *"
     },
     {
-      "path": "/api/agents/run?agent=SEO",
+      "path": "/api/agents/run?agent=SEO&secret=imoneyval1BI",
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/agents/run?agent=MKT",
+      "path": "/api/agents/run?agent=MKT&secret=imoneyval1BI",
       "schedule": "0 18 * * 2,4"
     },
     {
-      "path": "/api/agents/run?agent=GRW",
+      "path": "/api/agents/run?agent=GRW&secret=imoneyval1BI",
       "schedule": "0 9 * * 1,5"
     },
     {
-      "path": "/api/agents/run?agent=DAD",
+      "path": "/api/agents/run?agent=DAD&secret=imoneyval1BI",
       "schedule": "0 8 * * *"
     },
     {
-      "path": "/api/agents/run?agent=VID",
+      "path": "/api/agents/run?agent=VID&secret=imoneyval1BI",
       "schedule": "0 10 * * 3"
     },
     {
