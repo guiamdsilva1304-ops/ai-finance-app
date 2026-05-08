@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
   if (req.nextUrl.searchParams.get('debug') === '1') {
     return NextResponse.json({
       received: secret,
+      expected: expected,
       expected_length: expected?.length,
       match: secret === expected,
     })
