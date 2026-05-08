@@ -167,7 +167,7 @@ async function enviarReativacao(email: string, nome: string) {
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (secret !== process.env.CRON_SECRET)
+  if (secret !== process.env.imoneycronsecret2026)
     return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
 
   try {

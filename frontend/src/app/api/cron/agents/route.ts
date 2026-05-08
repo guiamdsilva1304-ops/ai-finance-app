@@ -21,7 +21,7 @@ const AGENT_RUNNERS: Record<string, (mission: any) => Promise<string>> = {
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '')
-  const expected = process.env.CRON_SECRET
+  const expected = process.env.imoneycronsecret2026
 
   // Debug temporário
   if (req.nextUrl.searchParams.get('debug') === '1') {
