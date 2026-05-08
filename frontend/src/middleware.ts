@@ -10,34 +10,48 @@ export async function middleware(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return req.cookies.getAll(); },
+        getAll() {
+          return req.cookies.getAll();
+        },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            req.cookies.set(name, value);
-            res.cookies.set(name, value, options);
-          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            res.cookies.set(name, value, options)
+          );
         },
       },
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   const { pathname } = req.nextUrl;
 
-  const publicPaths = ["/", "/login", "/privacidade", "/termos", "/blog", "/verificacao-2fa"];
-  const isPublic = publicPaths.some((p) => pathname === p || pathname.startsWith("/blog/") || pathname.startsWith("/api/cron") || pathname.startsWith("/api/webhooks"));
+  // Rotas públicas — sempre permitidas
+  const publicPaths = ["/", "/login", "/privacidade", "/termos", "/blog", "/esqueci-senha", "/onboarding"];
+  const isPublic =
+    publicPaths.some((p) => pathname === p || pathname.startsWith("/blog/")) ||
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_next/");
 
   if (isPublic) return res;
 
+  // Sem sessão → redireciona para login
   if (!session) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
+  // Verifica nível MFA
   const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   const currentLevel = mfaData?.currentLevel;
   const nextLevel = mfaData?.nextLevel;
 
-  if (nextLevel === "aal2" && currentLevel === "aal1" && pathname !== "/verificacao-2fa") {
+  if (
+    nextLevel === "aal2" &&
+    currentLevel === "aal1" &&
+    pathname !== "/verificacao-2fa"
+  ) {
     return NextResponse.redirect(new URL("/verificacao-2fa", req.url));
   }
 
@@ -45,5 +59,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|logo.png|og-image.png).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|logo.png|og-image.png).*)",
+  ],
 };
