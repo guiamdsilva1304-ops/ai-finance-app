@@ -11,6 +11,7 @@ function isAuthorized(req: NextRequest): boolean {
   const { searchParams } = new URL(req.url)
   const token = searchParams.get('secret')
   return token === secret
+}
 
 // Mensagens de execução autônoma padrão por agente
 function getDefaultUserMessage(agentId: AgentId, pendingTasksCount: number): string {
