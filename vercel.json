@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/emails",
-      "schedule": "0 * * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/seo",
@@ -34,11 +34,11 @@
     },
     {
       "path": "/api/cron/agents",
-      "schedule": "0 * * * *"
+      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/cron/emails-agents",
-      "schedule": "0 * * * *"
+      "schedule": "0 10 * * *"
     }
   ]
 }
