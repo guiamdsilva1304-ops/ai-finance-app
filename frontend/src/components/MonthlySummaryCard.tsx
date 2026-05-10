@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createSupabaseBrowser } from '@/lib/supabase'
 import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, Sparkles, Lock } from 'lucide-react'
 
 interface MonthlySummary {
@@ -29,7 +29,7 @@ export default function MonthlySummaryCard({ isPro }: MonthlySummaryCardProps) {
   const [summary, setSummary] = useState<MonthlySummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
-  const supabase = createClient()
+  const supabase = createSupabaseBrowser()
 
   useEffect(() => {
     if (!isPro) { setLoading(false); return }
@@ -67,7 +67,7 @@ export default function MonthlySummaryCard({ isPro }: MonthlySummaryCardProps) {
         <p className="text-sm text-gray-500 mb-4 leading-relaxed">
           Receba todo mês uma análise completa dos seus gastos com comparação ao mês anterior e dicas personalizadas do seu Assessor.
         </p>
-        
+        <a
           href="/dashboard/pro"
           className="block w-full text-center bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
         >
