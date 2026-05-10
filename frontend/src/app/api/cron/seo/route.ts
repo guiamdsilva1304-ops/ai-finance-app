@@ -21,9 +21,17 @@ const TEMAS = [
   'renda extra ideias praticas 2026',
 ]
 
+function isAuthorized(req: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET ?? process.env.imoneycronsecret2026
+  if (!cronSecret) return false
+  const authHeader = req.headers.get('authorization')
+  if (authHeader === `Bearer ${cronSecret}`) return true
+  const { searchParams } = new URL(req.url)
+  return searchParams.get('secret') === cronSecret
+}
+
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (secret !== process.env.imoneycronsecret2026)
+  if (!isAuthorized(req))
     return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
 
   try {
