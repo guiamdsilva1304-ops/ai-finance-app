@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
       .from('blog_posts')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', hoje.toISOString())
+      .eq('generated_by', 'cron-seo')
 
     // Publica no máximo 1 artigo por dia
     if ((count ?? 0) >= 1) {
@@ -63,7 +64,7 @@ Use web search para buscar noticias e dados atuais sobre o tema solicitado, depo
 
 Retorne APENAS JSON puro sem backticks:
 {"artigo":{"titulo":"titulo otimizado para SEO","slug":"slug-em-kebab-case","meta_description":"descricao de 150 caracteres para SEO","conteudo":"artigo completo em markdown com pelo menos 1000 palavras, subtitulos H2 e H3, dados reais e conselhos praticos","publicar_automaticamente":true}}`,
-      tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
+      tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const }],
       messages: [{ role: 'user', content: `Escreva e publique um artigo completo sobre: ${tema}. Use dados atuais do Brasil em 2026. Conecte o tema com financas pessoais praticas para jovens brasileiros.` }],
     })
 

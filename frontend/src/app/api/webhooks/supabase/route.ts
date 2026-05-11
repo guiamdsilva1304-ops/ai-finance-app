@@ -8,15 +8,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// O trigger 'welcome_email' no Supabase chama esta rota sem header de auth.
-// Aceitar requisições sem secret é intencional para este trigger legado.
-// O trigger 'onboarding-email' (com secret) usa /api/webhooks/supabase.
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-webhook-secret')
   const expected = process.env.WEBHOOK_SECRET ?? 'imoney-webhook-secret-2025'
 
-  // Rejeita apenas se enviou um secret errado; sem secret é aceito (trigger legado)
-  if (secret && secret !== expected) {
+  if (secret !== expected) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -35,7 +31,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Verifica duplicata (o trigger 'onboarding-email' pode já ter enfileirado)
+    // Evita duplicata se o outro trigger (welcome_email) já enfileirou
     const { data: existing } = await supabase
       .from('email_queue')
       .select('id')
@@ -74,11 +70,11 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error
 
-    console.log('[WEBHOOK AUTH] Onboarding enfileirado para:', email)
+    console.log('[WEBHOOK SUPABASE] Onboarding enfileirado para:', email)
     return NextResponse.json({ ok: true, queued: 3 })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('[WEBHOOK AUTH]', msg)
+    console.error('[WEBHOOK SUPABASE]', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
