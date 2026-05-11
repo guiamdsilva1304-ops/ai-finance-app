@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { ArrowRight, ChevronDown, Star, TrendingUp, Shield, Brain, BarChart3, Zap, Check } from "lucide-react";
 
@@ -66,7 +65,7 @@ export default function LandingPage() {
         transition: "all 0.3s",
       }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 72, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Image src="/logo.png" alt="iMoney" width={140} height={40} style={{ objectFit: "contain" }} />
+          <img src="/logo.svg" alt="iMoney" width={140} height={40} style={{ objectFit: "contain" }} />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <Link href="/blog" style={{ fontSize: 14, fontWeight: 700, color: "#5a6472", textDecoration: "none" }}>Blog</Link>
             <Link href="/login" style={{ fontSize: 14, fontWeight: 700, color: "#5a6472", textDecoration: "none" }}>Entrar</Link>
@@ -312,7 +311,7 @@ export default function LandingPage() {
 
       {/* FOOTER */}
       <footer style={{ background: "#0a1a0f", padding: "40px 24px", textAlign: "center" }}>
-        <Image src="/logo.png" alt="iMoney" width={100} height={30} style={{ objectFit: "contain", marginBottom: 16, opacity: 0.7 }} />
+        <img src="/logo-white.svg" alt="iMoney" width={100} height={30} style={{ objectFit: "contain", marginBottom: 16, opacity: 0.8 }} />
         <div style={{ display: "flex", justifyContent: "center", gap: 24, marginBottom: 16, flexWrap: "wrap" }}>
           {[["Privacidade", "/privacidade"], ["Termos", "/termos"], ["Blog", "/blog"], ["Entrar", "/login"]].map(([label, href]) => (
             <Link key={label} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none", fontWeight: 600 }}>{label}</Link>

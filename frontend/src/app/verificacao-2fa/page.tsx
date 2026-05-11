@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createSupabaseBrowser as createClientComponentClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+
 
 export default function TwoFactorVerify() {
   const supabase = createClientComponentClient();
@@ -58,7 +58,7 @@ export default function TwoFactorVerify() {
     <div className="min-h-screen bg-white flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
-          <Image src="/logo.png" alt="iMoney" width={48} height={48} />
+          <img src="/icon.svg" alt="iMoney" width={48} height={48} />
         </div>
 
         <div className="text-center mb-8">

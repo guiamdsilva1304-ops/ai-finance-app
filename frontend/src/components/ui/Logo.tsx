@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 
 interface LogoProps {
   size?: number;
@@ -12,13 +11,12 @@ interface LogoProps {
 export function Logo({ size = 120, showText = true, showTagline = false, className, dark = false }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <Image
-        src="/logo.png"
+      <img
+        src="/icon.svg"
         alt="iMoney"
         width={size}
         height={size}
-        className="shrink-0 object-contain"
-        priority
+        style={{ objectFit: "contain", flexShrink: 0 }}
       />
       {showText && (
         <div className="flex flex-col">

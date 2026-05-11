@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     siteName: "iMoney",
     title: "iMoney — Assessor Financeiro com IA",
     description: "Controle suas finanças com IA. Dashboard com SELIC e IPCA em tempo real, assessor financeiro personalizado e metas financeiras. 100% gratuito.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "iMoney — Assessor Financeiro com IA" }],
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "iMoney — Seu assessor pessoal" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -30,9 +30,9 @@ export const metadata: Metadata = {
   verification: { google: "WONpgV72z1PLGHk-AfjWdvn32beVilTymkv_t-FE08E" },
   manifest: "/manifest.json",
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
-    shortcut: "/logo.png",
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+    shortcut: "/icon.svg",
   },
 };
 

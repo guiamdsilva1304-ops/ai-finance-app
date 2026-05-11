@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#1a3a1a"/>
+  <circle cx="1050" cy="100" r="300" fill="#00C853" fill-opacity="0.06"/>
+  <circle cx="150" cy="530" r="200" fill="#00C853" fill-opacity="0.05"/>
+  <g transform="translate(330, 210)">
+    <rect x="0" y="0" width="130" height="130" rx="26" fill="#00C853"/>
+    <circle cx="39" cy="26" r="10" fill="#1a3a1a"/>
+    <rect x="33" y="41" width="15" height="62" rx="4" fill="#1a3a1a"/>
+    <rect x="62" y="24" width="15" height="80" rx="4" fill="#1a3a1a"/>
+    <rect x="105" y="24" width="15" height="80" rx="4" fill="#1a3a1a"/>
+    <polygon points="62,24 77,24 90,57 105,24 120,24 120,34 90,72 62,34" fill="#1a3a1a"/>
+  </g>
+  <text x="490" y="305" font-family="Nunito, Georgia, sans-serif" font-weight="900" font-size="90" fill="#00C853">i</text>
+  <text x="520" y="305" font-family="Nunito, Georgia, sans-serif" font-weight="900" font-size="90" fill="white">Money</text>
+  <rect x="490" y="318" width="416" height="6" rx="3" fill="#00C853"/>
+  <text x="490" y="355" font-family="Nunito, Georgia, sans-serif" font-weight="400" font-size="22" fill="#9FE1CB" letter-spacing="4">SEU ASSESSOR PESSOAL</text>
+</svg>
