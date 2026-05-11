@@ -15,6 +15,27 @@ const CATEGORY_COLORS = [
   "#f59e0b","#fb923c","#6366f1","#a855f7",
 ];
 
+function scoreNivelColor(score: number) {
+  if (score <= 30) return "#ef4444";
+  if (score <= 50) return "#f97316";
+  if (score <= 70) return "#eab308";
+  if (score <= 85) return "#22c55e";
+  return "#00C853";
+}
+
+function scoreNivelLabel(score: number) {
+  if (score <= 30) return "Crítico";
+  if (score <= 50) return "Atenção";
+  if (score <= 70) return "Estável";
+  if (score <= 85) return "Saudável";
+  return "Excelente";
+}
+
+interface ScoreProfile {
+  score_saude: number | null;
+  diagnostico_json: { score_imoney?: { titulo?: string } } | null;
+}
+
 interface Meta {
   id: string; nome: string;
   valor_alvo: number; valor_atual: number;
@@ -39,6 +60,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [mainMeta, setMainMeta] = useState<Meta | null>(null);
   const [isPro, setIsPro] = useState(false);
+  const [scoreProfile, setScoreProfile] = useState<ScoreProfile | null>(null);
   const supabase = createSupabaseBrowser();
 
   const load = useCallback(async () => {
@@ -51,6 +73,13 @@ export default function DashboardPage() {
 
     const profileRes = await supabase.from("user_profiles").select("plan").eq("user_id", session.user.id).single();
     if (profileRes.data) setIsPro(profileRes.data.plan === "pro");
+
+    const { data: sp } = await supabase
+      .from("user_profiles")
+      .select("score_saude, diagnostico_json")
+      .eq("id", session.user.id)
+      .maybeSingle();
+    setScoreProfile(sp ?? null);
 
     const [ecoRes, summaryRes] = await Promise.allSettled([
       fetch("/api/rates/eco"),
@@ -110,6 +139,43 @@ export default function DashboardPage() {
           <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
+
+      {/* Score iMoney card */}
+      {!loading && (
+        scoreProfile?.diagnostico_json?.score_imoney ? (
+          <a href="/dashboard/score" style={{ display: "block", textDecoration: "none", marginBottom: 20 }}>
+            <div style={{ background: "#fff", border: "1.5px solid #e4f5e9", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: "pointer", transition: "box-shadow 0.2s", boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ fontSize: 22, fontWeight: 900, color: scoreNivelColor(scoreProfile.score_saude ?? 0), fontFamily: "Nunito, sans-serif" }}>{scoreProfile.score_saude ?? 0}</span>
+                </div>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Score iMoney</p>
+                  <p style={{ fontSize: 14, fontWeight: 800, color: "#0d2414", margin: "2px 0 0", fontFamily: "Nunito, sans-serif" }}>
+                    {scoreNivelLabel(scoreProfile.score_saude ?? 0)}
+                    {scoreProfile.diagnostico_json?.score_imoney?.titulo && (
+                      <span style={{ fontWeight: 600, color: "#6b9e80" }}> · {scoreProfile.diagnostico_json.score_imoney.titulo}</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <span style={{ fontSize: 18, color: "#16a34a" }}>→</span>
+            </div>
+          </a>
+        ) : (
+          <a href="/dashboard/diagnostico" style={{ display: "block", textDecoration: "none", marginBottom: 20 }}>
+            <div style={{ background: "linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)", borderRadius: 16, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: "pointer" }}>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", margin: "0 0 3px" }}>🎯 Descubra seu Score iMoney</p>
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", margin: 0, fontWeight: 600 }}>Diagnóstico financeiro gratuito em 5 perguntas</p>
+              </div>
+              <div style={{ background: "#fff", borderRadius: 10, padding: "8px 14px", flexShrink: 0 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "#1D9E75" }}>Calcular →</span>
+              </div>
+            </div>
+          </a>
+        )
+      )}
 
       {/* Eco indicators */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-6">

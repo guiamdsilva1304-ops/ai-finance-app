@@ -136,10 +136,21 @@ export default function OnboardingPage() {
       if (!user) { router.push("/login"); return; }
       await salvarPerfil(user.id);
       await supabase.from("user_profiles").update({ onboarding_completo: true }).eq("id", user.id);
-      router.push("/dashboard?onboarding=1");
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("diagnostico_json")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profile?.diagnostico_json?.score_imoney) {
+        router.push("/dashboard?onboarding=1");
+      } else {
+        router.push("/dashboard/diagnostico");
+      }
     } catch (e) {
       console.error(e);
-      router.push("/dashboard");
+      router.push("/dashboard/diagnostico");
     } finally {
       setLoading(false);
     }
@@ -152,8 +163,21 @@ export default function OnboardingPage() {
         onboarding_completo: true,
         updated_at: new Date().toISOString(),
       }).eq("id", user.id);
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("diagnostico_json")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profile?.diagnostico_json?.score_imoney) {
+        router.push("/dashboard?onboarding=1");
+      } else {
+        router.push("/dashboard/diagnostico");
+      }
+    } else {
+      router.push("/dashboard?onboarding=1");
     }
-    router.push("/dashboard?onboarding=1");
   }
 
   async function compartilharPerfil() {
