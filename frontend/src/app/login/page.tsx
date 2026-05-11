@@ -156,7 +156,7 @@ export default function AuthPage() {
     <div className="min-h-screen bg-[#f8fdf9] flex flex-col">
       <header className="flex justify-center pt-10 pb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#22c55e] to-[#16a34a] flex items-center justify-center text-white font-black text-xl" style={{fontFamily:"Nunito,sans-serif"}}>i</div>
+          <img src="/icon.svg" alt="iMoney" width={48} height={48} style={{borderRadius:12}} />
           <div>
             <div className="font-black text-[#14532d] text-2xl leading-none" style={{fontFamily:"Nunito,sans-serif"}}>iMoney</div>
             <div className="text-[10px] text-[#6b9e80] uppercase tracking-widest">assessorIA financeira</div>
