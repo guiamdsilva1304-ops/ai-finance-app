@@ -69,8 +69,15 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser(token)
     if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 })
 
-    // Verifica limite
-    const { permitido, usadas, limite, plano } = await verificarLimite(user.id)
+    // Verifica limite e busca diagnóstico em paralelo
+    const [limiteResult, diagnosticoResult] = await Promise.allSettled([
+      verificarLimite(user.id),
+      supabase.from('user_profiles').select('perfil_financeiro, score_saude, diagnostico_json').eq('id', user.id).maybeSingle(),
+    ])
+
+    const { permitido, usadas, limite, plano } = limiteResult.status === 'fulfilled' ? limiteResult.value : { permitido: true, usadas: 0, limite: 10, plano: 'free' }
+    const perfilDiagnostico = diagnosticoResult.status === 'fulfilled' ? diagnosticoResult.value.data : null
+
     if (!permitido) {
       return NextResponse.json({
         error: `Limite diário atingido`,
@@ -123,6 +130,18 @@ PERFIL ESTUDANTE — adapte para quem está começando:
 - Pequenos valores já fazem diferença — incentive R$ 50-100/mês
 - Tesouro Selic é ideal para começar a investir
 - Priorize educação financeira antes de produtos complexos` : ''}
+
+${perfilDiagnostico?.diagnostico_json ? `
+RADIOGRAFIA FINANCEIRA (diagnóstico do onboarding):
+- Perfil: ${perfilDiagnostico.diagnostico_json.perfil_nome} ${perfilDiagnostico.diagnostico_json.perfil_emoji}
+- ${perfilDiagnostico.diagnostico_json.descricao}
+- Score de saúde: ${perfilDiagnostico.score_saude ?? perfilDiagnostico.diagnostico_json.score}/1000
+- Sentimento sobre dinheiro: ${perfilDiagnostico.diagnostico_json.respostas?.[1] ?? 'não informado'}
+- Maior desafio: ${perfilDiagnostico.diagnostico_json.respostas?.[2] ?? 'não informado'}
+- Reserva de emergência: ${perfilDiagnostico.diagnostico_json.respostas?.[3] ?? 'não informado'}
+- Objetivo principal: ${perfilDiagnostico.diagnostico_json.respostas?.[5] ?? 'não informado'}
+- Prioridades dos próximos 30 dias: ${(perfilDiagnostico.diagnostico_json.prioridades ?? []).join(' | ')}
+Use este diagnóstico para personalizar TODAS as suas respostas desde a primeira mensagem.` : ''}
 
 ECONOMIA:
 - SELIC: ${context?.selic ?? 14.75}% a.a.
