@@ -29,10 +29,11 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Rotas públicas — sempre permitidas
-  const publicPaths = ["/", "/login", "/privacidade", "/termos", "/blog", "/esqueci-senha", "/onboarding"];
+  const publicPaths = ["/", "/login", "/privacidade", "/termos", "/blog", "/esqueci-senha", "/onboarding", "/redefinir-senha"];
   const isPublic =
     publicPaths.some((p) => pathname === p || pathname.startsWith("/blog/")) ||
     pathname.startsWith("/api/") ||
+    pathname.startsWith("/auth/") ||
     pathname.startsWith("/_next/");
 
   if (isPublic) return res;
