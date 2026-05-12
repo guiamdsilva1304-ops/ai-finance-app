@@ -7,7 +7,8 @@ export type IconName =
   | 'target' | 'wallet' | 'sparkles' | 'home' | 'plus' | 'bell'
   | 'chevron-right' | 'chevron-left' | 'check' | 'user' | 'send'
   | 'trending-up' | 'plane' | 'car' | 'ring' | 'arrow-up-right'
-  | 'arrow-down-left' | 'compass' | 'chat' | 'pie';
+  | 'arrow-down-left' | 'compass' | 'chat' | 'pie'
+  | 'piggy-bank' | 'calendar';
 
 export function Icon({
   name, size = 22, color = C.green900, stroke = 1.75,
@@ -35,6 +36,10 @@ export function Icon({
     case 'chat': return <svg {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
     case 'pie': return <svg {...p}><path d="M21 15.5A9 9 0 1 1 8.5 3"/><path d="M21 12A9 9 0 0 0 12 3v9z"/></svg>;
     case 'plane': return <svg {...p}><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>;
+    case 'car': return <svg {...p}><path d="M5 17H3a2 2 0 0 1-2-2v-3l2.5-5.5A2 2 0 0 1 5.3 5h13.4a2 2 0 0 1 1.8 1.1L23 12v3a2 2 0 0 1-2 2h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>;
+    case 'ring': return <svg {...p}><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>;
+    case 'piggy-bank': return <svg {...p}><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2z"/><path d="M2 9v1a2 2 0 0 0 2 2"/><path d="M16 11h0" strokeWidth={2.5}/></svg>;
+    case 'calendar': return <svg {...p}><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>;
     default: return <svg {...p}/>;
   }
 }
