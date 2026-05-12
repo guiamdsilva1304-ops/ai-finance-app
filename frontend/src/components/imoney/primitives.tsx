@@ -275,6 +275,43 @@ export function PlanUpgradeCard() {
   );
 }
 
+/* ───── Chip ───── */
+type ChipVariant = 'default' | 'active' | 'success' | 'warning' | 'danger';
+export function Chip({
+  label, variant = 'default', onClick, icon,
+}: {
+  label: string;
+  variant?: ChipVariant;
+  onClick?: () => void;
+  icon?: IconName;
+}) {
+  const map: Record<ChipVariant, React.CSSProperties> = {
+    default: { background: '#fff', color: C.ink2, border: `1.5px solid rgba(26,58,26,0.18)` },
+    active:  { background: C.green50, color: C.green900, border: `1.5px solid ${C.green500}` },
+    success: { background: '#e8f5e9', color: '#1b5e20', border: '1.5px solid #4caf50' },
+    warning: { background: '#fff8e1', color: '#6d4c00', border: '1.5px solid #f9a825' },
+    danger:  { background: '#ffebee', color: '#b71c1c', border: '1.5px solid #ef9a9a' },
+  };
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '6px 14px', borderRadius: 999, cursor: onClick ? 'pointer' : 'default',
+        fontFamily: FONT, fontSize: 13, fontWeight: 700,
+        transition: 'transform 100ms',
+        ...map[variant],
+      }}
+      onMouseDown={e => onClick && (e.currentTarget.style.transform = 'scale(0.95)')}
+      onMouseUp={e => onClick && (e.currentTarget.style.transform = 'scale(1)')}
+      onMouseLeave={e => onClick && (e.currentTarget.style.transform = 'scale(1)')}
+    >
+      {icon && <Icon name={icon} size={14} color={map[variant].color as string}/>}
+      {label}
+    </button>
+  );
+}
+
 /* ───── Toast ───── */
 type ToastType = 'conquista' | 'progresso' | 'atencao' | 'gui';
 const TOAST_CFG: Record<ToastType, { emoji: string; iconBg: string; bg: string; titleColor: string; bodyColor: string }> = {
