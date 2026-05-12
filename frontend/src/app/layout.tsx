@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./imoney-tokens.css";
 import { AmplitudeProvider } from "./amplitude";
 
 export const metadata: Metadata = {
