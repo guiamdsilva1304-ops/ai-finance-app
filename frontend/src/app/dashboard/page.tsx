@@ -32,6 +32,10 @@ function scoreNivelLabel(score: number) {
   return "Excelente";
 }
 
+function fmtInt(n: number): string {
+  return Math.round(n).toLocaleString('pt-BR');
+}
+
 function metaEmoji(nome: string): string {
   const n = nome.toLowerCase();
   if (n.includes('reserva') || n.includes('emergên') || n.includes('emergenc')) return '🏦';
@@ -246,11 +250,17 @@ export default function DashboardPage() {
           <GoalCard
             title={mainMeta.nome}
             emoji={metaEmoji(mainMeta.nome)}
-            current={brlNum(mainMeta.valor_atual)}
-            target={formatBRL(mainMeta.valor_alvo)}
+            current={fmtInt(mainMeta.valor_atual)}
+            target={fmtInt(mainMeta.valor_alvo)}
             pct={Math.min(100, mainMeta.valor_alvo > 0 ? Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100) : 0)}
-            statusLeft={`${mainMeta.prazo_meses} meses restantes`}
-            statusRight={`${Math.min(100, mainMeta.valor_alvo > 0 ? Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100) : 0)}% concluído`}
+            statusLeft={(() => {
+              const pct = mainMeta.valor_alvo > 0 ? Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100) : 0;
+              const m = mainMeta.prazo_meses;
+              if (pct < 5) return `${pct}% · começando`;
+              if (m >= 24) return `${pct}% · ${Math.round(m / 12)} anos restantes`;
+              return `${pct}% · faltam ${m} meses`;
+            })()}
+            statusRight={`R$ ${fmtInt((mainMeta.valor_alvo - mainMeta.valor_atual) / mainMeta.prazo_meses)}/mês`}
             tone="white"
           />
         </div>

@@ -148,38 +148,39 @@ export function GoalCard({
 }) {
   const isDark = tone === 'dark';
   const isGold = tone === 'gold';
-  const bg = isDark ? C.green900 : isGold ? C.gold50 : '#fff';
+  const bg = isDark ? C.green900 : isGold ? '#fff8ec' : '#fff';
+  const border = isDark ? 'none' : isGold ? '1.5px solid rgba(249,168,37,0.3)' : '1.5px solid rgba(26,58,26,0.08)';
   const titleColor = isDark ? '#fff' : C.green900;
-  const amountColor = isDark ? '#fff' : isGold ? C.gold : C.green900;
-  const targetColor = isDark ? 'rgba(255,255,255,0.5)' : C.ink3;
-  const barBg = isDark ? 'rgba(255,255,255,0.12)' : isGold ? 'rgba(249,168,37,0.2)' : C.green50;
-  const barFill = isGold ? C.gold : C.green500;
-  const statusLeftColor = isDark ? C.green500 : isGold ? '#8a5c00' : C.green500;
-  const statusRightColor = isDark ? 'rgba(255,255,255,0.55)' : C.ink3;
+  const amountColor = isDark ? '#fff' : isGold ? '#c47f00' : C.green900;
+  const targetColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(26,58,26,0.35)';
+  const barBg = isDark ? 'rgba(255,255,255,0.10)' : isGold ? 'rgba(249,168,37,0.18)' : C.green50;
+  const barFill = isGold ? '#f9a825' : C.green500;
+  const statusLeftColor = isDark ? '#4ade80' : isGold ? '#b45309' : C.green500;
+  const statusRightColor = isDark ? 'rgba(255,255,255,0.5)' : C.ink3;
   return (
     <div style={{
-      background: bg, borderRadius: 16, padding: '20px 22px', fontFamily: FONT,
-      boxShadow: isDark ? 'none' : '0 1px 3px rgba(26,58,26,0.08)',
+      background: bg, borderRadius: 20, padding: '20px 22px', fontFamily: FONT, border,
+      boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.18)' : '0 1px 4px rgba(26,58,26,0.07)',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-        <div style={{ fontSize: 15.5, fontWeight: 800, color: titleColor }}>{title}</div>
-        <div style={{ fontSize: 26 }}>{emoji}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: titleColor, lineHeight: 1.3, maxWidth: '78%' }}>{title}</div>
+        <div style={{ fontSize: 24, lineHeight: 1 }}>{emoji}</div>
       </div>
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 14 }}>
         <span style={{
-          fontSize: 30, fontWeight: 900, color: amountColor,
-          fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em',
+          fontSize: 32, fontWeight: 900, color: amountColor,
+          fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1.1,
         }}>R$ {current}</span>
         {target && (
-          <span style={{ fontSize: 14, color: targetColor, marginLeft: 6 }}>/ {target}</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: targetColor, marginLeft: 6 }}>/ {target}</span>
         )}
       </div>
-      <div style={{ background: barBg, height: 8, borderRadius: 999, overflow: 'hidden', marginBottom: 10 }}>
+      <div style={{ background: barBg, height: 12, borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
         <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: barFill, borderRadius: 999 }}/>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: statusLeftColor }}>{statusLeft}</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: statusRightColor }}>{statusRight}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: statusRightColor }}>{statusRight}</span>
       </div>
     </div>
   );
