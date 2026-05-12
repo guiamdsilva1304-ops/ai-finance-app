@@ -260,6 +260,66 @@ export function BlogPreview() {
   );
 }
 
+/* ───── MascotBussola ───── */
+export function MascotBussola({ size = 120 }: { size?: number }) {
+  return (
+    <img
+      src="/imoney/mascot-compass.svg"
+      alt="Bússola — mascote da iMoney"
+      width={size}
+      height={size}
+      style={{ display: 'block' }}
+    />
+  );
+}
+
+/* ───── BrandVoice ───── */
+const VOICE_PAIRS = [
+  {
+    evitar: '"Suas despesas superaram o orçamento em 23%."',
+    usar:   '"Ei! Você gastou um pouco mais este mês — quer ajustar sua meta?"',
+  },
+  {
+    evitar: '"Você cometeu um erro financeiro."',
+    usar:   '"Esse mês saiu diferente do planejado. Sem problema — vamos recalcular a rota."',
+  },
+  {
+    evitar: '"Recomendamos diversificação do portfólio."',
+    usar:   '"Que tal começar a investir? Com R$100/mês você já dá um passo enorme."',
+  },
+];
+export function BrandVoice() {
+  return (
+    <section style={{ padding: '80px 32px', background: '#fff', fontFamily: FONT }}>
+      <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.green500, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Voz da marca</div>
+        <h2 style={{ fontSize: 34, fontWeight: 800, color: C.green900, margin: '0 0 6px', letterSpacing: '-0.02em' }}>Como a iMoney soa</h2>
+        <p style={{ fontSize: 15, color: C.ink2, margin: '0 0 36px', lineHeight: 1.55 }}>Como a iMoney fala vs como um banco fala.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {VOICE_PAIRS.map((pair, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{
+                background: '#fff5f5', borderLeft: '4px solid #c62828',
+                borderRadius: '0 12px 12px 0', padding: '16px 20px',
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: '#c62828', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Evitar</div>
+                <div style={{ fontSize: 14.5, color: '#3d1515', lineHeight: 1.55 }}>{pair.evitar}</div>
+              </div>
+              <div style={{
+                background: C.green50, borderLeft: `4px solid ${C.green500}`,
+                borderRadius: '0 12px 12px 0', padding: '16px 20px',
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.green500, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Usar</div>
+                <div style={{ fontSize: 14.5, color: C.green900, lineHeight: 1.55 }}>{pair.usar}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ───── Footer ───── */
 export function Footer() {
   const cols = [
