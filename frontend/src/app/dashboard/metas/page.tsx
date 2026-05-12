@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { formatBRL } from "@/lib/utils";
 import { RefreshCw, Trash2, CheckCircle2, Star } from "lucide-react";
-import { GoalCard, FormField } from "@/components/imoney/primitives";
+import { GoalCard } from "@/components/imoney/primitives";
 import { C, FONT } from "@/components/imoney/tokens";
 import type { Meta } from "@/types";
 
@@ -150,51 +150,39 @@ export default function MetasPage() {
       {showForm && (
         <form onSubmit={save} style={{ background: C.green50, borderRadius: 20, padding: 24, marginBottom: 28, border: `1.5px solid ${C.green100}` }}>
           <p style={{ fontSize: 15, fontWeight: 800, color: C.green900, marginBottom: 20, marginTop: 0 }}>➕ Nova meta</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <FormField
-              label="Nome da meta"
-              placeholder="Ex: Reserva de emergência, Viagem, iPhone..."
-              value={nome}
-              onChange={setNome}
-              error={formError && !nome.trim() ? formError : undefined}
-            />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <FormField
-                label="Valor alvo"
-                type="currency"
-                prefix="R$"
-                placeholder="0,00"
-                value={valorAlvo}
-                onChange={setValorAlvo}
-                error={formError && nome.trim() && !parseFloat(valorAlvo) ? formError : undefined}
-              />
-              <FormField
-                label="Já tenho"
-                type="currency"
-                prefix="R$"
-                placeholder="0,00"
-                value={valorAtual}
-                onChange={setValorAtual}
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div className="sm:col-span-2">
+              <label className="label">Nome da meta</label>
+              <input value={nome} onChange={e => setNome(e.target.value)}
+                placeholder="Ex: Reserva de emergência, Viagem, iPhone..." className="input" maxLength={100}/>
             </div>
-            <FormField
-              label="Prazo (meses)"
-              placeholder="12"
-              value={prazo}
-              onChange={setPrazo}
-              helper="Entre 1 e 600 meses"
-              error={formError && prazo && (parseInt(prazo) < 1 || parseInt(prazo) > 600) ? formError : undefined}
-            />
+            <div>
+              <label className="label">Valor alvo (R$)</label>
+              <input type="number" value={valorAlvo} onChange={e => setValorAlvo(e.target.value)}
+                placeholder="10000" min="1" step="0.01" className="input"/>
+            </div>
+            <div>
+              <label className="label">Já tenho (R$)</label>
+              <input type="number" value={valorAtual} onChange={e => setValorAtual(e.target.value)}
+                placeholder="0" min="0" step="0.01" className="input"/>
+            </div>
+            <div>
+              <label className="label">Prazo (meses)</label>
+              <input type="number" value={prazo} onChange={e => setPrazo(e.target.value)}
+                min="1" max="600" className="input"/>
+            </div>
             {aporteEstimado !== null && !isNaN(aporteEstimado) && aporteEstimado > 0 && (
-              <div style={{ background: '#fff', border: `1.5px solid ${C.green100}`, borderRadius: 12, padding: '12px 16px' }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: C.ink3, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, marginTop: 0 }}>Aporte mensal estimado</p>
-                <p style={{ fontSize: 20, fontWeight: 900, color: C.green500, margin: 0 }}>{formatBRL(aporteEstimado)}</p>
+              <div className="flex items-center bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl px-4 py-3">
+                <div>
+                  <p className="text-xs text-[#6b9e80] font-bold uppercase tracking-wider">Aporte mensal estimado</p>
+                  <p className="text-lg font-black text-[#15803d]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                    {formatBRL(aporteEstimado)}
+                  </p>
+                </div>
               </div>
             )}
-            {formError && (
-              <p style={{ fontSize: 12.5, color: C.danger, fontWeight: 600, margin: 0 }}>⚠ {formError}</p>
-            )}
           </div>
+          {formError && <p className="text-xs text-red-500 mb-3">⚠ {formError}</p>}
           <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
             <button
               type="submit"
