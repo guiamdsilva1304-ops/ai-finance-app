@@ -33,12 +33,28 @@ function isAuthorized(req: NextRequest): boolean {
   return searchParams.get('secret') === cronSecret
 }
 
+function extrairJson(text: string): Record<string, unknown> | null {
+  // Remove backtick code blocks if present
+  const semBackticks = text.replace(/```json?\s*/gi, '').replace(/```/g, '').trim()
+  const tentativas = [semBackticks, text]
+  for (const str of tentativas) {
+    try {
+      const first = str.indexOf('{')
+      const last = str.lastIndexOf('}')
+      if (first !== -1 && last !== -1) {
+        return JSON.parse(str.slice(first, last + 1))
+      }
+    } catch { /* continua */ }
+  }
+  return null
+}
+
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req))
     return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
 
   try {
-    // Verifica quantos artigos foram publicados hoje
+    // Verifica se já publicou hoje
     const hoje = new Date()
     hoje.setHours(0, 0, 0, 0)
     const { count } = await supabase
@@ -47,80 +63,92 @@ export async function GET(req: NextRequest) {
       .gte('created_at', hoje.toISOString())
       .eq('generated_by', 'cron-seo')
 
-    // Publica no máximo 1 artigo por dia
     if ((count ?? 0) >= 1) {
       return NextResponse.json({ msg: 'Artigo ja publicado hoje', count })
     }
 
-    // Escolhe um tema baseado no dia da semana
+    // Tema baseado no dia; sufixo de data no slug para nunca colidir
     const diaSemana = new Date().getDay()
     const tema = TEMAS[diaSemana % TEMAS.length]
+    const slugSuffix = new Date().toISOString().slice(0, 10) // ex: 2026-05-12
 
     console.log('[CRON SEO] Gerando artigo sobre:', tema)
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
-      system: `Voce e o agente SEO da iMoney, app brasileiro de financas pessoais com IA para jovens de 20-30 anos. Hoje e ${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}.
+      system: `Voce e o agente SEO da iMoney, app brasileiro de financas pessoais com IA para jovens de 20-30 anos.
+Hoje e ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.
+SELIC atual: 14,75% a.a. IPCA acumulado 2026: ~5,5%.
 
-Use web search para buscar noticias e dados atuais sobre o tema solicitado, depois escreva um artigo completo e otimizado para SEO.
+Escreva um artigo completo em portugues brasileiro otimizado para SEO sobre o tema fornecido.
+Use dados reais do Brasil em 2026, exemplos concretos com valores em reais, e linguagem proxima de jovens de 20-30 anos.
 
-Retorne APENAS JSON puro sem backticks:
-{"artigo":{"titulo":"titulo otimizado para SEO","slug":"slug-em-kebab-case","meta_description":"descricao de 150 caracteres para SEO","conteudo":"artigo completo em markdown com pelo menos 1000 palavras, subtitulos H2 e H3, dados reais e conselhos praticos","publicar_automaticamente":true}}`,
-      tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const }],
-      messages: [{ role: 'user', content: `Escreva e publique um artigo completo sobre: ${tema}. Use dados atuais do Brasil em 2026. Conecte o tema com financas pessoais praticas para jovens brasileiros.` }],
+Retorne APENAS o JSON a seguir — sem texto antes ou depois, sem backticks, sem markdown extra:
+{"artigo":{"titulo":"titulo otimizado para SEO (60-70 chars)","slug":"slug-kebab-case-${slugSuffix}","meta_description":"descricao de 140-155 caracteres para Google","conteudo":"artigo completo em markdown com minimo 900 palavras, subtitulos H2 e H3, dados numericos reais, exemplos praticos e call-to-action"}}`,
+      messages: [{
+        role: 'user',
+        content: `Escreva o artigo completo sobre: ${tema}. Foque em dicas praticas e dados reais para jovens brasileiros em 2026.`,
+      }],
     })
 
-    const content = response.content
+    const rawText = response.content
       .filter(b => b.type === 'text')
       .map(b => (b as { type: 'text'; text: string }).text)
       .join('\n')
 
-    // Extrai e publica o artigo
-    let json = null
-    try {
-      const blocoJson = content.match(/```json([\s\S]*?)```/)
-      const jsonStr = blocoJson ? blocoJson[1].trim() : content
-      const first = jsonStr.indexOf('{')
-      const last = jsonStr.lastIndexOf('}')
-      if (first !== -1 && last !== -1) json = JSON.parse(jsonStr.slice(first, last + 1))
-    } catch { }
-
-    if (json?.artigo) {
-      const { titulo, slug, meta_description, conteudo } = json.artigo
-      const palavras = conteudo.split(/\s+/).length
-      const reading_time_min = Math.max(1, Math.ceil(palavras / 200))
-      const excerpt = conteudo.replace(/#+\s/g, '').replace(/\*\*/g, '').slice(0, 200).trim() + '...'
-
-      const { error } = await supabase.from('blog_posts').insert({
-        title: titulo,
-        slug,
-        excerpt,
-        content: conteudo,
-        seo_title: titulo,
-        seo_description: meta_description ?? '',
-        author: 'Gui da iMoney',
-        category: 'educacao-financeira',
-        tags: [],
-        reading_time_min,
-        published: true,
-        published_at: new Date().toISOString(),
-        generated_by: 'cron-seo',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-
-      if (error) throw error
-
-      console.log('[CRON SEO] Publicado:', slug)
-      return NextResponse.json({ sucesso: true, titulo, slug, palavras })
+    if (!rawText) {
+      console.error('[CRON SEO] Resposta vazia do modelo')
+      return NextResponse.json({ error: 'Resposta vazia do modelo' }, { status: 500 })
     }
 
-    return NextResponse.json({ error: 'JSON nao extraido', content: content.slice(0, 200) }, { status: 500 })
+    const json = extrairJson(rawText)
+
+    if (!json?.artigo) {
+      console.error('[CRON SEO] JSON nao extraido. Preview:', rawText.slice(0, 300))
+      return NextResponse.json({ error: 'JSON nao extraido', preview: rawText.slice(0, 200) }, { status: 500 })
+    }
+
+    const { titulo, slug, meta_description, conteudo } = json.artigo as Record<string, string>
+
+    if (!titulo || !slug || !conteudo) {
+      console.error('[CRON SEO] Campos obrigatorios ausentes no JSON')
+      return NextResponse.json({ error: 'Campos ausentes no JSON' }, { status: 500 })
+    }
+
+    const palavras = conteudo.split(/\s+/).length
+    const reading_time_min = Math.max(1, Math.ceil(palavras / 200))
+    const excerpt = conteudo.replace(/#+\s*/g, '').replace(/\*\*/g, '').slice(0, 200).trim() + '...'
+
+    const { error: dbError } = await supabase.from('blog_posts').insert({
+      title: titulo,
+      slug,
+      excerpt,
+      content: conteudo,
+      seo_title: titulo,
+      seo_description: meta_description ?? '',
+      author: 'Gui da iMoney',
+      category: 'educacao-financeira',
+      tags: [],
+      reading_time_min,
+      published: true,
+      published_at: new Date().toISOString(),
+      generated_by: 'cron-seo',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+
+    if (dbError) {
+      console.error('[CRON SEO] Erro Supabase:', dbError.message, '| Slug tentado:', slug)
+      return NextResponse.json({ error: dbError.message }, { status: 500 })
+    }
+
+    console.log('[CRON SEO] Publicado com sucesso:', slug, '| Palavras:', palavras)
+    return NextResponse.json({ sucesso: true, titulo, slug, palavras })
 
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    console.error('[CRON SEO]', msg)
+    console.error('[CRON SEO] Erro inesperado:', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
