@@ -20,13 +20,14 @@ const NAV_ITEMS: { href: string; icon: IconName; label: string }[] = [
   { href: "/dashboard/openfinance",   icon: 'compass',     label: "Open Finance" },
 ];
 
-const MOBILE_NAV: { href: string; icon: IconName; label: string }[] = [
-  { href: "/dashboard",               icon: 'home',        label: "Início" },
-  { href: "/dashboard/assessor",      icon: 'sparkles',    label: "Assessor" },
-  { href: "/dashboard/transacoes",    icon: 'wallet',      label: "Gastos" },
-  { href: "/dashboard/metas",         icon: 'target',      label: "Metas" },
-  { href: "/dashboard/investimentos", icon: 'trending-up', label: "Invest." },
-  { href: "/dashboard/perfil",        icon: 'user',        label: "Perfil" },
+const MOBILE_NAV_LEFT: { href: string; icon: IconName; label: string }[] = [
+  { href: "/dashboard",         icon: 'home',   label: "Início" },
+  { href: "/dashboard/metas",   icon: 'target', label: "Metas" },
+];
+
+const MOBILE_NAV_RIGHT: { href: string; icon: IconName; label: string }[] = [
+  { href: "/dashboard/investimentos", icon: 'trending-up', label: "Investir" },
+  { href: "/dashboard/perfil",        icon: 'user',        label: "Você" },
 ];
 
 interface SidebarProps {
@@ -150,12 +151,32 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
         </div>
       </div>
 
-      {/* Mobile bottom navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e4f5e9] px-2 py-1 flex items-center justify-around" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {MOBILE_NAV.map(({ href, icon, label }) => {
+      {/* Mobile bottom navigation with FAB */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e4f5e9] flex items-end justify-around px-2"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 72 }}>
+        {MOBILE_NAV_LEFT.map(({ href, icon, label }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
-            <Link key={href} href={href} className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all"
+            <Link key={href} href={href} className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all"
+              style={{ color: active ? '#1D9E75' : '#aaa' }}>
+              <div className={cn("p-1.5 rounded-xl transition-all", active && "bg-[#E1F5EE]")}>
+                <Icon name={icon} size={20} color={active ? '#1D9E75' : '#aaa'} />
+              </div>
+              <span style={{ fontSize: 9, fontWeight: active ? 700 : 500 }}>{label}</span>
+            </Link>
+          );
+        })}
+
+        {/* FAB */}
+        <Link href="/dashboard/metas?add=true"
+          style={{ width: 54, height: 54, borderRadius: '50%', background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, boxShadow: '0 4px 18px rgba(29,158,117,0.45)', flexShrink: 0 }}>
+          <span style={{ color: '#fff', fontSize: 30, fontWeight: 300, lineHeight: 1, marginTop: -2 }}>+</span>
+        </Link>
+
+        {MOBILE_NAV_RIGHT.map(({ href, icon, label }) => {
+          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+          return (
+            <Link key={href} href={href} className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all"
               style={{ color: active ? '#1D9E75' : '#aaa' }}>
               <div className={cn("p-1.5 rounded-xl transition-all", active && "bg-[#E1F5EE]")}>
                 <Icon name={icon} size={20} color={active ? '#1D9E75' : '#aaa'} />

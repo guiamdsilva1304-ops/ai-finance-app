@@ -60,7 +60,7 @@ interface ScoreProfile {
 interface Meta {
   id: string; nome: string;
   valor_alvo: number; valor_atual: number;
-  prazo_meses: number; concluida: boolean;
+  prazo_meses: number; concluida: boolean; principal?: boolean;
 }
 
 interface EcoData {
@@ -80,6 +80,8 @@ export default function DashboardPage() {
   const [dash, setDash] = useState<DashData | null>(null);
   const [loading, setLoading] = useState(true);
   const [mainMeta, setMainMeta] = useState<Meta | null>(null);
+  const [allMetas, setAllMetas] = useState<Meta[]>([]);
+  const [userName, setUserName] = useState("");
   const [isPro, setIsPro] = useState(false);
   const [scoreProfile, setScoreProfile] = useState<ScoreProfile | null>(null);
   const supabase = createSupabaseBrowser();
@@ -89,16 +91,24 @@ export default function DashboardPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const metasRes = await supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).single();
-    if (metasRes.data) setMainMeta(metasRes.data);
+    const [metasRes, profileRes] = await Promise.all([
+      supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).order("created_at", { ascending: false }),
+      supabase.from("user_profiles").select("plan,full_name").eq("user_id", session.user.id).single(),
+    ]);
+    const metas: Meta[] = metasRes.data ?? [];
+    setAllMetas(metas);
+    const principal = metas.find(m => m.principal) ?? metas[0] ?? null;
+    setMainMeta(principal);
 
-    const profileRes = await supabase.from("user_profiles").select("plan").eq("user_id", session.user.id).single();
-    if (profileRes.data) setIsPro(profileRes.data.plan === "pro");
+    if (profileRes.data) {
+      setIsPro(profileRes.data.plan === "pro");
+      if (profileRes.data.full_name) setUserName(profileRes.data.full_name.split(" ")[0]);
+    }
 
     const { data: sp } = await supabase
       .from("user_profiles")
       .select("score_saude, diagnostico_json")
-      .eq("id", session.user.id)
+      .eq("user_id", session.user.id)
       .maybeSingle();
     setScoreProfile(sp ?? null);
 
@@ -149,8 +159,119 @@ export default function DashboardPage() {
     ? (((1 + eco.selic_anual / 100) / (1 + eco.ipca_anual / 100) - 1) * 100).toFixed(2)
     : "—";
 
+  const totalAtual = allMetas.reduce((s, m) => s + m.valor_atual, 0);
+  const totalAlvo = allMetas.reduce((s, m) => s + m.valor_alvo, 0);
+  const totalPct = totalAlvo > 0 ? Math.min(100, Math.round((totalAtual / totalAlvo) * 100)) : 0;
+  const greetingMsg = !loading && allMetas.length === 0 ? "Crie sua primeira meta 🎯" : !loading && dash && dash.sobra < 0 ? "Atenção às suas finanças" : "Você tá no caminho";
+
   return (
-    <div className="p-5 lg:p-8 max-w-7xl mx-auto">
+    <>
+    {/* ── Mobile dashboard ───────────────────────────── */}
+    <div className="md:hidden" style={{ minHeight: "100vh", background: "#f7fdf9", paddingBottom: 100 }}>
+      {/* Greeting */}
+      <div style={{ padding: "20px 20px 0", fontFamily: "Nunito, sans-serif" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 900, color: "#0d2414", margin: "0 0 2px" }}>
+          {userName ? `Oi, ${userName}! 🌺` : "Olá! 🌺"}
+        </h1>
+        <p style={{ fontSize: 13, color: "#6b9e80", margin: "0 0 20px" }}>{greetingMsg}</p>
+
+        {/* Hero card */}
+        {allMetas.length > 0 ? (
+          <div style={{ background: "#0a3d28", borderRadius: 22, padding: "20px 22px 22px", marginBottom: 14 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 10px" }}>
+              TOTAL GUARDADO · TODAS AS METAS
+            </p>
+            <p style={{ fontSize: 36, fontWeight: 900, color: "#fff", margin: "0 0 8px", fontFamily: "Nunito, sans-serif", lineHeight: 1 }}>
+              R$ {fmtInt(totalAtual)}<span style={{ fontSize: 18 }}>,00</span>
+            </p>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "0 0 14px" }}>
+              {totalPct}% de R$ {fmtInt(totalAlvo)}
+            </p>
+            <div style={{ background: "rgba(255,255,255,0.15)", height: 8, borderRadius: 999, overflow: "hidden" }}>
+              <div style={{ background: "#00C853", height: "100%", borderRadius: 999, width: `${totalPct}%`, transition: "width 1s ease" }} />
+            </div>
+          </div>
+        ) : !loading && (
+          <a href="/dashboard/metas?add=true" style={{ display: "block", textDecoration: "none", background: "linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)", borderRadius: 22, padding: "22px", marginBottom: 14 }}>
+            <p style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "0 0 4px" }}>🎯 Defina sua primeira meta</p>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", margin: 0 }}>Diga qual é o seu sonho →</p>
+          </a>
+        )}
+
+        {/* Assessor card */}
+        <a href="/dashboard/assessor" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", marginBottom: 24, border: "1.5px solid #e4f5e9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#00C853", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>🧭</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 800, color: "#0d2414", margin: "0 0 2px", fontFamily: "Nunito, sans-serif" }}>Gui · seu Assessor IA</p>
+            <p style={{ fontSize: 12, color: "#6b9e80", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              Faça uma pergunta sobre suas finanças...
+            </p>
+          </div>
+          <span style={{ color: "#1D9E75", fontSize: 18 }}>›</span>
+        </a>
+
+        {/* Metas section */}
+        {allMetas.length > 0 && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <p style={{ fontSize: 16, fontWeight: 800, color: "#0d2414", margin: 0, fontFamily: "Nunito, sans-serif" }}>Suas metas</p>
+              <a href="/dashboard/metas" style={{ fontSize: 13, fontWeight: 700, color: "#1D9E75", textDecoration: "none" }}>Ver todas →</a>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {allMetas.slice(0, 2).map(meta => {
+                const pct = meta.valor_alvo > 0 ? Math.min(100, Math.round((meta.valor_atual / meta.valor_alvo) * 100)) : 0;
+                const emoji = (() => {
+                  const n = meta.nome.toLowerCase();
+                  if (n.includes("reserva") || n.includes("emergên")) return "🏦";
+                  if (n.includes("viagem") || n.includes("férias") || n.includes("europa")) return "✈️";
+                  if (n.includes("carro") || n.includes("auto")) return "🚗";
+                  if (n.includes("casa") || n.includes("apto")) return "🏡";
+                  if (n.includes("casamento")) return "💍";
+                  if (n.includes("estud") || n.includes("curso")) return "📚";
+                  return "🎯";
+                })();
+                return (
+                  <a key={meta.id} href={`/dashboard/metas/${meta.id}`} style={{ textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", border: "1.5px solid #e4f5e9", display: "block" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 22 }}>{emoji}</span>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 800, color: "#0d2414", margin: 0, fontFamily: "Nunito, sans-serif" }}>{meta.nome}</p>
+                          <p style={{ fontSize: 12, color: "#6b9e80", margin: 0 }}>R$ {fmtInt(meta.valor_atual)} de {fmtInt(meta.valor_alvo)}</p>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 900, color: "#1D9E75" }}>{pct}%</span>
+                    </div>
+                    <div style={{ background: "#e8f5e9", height: 6, borderRadius: 999, overflow: "hidden" }}>
+                      <div style={{ background: "linear-gradient(90deg, #1D9E75, #00C853)", height: "100%", borderRadius: 999, width: `${pct}%` }} />
+                    </div>
+                    <p style={{ fontSize: 11, color: "#6b9e80", margin: "6px 0 0" }}>
+                      R$ {fmtInt((meta.valor_alvo - meta.valor_atual) / Math.max(1, meta.prazo_meses))}/mês · {meta.prazo_meses} meses
+                    </p>
+                  </a>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Score card on mobile */}
+        {!loading && scoreProfile?.diagnostico_json?.score_imoney && (
+          <a href="/dashboard/score" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", marginTop: 14, border: "1.5px solid #e4f5e9" }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: 20, fontWeight: 900, color: "#16a34a", fontFamily: "Nunito, sans-serif" }}>{scoreProfile.score_saude ?? 0}</span>
+            </div>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Score iMoney</p>
+              <p style={{ fontSize: 14, fontWeight: 800, color: "#0d2414", margin: "2px 0 0", fontFamily: "Nunito, sans-serif" }}>Ver diagnóstico →</p>
+            </div>
+          </a>
+        )}
+      </div>
+    </div>
+
+    {/* ── Desktop dashboard ─────────────────────────── */}
+    <div className="hidden md:block p-5 lg:p-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-7">
         <div>
           <h1 className="text-2xl font-black text-[#0d2414] font-[Nunito]">Dashboard</h1>
@@ -332,5 +453,6 @@ export default function DashboardPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
