@@ -18,10 +18,10 @@ export function MarketingNavBar({ onCta }: { onCta?: () => void }) {
         <span style={{ fontSize: 22, fontWeight: 800, color: C.green900, letterSpacing: '-0.02em' }}>iMoney</span>
       </div>
       <div style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
-        <a style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Como funciona</a>
-        <a style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Sonhos</a>
-        <a style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Preços</a>
-        <a style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Blog</a>
+        <a href="#como-funciona" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Como funciona</a>
+        <a href="#sonhos" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Sonhos</a>
+        <a href="#precos" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Preços</a>
+        <a href="/blog" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Blog</a>
         <Button onClick={onCta} style={{ padding: '10px 18px', fontSize: 14 }}>Acesso grátis</Button>
       </div>
     </nav>
@@ -52,7 +52,7 @@ export function Hero({ onCta }: { onCta?: () => void }) {
         </p>
         <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
           <Button onClick={onCta} style={{ padding: '16px 26px', fontSize: 16 }}>Acesso grátis</Button>
-          <Button variant="ghost" style={{ padding: '16px 26px', fontSize: 16 }}>Ver como funciona →</Button>
+          <Button variant="ghost" onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })} style={{ padding: '16px 26px', fontSize: 16 }}>Ver como funciona →</Button>
         </div>
         <div style={{ display: 'flex', gap: 18, marginTop: 28, alignItems: 'center', fontSize: 13, color: C.ink2 }}>
           <span>⭐⭐⭐⭐⭐ 4.8 · 12k usuários</span>
@@ -98,7 +98,7 @@ export function FeatureGrid() {
     { ico: 'sparkles' as const,    title: 'Celebra cada passo', body: 'Cada R$ guardado conta. Marcos de 25%, 50%, 75%, 100% — sem culpa, só motivação.' },
   ];
   return (
-    <section style={{ padding: '80px 32px', background: C.paper, fontFamily: FONT }}>
+    <section id="como-funciona" style={{ padding: '80px 32px', background: C.paper, fontFamily: FONT }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: C.green500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>O que muda</div>
         <h2 style={{ fontSize: 44, fontWeight: 800, color: C.green900, letterSpacing: '-0.02em', margin: '8px 0 12px', lineHeight: 1.1, maxWidth: 720 }}>
@@ -134,7 +134,7 @@ export function DreamShowcase() {
     { emoji: '🎓', title: 'Estudar fora',           sub: 'Planeje o intercâmbio' },
   ];
   return (
-    <section style={{ padding: '80px 32px', background: C.green900, color: '#fff', fontFamily: FONT }}>
+    <section id="sonhos" style={{ padding: '80px 32px', background: C.green900, color: '#fff', fontFamily: FONT }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: C.green500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Qual é o seu sonho?</div>
         <h2 style={{ fontSize: 44, fontWeight: 800, letterSpacing: '-0.02em', margin: '8px 0 36px', lineHeight: 1.1, maxWidth: 720 }}>
@@ -160,7 +160,7 @@ export function DreamShowcase() {
 /* ───── Pricing ───── */
 export function PricingTable({ onCta }: { onCta?: () => void }) {
   return (
-    <section style={{ padding: '80px 32px', background: '#fff', fontFamily: FONT }}>
+    <section id="precos" style={{ padding: '80px 32px', background: '#fff', fontFamily: FONT }}>
       <div style={{ maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: C.green500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Planos</div>
         <h2 style={{ fontSize: 44, fontWeight: 800, color: C.green900, letterSpacing: '-0.02em', margin: '8px 0 16px', lineHeight: 1.1 }}>
@@ -210,7 +210,7 @@ export function PricingTable({ onCta }: { onCta?: () => void }) {
                 </li>
               ))}
             </ul>
-            <Button variant="dark" full>Virar Pro →</Button>
+            <Button variant="dark" full onClick={() => { window.location.href = '/dashboard/pro'; }}>Virar Pro →</Button>
           </div>
         </div>
       </div>
@@ -233,11 +233,12 @@ export function BlogPreview() {
             <div style={{ fontSize: 12, fontWeight: 800, color: C.green500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Do blog iMoney</div>
             <h2 style={{ fontSize: 34, fontWeight: 800, color: C.green900, letterSpacing: '-0.02em', margin: '6px 0 0' }}>Aprenda enquanto sua meta cresce</h2>
           </div>
-          <a style={{ fontSize: 14, fontWeight: 800, color: C.green500, cursor: 'pointer' }}>Ver todos os artigos →</a>
+          <a href="/blog" style={{ fontSize: 14, fontWeight: 800, color: C.green500, cursor: 'pointer', textDecoration: 'none' }}>Ver todos os artigos →</a>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
           {posts.map(p => (
-            <Card key={p.title} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <a key={p.title} href="/blog" style={{ textDecoration: 'none' }}>
+            <Card style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
               <div style={{ height: 140, background: C.green50, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 56 }}>{p.emoji}</div>
               <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: C.green500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{p.eb}</div>
@@ -245,6 +246,7 @@ export function BlogPreview() {
                 <div style={{ fontSize: 12, color: C.ink3, fontWeight: 700, marginTop: 'auto' }}>{p.read} de leitura</div>
               </div>
             </Card>
+            </a>
           ))}
         </div>
       </div>
@@ -255,9 +257,9 @@ export function BlogPreview() {
 /* ───── Footer ───── */
 export function Footer() {
   const cols = [
-    { h: 'Produto',  l: ['Como funciona', 'Sonhos', 'Preços', 'Baixar app'] },
-    { h: 'Aprender', l: ['Blog', 'Calculadoras', 'Glossário'] },
-    { h: 'Empresa',  l: ['Contato', 'Privacidade', 'Termos'] },
+    { h: 'Produto',  l: [['Como funciona','#como-funciona'], ['Sonhos','#sonhos'], ['Preços','#precos']] },
+    { h: 'Aprender', l: [['Blog','/blog']] },
+    { h: 'Empresa',  l: [['Privacidade','/privacidade'], ['Termos','/termos']] },
   ];
   return (
     <footer style={{ background: C.green900, color: '#fff', padding: '60px 32px 32px', fontFamily: FONT }}>
@@ -275,7 +277,7 @@ export function Footer() {
           <div key={col.h}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.7 }}>{col.h}</div>
             <ul style={{ listStyle: 'none', padding: 0, margin: '14px 0 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {col.l.map(item => <li key={item} style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', cursor: 'pointer' }}>{item}</li>)}
+              {col.l.map(([label, href]) => <li key={label}><a href={href} style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>{label}</a></li>)}
             </ul>
           </div>
         ))}

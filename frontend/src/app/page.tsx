@@ -5,7 +5,7 @@ import {
 } from '@/components/imoney';
 
 export default function HomePage() {
-  const cta = () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  const cta = () => { window.location.href = '/login'; };
   return (
     <>
       <MarketingNavBar onCta={cta}/>
