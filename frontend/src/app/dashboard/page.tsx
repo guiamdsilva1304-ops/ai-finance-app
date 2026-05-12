@@ -4,6 +4,7 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 import { MetricCard, MetricCardSkeleton } from "@/components/ui/MetricCard";
 import { formatBRL, getScoreColor, getScoreLabel } from "@/lib/utils";
 import { TrendingUp, Wallet, PiggyBank, BarChart3, RefreshCw } from "lucide-react";
+import { GoalCard } from "@/components/imoney/primitives";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -29,6 +30,22 @@ function scoreNivelLabel(score: number) {
   if (score <= 70) return "Estável";
   if (score <= 85) return "Saudável";
   return "Excelente";
+}
+
+function metaEmoji(nome: string): string {
+  const n = nome.toLowerCase();
+  if (n.includes('reserva') || n.includes('emergên') || n.includes('emergenc')) return '🏦';
+  if (n.includes('viagem') || n.includes('férias') || n.includes('ferias')) return '✈️';
+  if (n.includes('carro') || n.includes('auto')) return '🚗';
+  if (n.includes('casa') || n.includes('apto')) return '🏡';
+  if (n.includes('casamento') || n.includes('noivado')) return '💍';
+  if (n.includes('estud') || n.includes('curso')) return '📚';
+  if (n.includes('div') || n.includes('empréstimo')) return '💳';
+  return '🎯';
+}
+
+function brlNum(n: number) {
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 interface ScoreProfile {
@@ -221,29 +238,21 @@ export default function DashboardPage() {
       </div>
 
       {mainMeta && (
-        <div className="bg-white border border-[#e4f5e9] rounded-2xl p-5 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🎯</span>
-              <div>
-                <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider">Meta Principal</p>
-                <p className="font-black text-[#0d2414]" style={{fontFamily:"Nunito,sans-serif"}}>{mainMeta.nome}</p>
-              </div>
-            </div>
-            <a href="/dashboard/metas" className="text-xs font-bold text-[#16a34a] hover:underline">Ver todas →</a>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#8db89d', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Meta Principal</p>
+            <a href="/dashboard/metas" style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', textDecoration: 'none' }}>Ver todas →</a>
           </div>
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-[#6b9e80] font-bold">{formatBRL(mainMeta.valor_atual)} guardados</span>
-            <span className="font-black text-[#0d2414]">{formatBRL(mainMeta.valor_alvo)}</span>
-          </div>
-          <div className="w-full bg-[#f0fdf4] rounded-full h-3">
-            <div className="bg-gradient-to-r from-[#16a34a] to-[#22c55e] h-3 rounded-full transition-all"
-              style={{width: `${Math.min(100, Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100))}%`}}/>
-          </div>
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-[#8db89d]">{Math.min(100, Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100))}% concluído</span>
-            <span className="text-xs text-[#8db89d]">{mainMeta.prazo_meses} meses restantes</span>
-          </div>
+          <GoalCard
+            title={mainMeta.nome}
+            emoji={metaEmoji(mainMeta.nome)}
+            current={brlNum(mainMeta.valor_atual)}
+            target={formatBRL(mainMeta.valor_alvo)}
+            pct={Math.min(100, mainMeta.valor_alvo > 0 ? Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100) : 0)}
+            statusLeft={`${mainMeta.prazo_meses} meses restantes`}
+            statusRight={`${Math.min(100, mainMeta.valor_alvo > 0 ? Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100) : 0)}% concluído`}
+            tone="white"
+          />
         </div>
       )}
 

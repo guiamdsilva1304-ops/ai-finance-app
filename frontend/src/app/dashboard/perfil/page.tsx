@@ -5,6 +5,8 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 import { CheckCircle2, User } from "lucide-react";
 import TwoFactorSetup from "@/components/TwoFactorSetup";
 import { cn } from "@/lib/utils";
+import { FormField } from "@/components/imoney/primitives";
+import { C, FONT } from "@/components/imoney/tokens";
 
 // Brazilian states and cities data
 const ESTADOS: Record<string, string> = {
@@ -53,8 +55,8 @@ const OCUPACOES = [
 ];
 
 interface Profile {
-
   estado?: string; cidade?: string; ocupacao?: string;
+  idade?: number; filhos?: number;
 }
 
 export default function PerfilPage() {
@@ -174,20 +176,29 @@ setNome(data.nome ?? "");
           📋 Informações Pessoais
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <div>
-            <label className="label">Idade</label>
-            <input type="number" value={idade} onChange={e => setIdade(e.target.value)}
-              placeholder="Sua idade" min="1" max="120" className="input"/>
-          </div>
-          <div>
-            <label className="label">Número de filhos</label>
-            <input type="number" value={filhos} onChange={e => setFilhos(e.target.value)}
-              min="0" max="20" className="input"/>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="label">Ocupação</label>
-            <select value={ocupacao} onChange={e => setOcupacao(e.target.value)} className="input">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+          <FormField
+            label="Idade"
+            placeholder="Sua idade"
+            value={idade}
+            onChange={setIdade}
+          />
+          <FormField
+            label="Número de filhos"
+            placeholder="0"
+            value={filhos}
+            onChange={setFilhos}
+          />
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={{ fontSize: 14, fontWeight: 700, color: C.green900, fontFamily: FONT, display: 'block', marginBottom: 6 }}>Ocupação</label>
+            <select
+              value={ocupacao}
+              onChange={e => setOcupacao(e.target.value)}
+              style={{
+                width: '100%', padding: '13px 14px', border: `1.5px solid rgba(26,58,26,0.18)`,
+                borderRadius: 12, fontSize: 15, fontFamily: FONT, color: C.ink,
+                background: '#fff', outline: 'none', appearance: 'auto',
+              }}>
               {OCUPACOES.map(o => <option key={o}>{o}</option>)}
             </select>
           </div>
@@ -197,20 +208,26 @@ setNome(data.nome ?? "");
           <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
             📍 Localização
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
-              <label className="label">Estado</label>
-              <select value={estado} onChange={e => setEstado(e.target.value)} className="input">
+              <label style={{ fontSize: 14, fontWeight: 700, color: C.green900, fontFamily: FONT, display: 'block', marginBottom: 6 }}>Estado</label>
+              <select
+                value={estado}
+                onChange={e => setEstado(e.target.value)}
+                style={{ width: '100%', padding: '13px 14px', border: `1.5px solid rgba(26,58,26,0.18)`, borderRadius: 12, fontSize: 15, fontFamily: FONT, color: C.ink, background: '#fff', outline: 'none' }}>
                 <option value="">— Selecione o estado —</option>
-                {Object.entries(ESTADOS).sort((a,b) => a[1].localeCompare(b[1])).map(([uf, nome]) => (
-                  <option key={uf} value={uf}>{uf} — {nome}</option>
+                {Object.entries(ESTADOS).sort((a,b) => a[1].localeCompare(b[1])).map(([uf, n]) => (
+                  <option key={uf} value={uf}>{uf} — {n}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="label">Cidade</label>
-              <select value={cidade} onChange={e => setCidade(e.target.value)}
-                disabled={!estado} className="input disabled:opacity-50 disabled:cursor-not-allowed">
+              <label style={{ fontSize: 14, fontWeight: 700, color: C.green900, fontFamily: FONT, display: 'block', marginBottom: 6 }}>Cidade</label>
+              <select
+                value={cidade}
+                onChange={e => setCidade(e.target.value)}
+                disabled={!estado}
+                style={{ width: '100%', padding: '13px 14px', border: `1.5px solid rgba(26,58,26,0.18)`, borderRadius: 12, fontSize: 15, fontFamily: FONT, color: C.ink, background: '#fff', outline: 'none', opacity: !estado ? 0.5 : 1 }}>
                 <option value="">— Selecione a cidade —</option>
                 {cidades.map(c => <option key={c}>{c}</option>)}
               </select>
@@ -219,7 +236,7 @@ setNome(data.nome ?? "");
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 mb-4">
+          <div style={{ background: '#ffebee', border: '1.5px solid #ef9a9a', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: C.danger, fontWeight: 600, fontFamily: FONT, marginBottom: 16 }}>
             ⚠ {error}
           </div>
         )}
