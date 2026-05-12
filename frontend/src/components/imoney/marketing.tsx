@@ -14,7 +14,7 @@ export function MarketingNavBar({ onCta }: { onCta?: () => void }) {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <img src="/imoney/logo-icon-512.png" alt="iMoney" width={36} height={36} style={{ borderRadius: 8, display: 'block' }}/>
+        <img src="/icon.svg" alt="iMoney" width={36} height={36} style={{ borderRadius: 8, display: 'block' }}/>
         <span style={{ fontSize: 22, fontWeight: 800, color: C.green900, letterSpacing: '-0.02em' }}>iMoney</span>
       </div>
       <div style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
@@ -266,7 +266,7 @@ export function Footer() {
       <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr', gap: 40 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/imoney/logo-icon-512.png" alt="iMoney" width={40} height={40} style={{ borderRadius: 9, display: 'block' }}/>
+            <img src="/icon.svg" alt="iMoney" width={40} height={40} style={{ borderRadius: 9, display: 'block' }}/>
             <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>iMoney</span>
           </div>
           <p style={{ fontSize: 13.5, opacity: 0.6, lineHeight: 1.55, marginTop: 14, maxWidth: 280 }}>
