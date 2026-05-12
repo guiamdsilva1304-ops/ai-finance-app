@@ -126,3 +126,175 @@ export function GoalProgress({ pct, dark = false }: { pct: number; dark?: boolea
     </div>
   );
 }
+
+/* ───── GoalCard ───── */
+type GoalTone = 'white' | 'dark' | 'gold';
+export function GoalCard({
+  title, emoji, current, target, pct, statusLeft, statusRight, tone = 'white',
+}: {
+  title: string;
+  emoji: string;
+  current: string;
+  target?: string;
+  pct: number;
+  statusLeft: string;
+  statusRight: string;
+  tone?: GoalTone;
+}) {
+  const isDark = tone === 'dark';
+  const isGold = tone === 'gold';
+  const bg = isDark ? C.green900 : isGold ? C.gold50 : '#fff';
+  const titleColor = isDark ? '#fff' : C.green900;
+  const amountColor = isDark ? '#fff' : isGold ? C.gold : C.green900;
+  const targetColor = isDark ? 'rgba(255,255,255,0.5)' : C.ink3;
+  const barBg = isDark ? 'rgba(255,255,255,0.12)' : isGold ? 'rgba(249,168,37,0.2)' : C.green50;
+  const barFill = isGold ? C.gold : C.green500;
+  const statusLeftColor = isDark ? C.green500 : isGold ? '#8a5c00' : C.green500;
+  const statusRightColor = isDark ? 'rgba(255,255,255,0.55)' : C.ink3;
+  return (
+    <div style={{
+      background: bg, borderRadius: 16, padding: '20px 22px', fontFamily: FONT,
+      boxShadow: isDark ? 'none' : '0 1px 3px rgba(26,58,26,0.08)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+        <div style={{ fontSize: 15.5, fontWeight: 800, color: titleColor }}>{title}</div>
+        <div style={{ fontSize: 26 }}>{emoji}</div>
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <span style={{
+          fontSize: 30, fontWeight: 900, color: amountColor,
+          fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em',
+        }}>R$ {current}</span>
+        {target && (
+          <span style={{ fontSize: 14, color: targetColor, marginLeft: 6 }}>/ {target}</span>
+        )}
+      </div>
+      <div style={{ background: barBg, height: 8, borderRadius: 999, overflow: 'hidden', marginBottom: 10 }}>
+        <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: barFill, borderRadius: 999 }}/>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: statusLeftColor }}>{statusLeft}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: statusRightColor }}>{statusRight}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ───── FormField ───── */
+export function FormField({
+  label, placeholder, value, onChange, helper, error, success, type = 'text', prefix,
+}: {
+  label: string;
+  placeholder?: string;
+  value?: string;
+  onChange?: (v: string) => void;
+  helper?: string;
+  error?: string;
+  success?: string;
+  type?: 'text' | 'email' | 'password' | 'currency';
+  prefix?: string;
+}) {
+  const [focused, setFocused] = React.useState(false);
+  const hasError = Boolean(error);
+  const hasSuccess = Boolean(success);
+  const borderColor = hasError ? C.danger : (focused || hasSuccess) ? C.green500 : 'rgba(26,58,26,0.18)';
+  const hint = error ?? success ?? helper;
+  const hintColor = hasError ? C.danger : hasSuccess ? C.green500 : C.ink3;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontFamily: FONT }}>
+      <label style={{ fontSize: 14, fontWeight: 700, color: C.green900 }}>{label}</label>
+      <div style={{
+        display: 'flex', alignItems: 'stretch',
+        border: `1.5px solid ${borderColor}`, borderRadius: 12,
+        overflow: 'hidden', background: '#fff', transition: 'border-color 150ms',
+      }}>
+        {prefix && (
+          <div style={{
+            padding: '0 13px', background: C.green50,
+            display: 'flex', alignItems: 'center',
+            fontSize: 14, fontWeight: 800, color: C.green900,
+            borderRight: `1.5px solid ${borderColor}`, flexShrink: 0,
+          }}>{prefix}</div>
+        )}
+        <input
+          type={type === 'currency' ? 'text' : type}
+          placeholder={placeholder}
+          value={value}
+          onChange={e => onChange?.(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={{
+            flex: 1, padding: '13px 14px', border: 'none', outline: 'none',
+            fontSize: 15, fontFamily: FONT, color: C.ink, background: 'transparent',
+          }}
+        />
+      </div>
+      {hint && (
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: hintColor }}>{hint}</span>
+      )}
+    </div>
+  );
+}
+
+/* ───── PlanUpgradeCard ───── */
+export function PlanUpgradeCard() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontFamily: FONT }}>
+      <div style={{
+        background: '#fff', borderRadius: 20, padding: '26px 24px',
+        border: `1.5px solid rgba(26,58,26,0.10)`,
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: C.ink3, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Gratuito</div>
+        <div style={{ fontSize: 21, fontWeight: 800, color: C.green900, letterSpacing: '-0.02em', marginBottom: 12 }}>Comece sua jornada</div>
+        <div style={{ fontSize: 34, fontWeight: 900, color: C.green900, marginBottom: 8 }}>R$ 0</div>
+        <div style={{ fontSize: 13, color: C.ink3, lineHeight: 1.5, marginBottom: 22 }}>
+          Dashboard · metas básicas · Assessor IA 10 msgs/dia
+        </div>
+        <Button variant="dark" full href="/login">Baixar grátis</Button>
+      </div>
+      <div style={{
+        background: 'linear-gradient(160deg, #f9a825 0%, #f4b54a 100%)',
+        borderRadius: 20, padding: '26px 24px',
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: '#8a5c00', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>✨ Pro</div>
+        <div style={{ fontSize: 21, fontWeight: 800, color: '#2a1a00', letterSpacing: '-0.02em', marginBottom: 12 }}>Invista no seu sonho</div>
+        <div style={{ fontSize: 34, fontWeight: 900, color: '#2a1a00', marginBottom: 8 }}>
+          R$ 29,90<span style={{ fontSize: 15, fontWeight: 700 }}>/mês</span>
+        </div>
+        <div style={{ fontSize: 13, color: '#7a4f00', lineHeight: 1.5, marginBottom: 22 }}>
+          Menos de R$1/dia — o preço de um café
+        </div>
+        <Button variant="dark" full href="/dashboard/pro">Virar Pro →</Button>
+      </div>
+    </div>
+  );
+}
+
+/* ───── Toast ───── */
+type ToastType = 'conquista' | 'progresso' | 'atencao' | 'gui';
+const TOAST_CFG: Record<ToastType, { emoji: string; iconBg: string; bg: string; titleColor: string; bodyColor: string }> = {
+  conquista: { emoji: '🎉', iconBg: '#fff3e0', bg: '#fff',      titleColor: C.green900, bodyColor: C.ink2 },
+  progresso: { emoji: '✨', iconBg: C.green50,  bg: '#fff',      titleColor: C.green900, bodyColor: C.ink2 },
+  atencao:   { emoji: '💡', iconBg: '#fff8e1', bg: '#fff',      titleColor: C.green900, bodyColor: C.ink2 },
+  gui:       { emoji: '🧭', iconBg: C.green500, bg: C.green900, titleColor: '#fff',      bodyColor: 'rgba(255,255,255,0.72)' },
+};
+export function Toast({ type, title, body }: { type: ToastType; title: string; body: string }) {
+  const cfg = TOAST_CFG[type];
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 14,
+      background: cfg.bg, borderRadius: 16, padding: '16px 18px',
+      boxShadow: '0 2px 12px rgba(26,58,26,0.10)', fontFamily: FONT,
+    }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+        background: cfg.iconBg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+      }}>{cfg.emoji}</div>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: cfg.titleColor, marginBottom: 3 }}>{title}</div>
+        <div style={{ fontSize: 13, color: cfg.bodyColor, lineHeight: 1.4 }}>{body}</div>
+      </div>
+    </div>
+  );
+}
