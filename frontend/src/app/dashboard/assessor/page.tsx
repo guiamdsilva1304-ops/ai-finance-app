@@ -173,13 +173,15 @@ export default function AssessorPage() {
       {messages.length === 0 && historyLoaded && (
         <div className="mb-4 shrink-0">
           <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider mb-2.5">Ações rápidas</p>
-          <div className="grid grid-cols-2 gap-2">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {QUICK_ACTIONS.map(({ label, prompt }) => (
-              <button key={label} onClick={() => send(prompt)}
-                className="btn-secondary text-left text-xs py-2.5 px-3 flex items-center gap-2">
-                <Zap size={12} className="text-[#16a34a] shrink-0"/>
-                {label}
-              </button>
+              <button key={label} onClick={() => send(prompt)} style={{
+                padding: '8px 16px', borderRadius: 999,
+                border: '1.5px solid rgba(26,58,26,0.15)',
+                background: '#fff', color: '#1a3a1a',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                fontFamily: '"Nunito", sans-serif',
+              }}>{label}</button>
             ))}
           </div>
         </div>
@@ -197,38 +199,43 @@ export default function AssessorPage() {
         )}
 
         {messages.map((msg, i) => (
-          <div key={i} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
+          <div key={i} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")} style={{ gap: 10 }}>
             {msg.role === "assistant" && (
-              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#16a34a] to-[#15803d] flex items-center justify-center text-white text-xs font-bold shrink-0 mr-2 mt-1">
-                IA
-              </div>
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%', background: '#00c853',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, flexShrink: 0, marginTop: 2,
+              }}>🧭</div>
             )}
-            <div className={cn(
-              "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
-              msg.role === "user"
-                ? "bg-[#16a34a] text-white rounded-br-sm"
-                : "bg-white border border-[#e4f5e9] text-[#0d2414] rounded-bl-sm"
-            )}>
+            <div style={{
+              maxWidth: '78%', borderRadius: msg.role === "user" ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+              padding: '12px 16px', fontSize: 14, lineHeight: 1.55,
+              background: msg.role === "user" ? '#1a3a1a' : '#e8f5e9',
+              color: msg.role === "user" ? '#fff' : '#1a3a1a',
+              fontFamily: '"Nunito", sans-serif',
+            }}>
               {msg.role === "assistant" ? (
-                <div className="prose prose-sm max-w-none prose-headings:text-[#0d2414] prose-headings:font-black prose-p:text-[#0d2414] prose-strong:text-[#0d2414] prose-li:text-[#0d2414] prose-a:text-[#16a34a]">
+                <div className="prose prose-sm max-w-none prose-headings:text-[#1a3a1a] prose-headings:font-black prose-p:text-[#1a3a1a] prose-strong:text-[#1a3a1a] prose-li:text-[#1a3a1a] prose-a:text-[#00c853]">
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
                 </div>
               ) : (
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+                <p className="whitespace-pre-wrap" style={{ margin: 0 }}>{msg.content}</p>
               )}
             </div>
           </div>
         ))}
 
         {loading && (
-          <div className="flex justify-start">
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#16a34a] to-[#15803d] flex items-center justify-center text-white text-xs font-bold shrink-0 mr-2 mt-1">
-              IA
-            </div>
-            <div className="bg-white border border-[#e4f5e9] rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+          <div className="flex justify-start" style={{ gap: 10 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%', background: '#00c853',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, flexShrink: 0, marginTop: 2,
+            }}>🧭</div>
+            <div style={{ background: '#e8f5e9', borderRadius: '18px 18px 18px 4px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
               {[0,1,2].map(i => (
-                <span key={i} className="w-2 h-2 bg-[#16a34a] rounded-full animate-bounce"
-                  style={{ animationDelay: `${i * 150}ms` }}/>
+                <span key={i} className="w-2 h-2 rounded-full animate-bounce"
+                  style={{ background: '#00c853', animationDelay: `${i * 150}ms`, width: 8, height: 8, borderRadius: '50%', display: 'block' }}/>
               ))}
             </div>
           </div>
@@ -266,8 +273,13 @@ export default function AssessorPage() {
             style={{ fontFamily: "Nunito Sans, sans-serif" }}
             disabled={loading}
           />
-          <button type="submit" disabled={!input.trim() || loading}
-            className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#16a34a] to-[#22c55e] flex items-center justify-center text-white disabled:opacity-40 transition-opacity">
+          <button type="submit" disabled={!input.trim() || loading} style={{
+            flexShrink: 0, width: 40, height: 40, borderRadius: '50%',
+            background: '#1a3a1a', border: 0, display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            color: '#fff', cursor: 'pointer', opacity: (!input.trim() || loading) ? 0.4 : 1,
+            transition: 'opacity 150ms',
+          }}>
             <Send size={16}/>
           </button>
         </form>
