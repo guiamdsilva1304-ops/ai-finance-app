@@ -56,40 +56,39 @@ export function LogoMark({ size = 32, radius }: { size?: number; radius?: number
 /* ───── Button ───── */
 type ButtonVariant = 'primary' | 'dark' | 'ghost' | 'pro';
 export function Button({
-  children, variant = 'primary', onClick, full = false, icon, style = {},
+  children, variant = 'primary', onClick, href, full = false, icon, style = {},
 }: {
   children: React.ReactNode;
   variant?: ButtonVariant;
   onClick?: () => void;
+  href?: string;
   full?: boolean;
   icon?: IconName;
   style?: React.CSSProperties;
 }) {
-  const variants: Record<ButtonVariant, React.CSSProperties> = {
+  const map: Record<ButtonVariant, React.CSSProperties> = {
     primary: { background: C.green500, color: '#0a200a' },
     dark:    { background: C.green900, color: '#fff' },
-    ghost:   { background: 'transparent', color: C.green900, border: `1.5px solid ${C.divider}` },
-    pro:     { background: C.gold, color: '#2a1a00', boxShadow: '0 12px 28px rgba(249,168,37,0.32)' },
+    ghost:   { background: '#fff', color: C.green900, border: '1.5px solid rgba(26,58,26,0.18)' },
+    pro:     { background: C.gold, color: '#2a1a00' },
   };
+  const base: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    padding: '14px 22px', fontFamily: FONT, fontWeight: 800, fontSize: 16,
+    borderRadius: 16, border: 0, cursor: 'pointer', textDecoration: 'none',
+    transition: 'transform 120ms cubic-bezier(.2,.8,.2,1)',
+    width: full ? '100%' : 'auto',
+    ...map[variant],
+    ...style,
+  };
+  const press = (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.transform = 'scale(0.97)');
+  const release = (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.transform = 'scale(1)');
+  const inner = <>{icon && <Icon name={icon} size={18}/>}{children}</>;
+  if (href) return (
+    <a href={href} style={base} onMouseDown={press} onMouseUp={release} onMouseLeave={release}>{inner}</a>
+  );
   return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        padding: '14px 22px', fontFamily: FONT, fontWeight: 800, fontSize: 16,
-        borderRadius: 14, border: 0, cursor: 'pointer',
-        transition: 'transform 120ms cubic-bezier(.2,.8,.2,1)',
-        width: full ? '100%' : 'auto',
-        ...variants[variant],
-        ...style,
-      }}
-      onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.98)')}
-      onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-      onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-    >
-      {icon && <Icon name={icon} size={18}/>}
-      {children}
-    </button>
+    <button onClick={onClick} style={base} onMouseDown={press} onMouseUp={release} onMouseLeave={release}>{inner}</button>
   );
 }
 

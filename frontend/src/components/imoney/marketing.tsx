@@ -4,7 +4,7 @@ import { C, FONT } from './tokens';
 import { Button, Card, Icon, Money, GoalProgress } from './primitives';
 
 /* ───── NavBar ───── */
-export function MarketingNavBar({ onCta }: { onCta?: () => void }) {
+export function MarketingNavBar() {
   return (
     <nav style={{
       position: 'sticky', top: 0, zIndex: 10,
@@ -22,14 +22,14 @@ export function MarketingNavBar({ onCta }: { onCta?: () => void }) {
         <a href="#sonhos" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Sonhos</a>
         <a href="#precos" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Preços</a>
         <a href="/blog" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Blog</a>
-        <Button onClick={onCta} style={{ padding: '10px 18px', fontSize: 14 }}>Acesso grátis</Button>
+        <Button href="/login" style={{ padding: '10px 18px', fontSize: 14 }}>Acesso grátis</Button>
       </div>
     </nav>
   );
 }
 
 /* ───── Hero ───── */
-export function Hero({ onCta }: { onCta?: () => void }) {
+export function Hero() {
   return (
     <section style={{
       padding: '64px 32px 80px', maxWidth: 1200, margin: '0 auto',
@@ -51,8 +51,8 @@ export function Hero({ onCta }: { onCta?: () => void }) {
           A iMoney transforma o que você quer — casa própria, viagem, independência — em metas concretas. Com Assessor IA 24h pelo seu projeto de vida.
         </p>
         <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
-          <Button onClick={onCta} style={{ padding: '16px 26px', fontSize: 16 }}>Acesso grátis</Button>
-          <Button variant="ghost" onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })} style={{ padding: '16px 26px', fontSize: 16 }}>Ver como funciona →</Button>
+          <Button href="/login" style={{ padding: '16px 26px', fontSize: 16 }}>Acesso grátis</Button>
+          <Button variant="ghost" href="#como-funciona" style={{ padding: '16px 26px', fontSize: 16 }}>Ver como funciona →</Button>
         </div>
         <div style={{ display: 'flex', gap: 18, marginTop: 28, alignItems: 'center', fontSize: 13, color: C.ink2 }}>
           <span>⭐⭐⭐⭐⭐ 4.8 · 12k usuários</span>
@@ -142,14 +142,20 @@ export function DreamShowcase() {
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
           {dreams.map(d => (
-            <div key={d.title} style={{
-              padding: 24, borderRadius: 16, background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 8,
-            }}>
-              <div style={{ fontSize: 36 }}>{d.emoji}</div>
-              <div style={{ fontSize: 18, fontWeight: 800 }}>{d.title}</div>
-              <div style={{ fontSize: 13.5, opacity: 0.65 }}>{d.sub}</div>
-            </div>
+            <a key={d.title} href="/login" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div style={{
+                padding: 24, borderRadius: 16, background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 8,
+                cursor: 'pointer', transition: 'background 150ms',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.10)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+              >
+                <div style={{ fontSize: 36 }}>{d.emoji}</div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{d.title}</div>
+                <div style={{ fontSize: 13.5, opacity: 0.65 }}>{d.sub}</div>
+              </div>
+            </a>
           ))}
         </div>
       </div>
@@ -158,7 +164,7 @@ export function DreamShowcase() {
 }
 
 /* ───── Pricing ───── */
-export function PricingTable({ onCta }: { onCta?: () => void }) {
+export function PricingTable() {
   return (
     <section id="precos" style={{ padding: '80px 32px', background: '#fff', fontFamily: FONT }}>
       <div style={{ maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
@@ -183,7 +189,7 @@ export function PricingTable({ onCta }: { onCta?: () => void }) {
                 </li>
               ))}
             </ul>
-            <Button variant="dark" full onClick={onCta}>Acesso grátis</Button>
+            <Button variant="dark" full href="/login">Acesso grátis</Button>
           </div>
 
           <div style={{
@@ -210,7 +216,7 @@ export function PricingTable({ onCta }: { onCta?: () => void }) {
                 </li>
               ))}
             </ul>
-            <Button variant="dark" full onClick={() => { window.location.href = '/dashboard/pro'; }}>Virar Pro →</Button>
+            <Button variant="pro" full href="/dashboard/pro">✨ Virar Pro →</Button>
           </div>
         </div>
       </div>
