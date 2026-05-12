@@ -3,7 +3,8 @@ import { amplitude } from "@/app/amplitude";
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { Send, Trash2, Zap } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { Icon } from "@/components/imoney/primitives";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 
@@ -280,7 +281,7 @@ export default function AssessorPage() {
             color: '#fff', cursor: 'pointer', opacity: (!input.trim() || loading) ? 0.4 : 1,
             transition: 'opacity 150ms',
           }}>
-            <Send size={16}/>
+            <Icon name="send" size={16} color="#fff" />
           </button>
         </form>
         <p className="text-[11px] text-center text-[#8db89d] mt-1.5">

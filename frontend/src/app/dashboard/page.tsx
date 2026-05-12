@@ -3,8 +3,8 @@ import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { MetricCard, MetricCardSkeleton } from "@/components/ui/MetricCard";
 import { formatBRL, getScoreColor, getScoreLabel } from "@/lib/utils";
-import { TrendingUp, Wallet, PiggyBank, BarChart3, RefreshCw } from "lucide-react";
-import { GoalCard } from "@/components/imoney/primitives";
+import { RefreshCw } from "lucide-react";
+import { GoalCard, Icon } from "@/components/imoney/primitives";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -219,20 +219,20 @@ export default function DashboardPage() {
         ) : (
           <>
             <MetricCard label="Renda do Mês" value={formatBRL(dash?.renda ?? 0)}
-              icon={<Wallet size={16}/>} animDelay={0} />
+              icon={<Icon name="wallet" size={16} color="#1D9E75" />} animDelay={0} />
             <MetricCard label="Gastos do Mês"
               value={formatBRL(dash?.gastos ?? 0)}
               sub={dash?.renda ? `${((dash.gastos/dash.renda)*100).toFixed(1)}% da renda` : ""}
               trend={dash && dash.gastos > dash.renda * 0.8 ? "down" : "neutral"}
-              icon={<TrendingUp size={16}/>} animDelay={60} />
+              icon={<Icon name="trending-up" size={16} color="#1D9E75" />} animDelay={60} />
             <MetricCard label="Sobra do Mês"
               value={formatBRL(Math.abs(dash?.sobra ?? 0))}
               sub={dash && dash.sobra >= 0 ? "disponível para investir" : "DÉFICIT"}
               trend={dash && dash.sobra > 0 ? "up" : "down"}
-              icon={<PiggyBank size={16}/>} animDelay={120} />
+              icon={<Icon name="piggy-bank" size={16} color="#1D9E75" />} animDelay={120} />
             <MetricCard label="SELIC" value={eco ? `${eco.selic_anual}% a.a.` : "—"}
               sub={eco ? `Meta: ${eco.selic_meta}% | IPCA: ${eco.ipca_anual}%` : ""}
-              icon={<BarChart3 size={16}/>} animDelay={180} />
+              icon={<Icon name="pie" size={16} color="#1D9E75" />} animDelay={180} />
           </>
         )}
       </div>

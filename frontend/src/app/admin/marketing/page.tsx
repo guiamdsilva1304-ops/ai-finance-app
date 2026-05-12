@@ -5,7 +5,7 @@ type Post = {
   id: string; platform: string; content_type: string; tema: string;
   angulo: string; caption: string; hashtags: string[]; cta: string;
   melhor_horario: string; visual_description: string; scheduled_for: string;
-  status: string; notas_rejeicao?: string;
+  status: string; notas_rejeicao?: string; image_url?: string;
 };
 
 const TYPE_LABELS: Record<string, string> = {

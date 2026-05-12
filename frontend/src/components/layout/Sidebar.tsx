@@ -5,22 +5,28 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard, MessageCircle, Receipt, Target,
-  TrendingUp, User, BarChart3, Landmark, LogOut,
-  ChevronLeft, ChevronRight, Sparkles,
-} from "lucide-react";
+import { Icon, type IconName } from "@/components/imoney/primitives";
+import { LogOut } from "lucide-react";
 import { useState } from "react";
 
-const NAV_ITEMS = [
-  { href: "/dashboard",               icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/dashboard/assessor",      icon: MessageCircle,   label: "Assessor" },
-  { href: "/dashboard/transacoes",    icon: Receipt,         label: "Transações" },
-  { href: "/dashboard/metas",         icon: Target,          label: "Metas" },
-  { href: "/dashboard/investimentos", icon: TrendingUp,      label: "Investimentos" },
-  { href: "/dashboard/renda",         icon: BarChart3,       label: "Renda Variável" },
-  { href: "/dashboard/perfil",        icon: User,            label: "Meu Perfil" },
-  { href: "/dashboard/openfinance",   icon: Landmark,        label: "Open Finance" },
+const NAV_ITEMS: { href: string; icon: IconName; label: string }[] = [
+  { href: "/dashboard",               icon: 'home',        label: "Dashboard" },
+  { href: "/dashboard/assessor",      icon: 'sparkles',    label: "Assessor" },
+  { href: "/dashboard/transacoes",    icon: 'wallet',      label: "Transações" },
+  { href: "/dashboard/metas",         icon: 'target',      label: "Metas" },
+  { href: "/dashboard/investimentos", icon: 'trending-up', label: "Investimentos" },
+  { href: "/dashboard/renda",         icon: 'pie',         label: "Renda Variável" },
+  { href: "/dashboard/perfil",        icon: 'user',        label: "Meu Perfil" },
+  { href: "/dashboard/openfinance",   icon: 'compass',     label: "Open Finance" },
+];
+
+const MOBILE_NAV: { href: string; icon: IconName; label: string }[] = [
+  { href: "/dashboard",               icon: 'home',        label: "Início" },
+  { href: "/dashboard/assessor",      icon: 'sparkles',    label: "Assessor" },
+  { href: "/dashboard/transacoes",    icon: 'wallet',      label: "Gastos" },
+  { href: "/dashboard/metas",         icon: 'target',      label: "Metas" },
+  { href: "/dashboard/investimentos", icon: 'trending-up', label: "Invest." },
+  { href: "/dashboard/perfil",        icon: 'user',        label: "Perfil" },
 ];
 
 interface SidebarProps {
@@ -54,7 +60,7 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+        {NAV_ITEMS.map(({ href, icon, label }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link
@@ -67,7 +73,7 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
               )}
               title={collapsed ? label : undefined}
             >
-              <Icon size={18} className="shrink-0" />
+              <Icon name={icon} size={18} color={active ? '#1D9E75' : '#8db89d'} />
               {!collapsed && <span>{label}</span>}
             </Link>
           );
@@ -82,7 +88,7 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
             className="flex items-center gap-2 w-full justify-center py-2.5 px-4 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)' }}
           >
-            <Sparkles size={14} />
+            <Icon name="sparkles" size={14} color="#fff" />
             Assinar Pro
           </Link>
         </div>
@@ -91,7 +97,7 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
       {!collapsed && plan === 'pro' && (
         <div className="px-3 pb-3">
           <div className="flex items-center gap-2 w-full justify-center py-2 px-4 rounded-xl text-xs font-bold" style={{ background: '#E1F5EE', color: '#085041' }}>
-            <Sparkles size={12} />
+            <Icon name="sparkles" size={12} color="#085041" />
             iMoney Pro ativo
           </div>
         </div>
@@ -123,7 +129,7 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
           onClick={() => setCollapsed(!collapsed)}
           className="absolute -right-3 top-6 bg-white border border-[#e4f5e9] rounded-full p-0.5 shadow-sm hover:bg-[#f0faf6] transition-colors"
         >
-          {collapsed ? <ChevronRight size={14} className="text-[#1D9E75]" /> : <ChevronLeft size={14} className="text-[#1D9E75]" />}
+          <Icon name={collapsed ? 'chevron-right' : 'chevron-left'} size={14} color="#1D9E75" />
         </button>
       </aside>
 
@@ -133,12 +139,12 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
         <div className="flex items-center gap-2">
           {plan === 'free' && (
             <Link href="/dashboard/pro" className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex items-center gap-1" style={{ background: '#1D9E75' }}>
-              <Sparkles size={12} /> Pro
+              <Icon name="sparkles" size={12} color="#fff" /> Pro
             </Link>
           )}
           {plan === 'pro' && (
             <span className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1" style={{ background: '#E1F5EE', color: '#085041' }}>
-              <Sparkles size={12} /> Pro
+              <Icon name="sparkles" size={12} color="#085041" /> Pro
             </span>
           )}
         </div>
@@ -146,20 +152,13 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
 
       {/* Mobile bottom navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e4f5e9] px-2 py-1 flex items-center justify-around" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {[
-          { href: "/dashboard", icon: LayoutDashboard, label: "Início" },
-          { href: "/dashboard/assessor", icon: MessageCircle, label: "Assessor" },
-          { href: "/dashboard/transacoes", icon: Receipt, label: "Gastos" },
-          { href: "/dashboard/metas", icon: Target, label: "Metas" },
-          { href: "/dashboard/investimentos", icon: TrendingUp, label: "Invest." },
-          { href: "/dashboard/perfil", icon: User, label: "Perfil" },
-        ].map(({ href, icon: Icon, label }) => {
+        {MOBILE_NAV.map(({ href, icon, label }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link key={href} href={href} className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all"
               style={{ color: active ? '#1D9E75' : '#aaa' }}>
               <div className={cn("p-1.5 rounded-xl transition-all", active && "bg-[#E1F5EE]")}>
-                <Icon size={20} />
+                <Icon name={icon} size={20} color={active ? '#1D9E75' : '#aaa'} />
               </div>
               <span style={{ fontSize: 9, fontWeight: active ? 700 : 500 }}>{label}</span>
             </Link>

@@ -157,7 +157,7 @@ Seja humano, não robótico. Use linguagem de jovem adulto, sem ser informal dem
 }
 
 async function sendSummaryEmail(
-  user: { email: string; full_name: string },
+  user: { email: string; full_name: string; user_id: string },
   summary: any,
   monthName: string,
   year: number
