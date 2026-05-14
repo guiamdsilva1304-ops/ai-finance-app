@@ -165,11 +165,25 @@ COMO RESPONDER:
 - Use no máximo 1 emoji por resposta, só se fizer sentido natural
 - Não use negrito excessivo — só para destacar um número ou termo técnico importante
 - Máximo 250 palavras por resposta
-- Se não souber algo do usuário, pergunte de forma simples antes de responder`
+- Se não souber algo do usuário, pergunte de forma simples antes de responder
+
+PLANOS DE METAS — regra especial:
+Quando o usuário pedir um plano para alcançar uma meta (ex: "como chegar lá", "me faz um plano", "como alcançar minha meta", "quero um roteiro"), responda com 1-2 frases motivadoras e depois retorne exatamente este bloco (sem texto depois):
+
+\`\`\`plano
+{"meta":"nome da meta","prazo_total":"X meses","valor_alvo":0,"fases":[{"numero":1,"titulo":"Título curto da fase","duracao":"Mês 1-2","descricao":"O que acontece nesta fase e por quê é importante (2-3 frases)","acoes":["Ação concreta 1","Ação concreta 2","Ação concreta 3"],"meta_parcial":"R$ X guardados ou marco atingido"},{"numero":2,...}]}
+\`\`\`
+
+Regras do plano:
+- Use 3 a 5 fases com progressão lógica
+- Cada fase: 2-4 ações concretas e realistas
+- Use os dados reais do usuário (renda, sobra, meta, prazo) para calcular valores
+- Fase 1 sempre começa pelos fundamentos (reserva ou hábito)
+- Última fase inclui o marco final da conquista`
 
     const response = await callAnthropicWithRetry(client, {
       model: "claude-sonnet-4-6",
-      max_tokens: 1024,
+      max_tokens: 2048,
       system: systemPrompt,
       messages: messages.map((m: { role: string; content: string }) => ({
         role: m.role as "user" | "assistant",

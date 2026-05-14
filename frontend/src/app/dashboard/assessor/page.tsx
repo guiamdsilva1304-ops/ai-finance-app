@@ -8,14 +8,220 @@ import { Icon } from "@/components/imoney/primitives";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 
-interface Message { role: "user" | "assistant"; content: string }
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+interface PlanFase {
+  numero: number;
+  titulo: string;
+  duracao: string;
+  descricao: string;
+  acoes: string[];
+  meta_parcial?: string;
+}
+
+interface PlanData {
+  meta: string;
+  prazo_total: string;
+  valor_alvo?: number;
+  fases: PlanFase[];
+}
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;      // texto limpo (sem o bloco ```plano)
+  plan?: PlanData;      // presente quando a resposta inclui um plano
+}
+
+// ─── Parser de plano ─────────────────────────────────────────────────────────
+
+function parsePlan(raw: string): { text: string; plan: PlanData | null } {
+  const match = raw.match(/```plano\n?([\s\S]*?)```/)
+  if (!match) return { text: raw, plan: null }
+  const text = raw.slice(0, raw.indexOf("```plano")).trim()
+  try {
+    const plan = JSON.parse(match[1].trim()) as PlanData
+    if (!plan.fases || !Array.isArray(plan.fases)) return { text: raw, plan: null }
+    return { text, plan }
+  } catch {
+    return { text: raw, plan: null }
+  }
+}
+
+// ─── Cores por fase ──────────────────────────────────────────────────────────
+
+const FASE_CORES = [
+  { bg: '#E1F5EE', border: '#1D9E75', badge: '#1D9E75', text: '#085041' },
+  { bg: '#EBF4FF', border: '#378ADD', badge: '#378ADD', text: '#0C447C' },
+  { bg: '#F0EFFF', border: '#7F77DD', badge: '#7F77DD', text: '#3A359A' },
+  { bg: '#FFF8EC', border: '#EF9F27', badge: '#EF9F27', text: '#633806' },
+  { bg: '#FFEDE8', border: '#D85A30', badge: '#D85A30', text: '#7A2C15' },
+]
+
+// ─── Componente de cards do plano ────────────────────────────────────────────
+
+function PlanCards({ plan }: { plan: PlanData }) {
+  const [expandido, setExpandido] = useState<number | null>(0)
+
+  return (
+    <div style={{ marginTop: 4, width: '100%' }}>
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)',
+        borderRadius: '16px 16px 0 0',
+        padding: '14px 18px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+      }}>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>
+            Plano para conquistar
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>
+            {plan.meta}
+          </div>
+        </div>
+        <div style={{
+          background: 'rgba(255,255,255,0.15)', borderRadius: 12,
+          padding: '6px 12px', textAlign: 'center', flexShrink: 0,
+        }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{plan.fases.length}</div>
+          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>FASES</div>
+        </div>
+      </div>
+
+      {/* Barra de progresso das fases */}
+      <div style={{ background: '#0a3d28', padding: '8px 18px', display: 'flex', gap: 4 }}>
+        {plan.fases.map((_, i) => {
+          const cor = FASE_CORES[i % FASE_CORES.length]
+          return (
+            <div key={i} onClick={() => setExpandido(expandido === i ? null : i)}
+              style={{ flex: 1, height: 4, borderRadius: 2, background: cor.badge, opacity: expandido === i ? 1 : 0.4, cursor: 'pointer', transition: 'opacity .2s' }} />
+          )
+        })}
+      </div>
+
+      {/* Fases */}
+      <div style={{ background: '#f8fdf9', borderRadius: '0 0 16px 16px', overflow: 'hidden', border: '1px solid #e4f5e9', borderTop: 'none' }}>
+        {plan.fases.map((fase, i) => {
+          const cor = FASE_CORES[i % FASE_CORES.length]
+          const aberta = expandido === i
+
+          return (
+            <div key={i} style={{ borderBottom: i < plan.fases.length - 1 ? '1px solid #e4f5e9' : 'none' }}>
+              {/* Cabeçalho da fase — clicável */}
+              <button
+                onClick={() => setExpandido(aberta ? null : i)}
+                style={{
+                  width: '100%', background: aberta ? cor.bg : '#fff',
+                  border: 'none', cursor: 'pointer',
+                  padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
+                  textAlign: 'left', transition: 'background .15s',
+                }}
+              >
+                {/* Número */}
+                <div style={{
+                  width: 34, height: 34, borderRadius: '50%',
+                  background: aberta ? cor.badge : '#e4f5e9',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 900,
+                  color: aberta ? '#fff' : '#6b9e80',
+                  flexShrink: 0, transition: 'all .15s',
+                }}>
+                  {fase.numero}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: aberta ? cor.text : '#1a3a1a', lineHeight: 1.2, marginBottom: 2 }}>
+                    {fase.titulo}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#8db89d', fontWeight: 600 }}>
+                    {fase.duracao}
+                  </div>
+                </div>
+
+                {fase.meta_parcial && !aberta && (
+                  <div style={{
+                    fontSize: 10, fontWeight: 700, color: cor.text,
+                    background: cor.bg, border: `1px solid ${cor.border}33`,
+                    padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap', flexShrink: 0,
+                  }}>
+                    {fase.meta_parcial}
+                  </div>
+                )}
+
+                <div style={{ color: '#aaa', fontSize: 12, flexShrink: 0 }}>{aberta ? '▲' : '▼'}</div>
+              </button>
+
+              {/* Conteúdo expandido */}
+              {aberta && (
+                <div style={{ padding: '0 18px 18px 18px' }}>
+                  {/* Descrição */}
+                  <p style={{ fontSize: 13, color: '#4a6860', lineHeight: 1.65, margin: '0 0 14px 0' }}>
+                    {fase.descricao}
+                  </p>
+
+                  {/* Ações */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {fase.acoes.map((acao, ai) => (
+                      <div key={ai} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 10,
+                        background: '#fff', border: `1px solid ${cor.border}22`,
+                        borderRadius: 10, padding: '10px 12px',
+                      }}>
+                        <div style={{
+                          width: 20, height: 20, borderRadius: '50%',
+                          background: cor.bg, border: `1.5px solid ${cor.badge}`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0, marginTop: 1,
+                        }}>
+                          <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                            <path d="M1 3.5L3.5 6L8 1" stroke={cor.badge} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                        <span style={{ fontSize: 13, color: '#1a3a1a', lineHeight: 1.5, fontWeight: 500 }}>{acao}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Marco da fase */}
+                  {fase.meta_parcial && (
+                    <div style={{
+                      marginTop: 14, background: cor.bg,
+                      border: `1px solid ${cor.border}44`,
+                      borderRadius: 10, padding: '10px 14px',
+                      display: 'flex', alignItems: 'center', gap: 10,
+                    }}>
+                      <span style={{ fontSize: 18 }}>🎯</span>
+                      <div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: cor.text, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 1 }}>Marco da fase</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: cor.text }}>{fase.meta_parcial}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Footer */}
+      <div style={{ textAlign: 'center', padding: '10px 0 2px', fontSize: 11, color: '#8db89d' }}>
+        Toque em cada fase para ver os detalhes
+      </div>
+    </div>
+  )
+}
+
+// ─── Quick actions ────────────────────────────────────────────────────────────
 
 const QUICK_ACTIONS = [
   { label: "📊 Onde investir minha sobra?", prompt: "Analise minha situação financeira e me diga onde devo investir minha sobra mensal considerando a SELIC atual e meu perfil." },
   { label: "✂️ Como cortar gastos?", prompt: "Analise meus gastos por categoria e me diga onde posso reduzir de forma inteligente." },
-  { label: "🎯 Como alcançar minhas metas?", prompt: "Com base no meu perfil e situação atual, qual a melhor estratégia para alcançar minhas metas?" },
+  { label: "🎯 Como alcançar minhas metas?", prompt: "Com base no meu perfil e situação atual, me faz um plano detalhado para alcançar minha principal meta." },
   { label: "🛡️ Reserva de emergência", prompt: "Como devo montar minha reserva de emergência? Quanto preciso guardar e onde?" },
 ];
+
+// ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function AssessorPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -37,7 +243,12 @@ export default function AssessorPage() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: true })
         .limit(50);
-      if (data?.length) setMessages(data as Message[]);
+      if (data?.length) {
+        setMessages(data.map(m => {
+          const { text, plan } = parsePlan(m.content)
+          return { role: m.role as "user" | "assistant", content: text, plan: plan ?? undefined }
+        }))
+      }
       setHistoryLoaded(true);
     }
     load();
@@ -81,7 +292,6 @@ export default function AssessorPage() {
       const gastos = summary?.gastos ?? mem.last_gastos ?? 0;
       const gastosCat = summary?.gastosCat ?? mem.gastos_categorias ?? {};
 
-      // Busca investimentos e transacoes para contexto do Assessor
       const [invRes, transRes] = await Promise.allSettled([
         supabase.from("user_investments").select("nome,tipo,moeda,valor_original,valor_brl").eq("user_id", user!.id),
         supabase.from("transactions").select("descricao,valor,tipo,categoria,data").eq("user_id", user!.id).order("data", { ascending: false }).limit(20),
@@ -98,6 +308,13 @@ export default function AssessorPage() {
         message_length: content.length,
         conversation_id: conversationId,
       });
+
+      // Para o histórico enviado à API, reconstruímos com o bloco plano original se existir
+      const messagesParaApi = updated.map(m => ({
+        role: m.role,
+        content: m.plan ? `${m.content}\n\n\`\`\`plano\n${JSON.stringify(m.plan)}\n\`\`\`` : m.content,
+      }))
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -105,7 +322,7 @@ export default function AssessorPage() {
           Authorization: `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({
-          messages: updated,
+          messages: messagesParaApi,
           context: {
             renda, gastos, sobra: renda - gastos,
             selic: eco.selic_anual,
@@ -128,18 +345,25 @@ export default function AssessorPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erro");
+      if (!res.ok) {
+        if (res.status === 429 && data.limite_atingido) {
+          setLimiteAtingido(true)
+          setInfoLimite({ usadas: data.usadas, limite: data.limite, plano: data.plano })
+        }
+        throw new Error(data.error ?? "Erro");
+      }
 
       amplitude.track("AI Response Received", {
         assistant_mode: "assessor",
-        response_type: "text",
+        response_type: data.reply?.includes("```plano") ? "plan" : "text",
         response_latency_ms: Date.now() - startTime,
         conversation_id: messages[0]?.content?.slice(0,8) || "new",
       });
-      const assistantMsg = { role: "assistant" as const, content: data.reply };
+
+      const { text: replyText, plan } = parsePlan(data.reply)
+      const assistantMsg: Message = { role: "assistant", content: replyText, plan: plan ?? undefined }
       setMessages(prev => [...prev, assistantMsg]);
 
-      // histórico salvo pelo backend (/api/chat)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro desconhecido";
       setMessages(prev => [...prev, { role: "assistant", content: `❌ ${msg}` }]);
@@ -156,24 +380,25 @@ export default function AssessorPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen p-5 lg:p-8 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-5 shrink-0">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 720, margin: '0 auto', padding: '20px 16px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
         <div>
-          <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
+          <h1 style={{ fontSize: 22, fontWeight: 900, color: '#0d2414', fontFamily: 'Nunito, sans-serif', margin: 0 }}>
             💬 Assessor
           </h1>
-          <p className="text-sm text-[#6b9e80]"></p>
         </div>
         {messages.length > 0 && (
-          <button onClick={clearHistory} className="btn-ghost p-2.5 text-[#8db89d] hover:text-red-500" title="Limpar">
+          <button onClick={clearHistory} style={{ background: 'none', border: '1px solid #e4f5e9', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#8db89d', display: 'flex', alignItems: 'center' }} title="Limpar">
             <Trash2 size={16}/>
           </button>
         )}
       </div>
 
+      {/* Quick actions */}
       {messages.length === 0 && historyLoaded && (
-        <div className="mb-4 shrink-0">
-          <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider mb-2.5">Ações rápidas</p>
+        <div style={{ marginBottom: 16, flexShrink: 0 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#8db89d', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, margin: '0 0 10px' }}>Ações rápidas</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {QUICK_ACTIONS.map(({ label, prompt }) => (
               <button key={label} onClick={() => send(prompt)} style={{
@@ -188,19 +413,20 @@ export default function AssessorPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
         {messages.length === 0 && historyLoaded && (
-          <div className="flex flex-col items-center justify-center h-full text-center py-10">
-            <div className="text-5xl mb-3">🤖</div>
-            <p className="font-bold text-[#0d2414]">Olá! Sou seu assessor financeiro IA.</p>
-            <p className="text-sm text-[#6b9e80] mt-1 max-w-sm">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', padding: '40px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🤖</div>
+            <p style={{ fontWeight: 700, color: '#0d2414', margin: '0 0 6px', fontSize: 15 }}>Olá! Sou seu assessor financeiro IA.</p>
+            <p style={{ fontSize: 13, color: '#6b9e80', maxWidth: 300, margin: 0, lineHeight: 1.5 }}>
               Faça uma pergunta ou use as ações rápidas acima para começar.
             </p>
           </div>
         )}
 
         {messages.map((msg, i) => (
-          <div key={i} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")} style={{ gap: 10 }}>
+          <div key={i} style={{ display: 'flex', justifyContent: msg.role === "user" ? 'flex-end' : 'flex-start', gap: 10 }}>
             {msg.role === "assistant" && (
               <div style={{
                 width: 36, height: 36, borderRadius: '50%', background: '#00c853',
@@ -208,26 +434,35 @@ export default function AssessorPage() {
                 fontSize: 18, flexShrink: 0, marginTop: 2,
               }}>🧭</div>
             )}
-            <div style={{
-              maxWidth: '78%', borderRadius: msg.role === "user" ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-              padding: '12px 16px', fontSize: 14, lineHeight: 1.55,
-              background: msg.role === "user" ? '#1a3a1a' : '#e8f5e9',
-              color: msg.role === "user" ? '#fff' : '#1a3a1a',
-              fontFamily: '"Nunito", sans-serif',
-            }}>
-              {msg.role === "assistant" ? (
-                <div className="prose prose-sm max-w-none prose-headings:text-[#1a3a1a] prose-headings:font-black prose-p:text-[#1a3a1a] prose-strong:text-[#1a3a1a] prose-li:text-[#1a3a1a] prose-a:text-[#00c853]">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+            <div style={{ maxWidth: msg.plan ? '100%' : '78%', width: msg.plan ? '100%' : undefined, minWidth: 0 }}>
+              {/* Texto da mensagem */}
+              {msg.content && (
+                <div style={{
+                  borderRadius: msg.role === "user" ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  padding: '12px 16px', fontSize: 14, lineHeight: 1.55,
+                  background: msg.role === "user" ? '#1a3a1a' : '#e8f5e9',
+                  color: msg.role === "user" ? '#fff' : '#1a3a1a',
+                  fontFamily: '"Nunito", sans-serif',
+                  marginBottom: msg.plan ? 12 : 0,
+                }}>
+                  {msg.role === "assistant" ? (
+                    <div className="prose prose-sm max-w-none prose-headings:text-[#1a3a1a] prose-headings:font-black prose-p:text-[#1a3a1a] prose-strong:text-[#1a3a1a] prose-li:text-[#1a3a1a] prose-a:text-[#00c853]">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
+                  )}
                 </div>
-              ) : (
-                <p className="whitespace-pre-wrap" style={{ margin: 0 }}>{msg.content}</p>
               )}
+
+              {/* Cards do plano */}
+              {msg.plan && <PlanCards plan={msg.plan} />}
             </div>
           </div>
         ))}
 
         {loading && (
-          <div className="flex justify-start" style={{ gap: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 10 }}>
             <div style={{
               width: 36, height: 36, borderRadius: '50%', background: '#00c853',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -235,8 +470,7 @@ export default function AssessorPage() {
             }}>🧭</div>
             <div style={{ background: '#e8f5e9', borderRadius: '18px 18px 18px 4px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
               {[0,1,2].map(i => (
-                <span key={i} className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ background: '#00c853', animationDelay: `${i * 150}ms`, width: 8, height: 8, borderRadius: '50%', display: 'block' }}/>
+                <span key={i} style={{ background: '#00c853', width: 8, height: 8, borderRadius: '50%', display: 'block', animation: `bounce 1s ${i * 150}ms ease-in-out infinite` }}/>
               ))}
             </div>
           </div>
@@ -244,50 +478,55 @@ export default function AssessorPage() {
         <div ref={bottomRef}/>
       </div>
 
-      <div className="shrink-0 mt-3">
+      {/* Input */}
+      <div style={{ flexShrink: 0, marginTop: 8 }}>
         {limiteAtingido && infoLimite && (
-        <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0a3d28, #1D9E75)', borderTop: '1px solid #1D9E75' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
-                Limite diário atingido — {infoLimite.usadas}/{infoLimite.limite} mensagens
+          <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0a3d28, #1D9E75)', borderRadius: '16px 16px 0 0', marginBottom: -8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+                  Limite diário atingido — {infoLimite.usadas}/{infoLimite.limite} mensagens
+                </div>
+                <div style={{ fontSize: 12, color: '#9FE1CB' }}>
+                  Assine o Pro para acesso ilimitado ao Assessor IA
+                </div>
               </div>
-              <div style={{ fontSize: 12, color: '#9FE1CB' }}>
-                Assine o Pro para acesso ilimitado ao Assessor IA
-              </div>
+              <a href="/dashboard/pro" style={{ background: '#fff', color: '#1D9E75', fontWeight: 800, fontSize: 13, padding: '10px 20px', borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                Assinar Pro
+              </a>
             </div>
-            <a href="/dashboard/pro" style={{ background: '#fff', color: '#1D9E75', fontWeight: 800, fontSize: 13, padding: '10px 20px', borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-              Assinar Pro
-            </a>
           </div>
-        </div>
-      )}
-      <form onSubmit={(e) => { e.preventDefault(); send(input); }}
-          className="flex gap-2 bg-white border border-[#e4f5e9] rounded-2xl p-2 shadow-sm">
+        )}
+        <form onSubmit={(e) => { e.preventDefault(); send(input); }}
+          style={{ display: 'flex', gap: 8, background: '#fff', border: '1px solid #e4f5e9', borderRadius: 20, padding: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }}}
             placeholder="Digite sua pergunta financeira..."
             rows={1}
-            className="flex-1 resize-none bg-transparent border-none outline-none text-sm text-[#0d2414] placeholder:text-[#8db89d] py-2 px-2 max-h-32"
-            style={{ fontFamily: "Nunito Sans, sans-serif" }}
+            style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#0d2414', padding: '6px 8px', maxHeight: 128, fontFamily: 'Nunito, sans-serif' }}
             disabled={loading}
           />
           <button type="submit" disabled={!input.trim() || loading} style={{
             flexShrink: 0, width: 40, height: 40, borderRadius: '50%',
             background: '#1a3a1a', border: 0, display: 'flex',
             alignItems: 'center', justifyContent: 'center',
-            color: '#fff', cursor: 'pointer', opacity: (!input.trim() || loading) ? 0.4 : 1,
+            cursor: (!input.trim() || loading) ? 'not-allowed' : 'pointer',
+            opacity: (!input.trim() || loading) ? 0.4 : 1,
             transition: 'opacity 150ms',
           }}>
             <Icon name="send" size={16} color="#fff" />
           </button>
         </form>
-        <p className="text-[11px] text-center text-[#8db89d] mt-1.5">
+        <p style={{ fontSize: 11, textAlign: 'center', color: '#8db89d', marginTop: 6 }}>
           Histórico salvo entre sessões · máx. 30 msgs/hora
         </p>
       </div>
+
+      <style>{`
+        @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+      `}</style>
     </div>
   );
 }
