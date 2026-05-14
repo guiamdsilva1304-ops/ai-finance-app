@@ -10,7 +10,7 @@ const supabase = createClient(
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
-export type AgentId = 'MKT' | 'SEO' | 'GRW' | 'DAD' | 'DEV' | 'VID'
+export type AgentId = 'SEO' | 'GRW'
 
 export interface RunOptions {
   agentId: AgentId

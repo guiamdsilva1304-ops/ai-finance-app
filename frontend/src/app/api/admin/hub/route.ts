@@ -10,10 +10,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   seo: 'Voce e o agente SEO da iMoney. Quando pedirem para escrever e publicar um artigo, retorne APENAS JSON sem backticks: {"artigo":{"titulo":"...","slug":"...","meta_description":"...","conteudo":"artigo completo em markdown","publicar_automaticamente":true}}',
-  conteudo: 'Voce e o agente de conteudo da iMoney para jovens brasileiros de 20-30 anos. Quando pedirem o plano da semana, retorne APENAS JSON sem backticks: {"plano":[{"dia":"Segunda","formato":"Reels","hook":"...","cenas":[{"numero":1,"duracao":5,"camera":"frente","tom":"surpreso","texto":"..."}],"legenda":"...","duracao_total":30}]}',
   growth: 'Voce e o agente de growth da iMoney. Foco: converter free em pagantes (R$ 29,90/mes). Quando pedirem uma acao, retorne APENAS JSON sem backticks: {"acoes":[{"tipo":"email","descricao":"...","status":"executado","detalhe":"..."}]}',
-  dados: 'Voce e o agente de dados da iMoney. Burn: R$ 660/mes. Break-even: 22 usuarios. Entregue analises claras em markdown.',
-  dev: 'Voce e o agente dev da iMoney. Stack: Next.js 14, Supabase, Claude API, Vercel. Entregue analises e patches em markdown.',
 }
 
 async function publicarArtigo(artigo: { titulo: string; slug: string; meta_description: string; conteudo: string; publicar_automaticamente: boolean }) {

@@ -2,22 +2,19 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { marked } from 'marked'
-import VideoQueue from './VideoQueue'
-import ConteudoCards from './ConteudoCards'
 import Hub from './Hub'
 import ApprovalQueue from './ApprovalQueue'
 import ContentPipeline from './ContentPipeline'
 import Metricas from './Metricas'
 
-type AgentId = 'conteudo' | 'seo' | 'growth' | 'dados' | 'dev'
-type Aba = 'hub' | 'metricas' | 'aprovacao' | 'pipeline' | 'agentes' | 'videos'
+type AgentId = 'seo' | 'growth'
+type Aba = 'hub' | 'metricas' | 'aprovacao' | 'pipeline' | 'agentes'
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
   ts: Date
   cards?: Card[]
-  diff?: DiffBlock[]
   actions?: AgentAction[]
 }
 
@@ -31,13 +28,6 @@ interface Card {
   cta?: string
   legenda?: string
   texto?: string
-}
-
-interface DiffBlock {
-  arquivo: string
-  antes: string
-  depois: string
-  descricao: string
 }
 
 interface AgentAction {
@@ -64,20 +54,6 @@ const FORMAT_COLORS: Record<string, string> = {
 }
 
 const AGENTES: Agent[] = [
-  {
-    id: 'conteudo',
-    nome: 'Agente de conteudo',
-    cargo: 'Head of Content',
-    descricao: 'Gera o plano semanal completo com cards visuais por dia.',
-    status: 'ativo', cor: '#1D9E75', iniciais: 'MKT',
-    systemPrompt: 'Voce e o agente de conteudo da iMoney, app brasileiro de financas pessoais com IA para jovens de 20-30 anos. Tom: amigo que entende de dinheiro. Direto, sem juridiques. Quando o usuario pedir plano da semana ou posts da semana, retorne APENAS este JSON exato sem markdown sem backticks sem texto antes ou depois: {"plano":[{"dia":"Segunda","formato":"Reels","hook":"...","roteiro":"...","cta":"...","legenda":"..."},{"dia":"Terca","formato":"Carrossel","titulo":"...","slides":["s1","s2","s3","s4","s5","s6 com CTA"],"legenda":"..."},{"dia":"Quarta","formato":"Reels","hook":"...","roteiro":"...","cta":"...","legenda":"..."},{"dia":"Quinta","formato":"Post","titulo":"...","texto":"...","legenda":"..."},{"dia":"Sexta","formato":"Reels","hook":"...","roteiro":"...","cta":"...","legenda":"..."},{"dia":"Sabado","formato":"Carrossel","titulo":"...","slides":["s1","s2","s3","s4","s5","s6 com CTA"],"legenda":"..."}]} Para outros pedidos responda em markdown.',
-    sugestoes: [
-      'Gere os posts para a semana - tema: reserva de emergencia',
-      'Gere os posts para a semana - tema: sair das dividas',
-      'Crie um Reels: erros que jovens cometem com o salario',
-      '3 hooks para videos sobre investimentos para iniciantes',
-    ],
-  },
   {
     id: 'seo',
     nome: 'Agente SEO',
@@ -106,46 +82,14 @@ const AGENTES: Agent[] = [
       'Monte o funil completo: cadastro ativacao pagamento',
     ],
   },
-  {
-    id: 'dados',
-    nome: 'Agente de dados',
-    cargo: 'Head of Analytics',
-    descricao: 'Analisa metricas, monitora MRR, identifica churn e gera relatorios semanais.',
-    status: 'beta', cor: '#EF9F27', iniciais: 'DAD',
-    systemPrompt: 'Voce e o agente de dados da iMoney. Burn: R$ 660/mes. Break-even: 22 usuarios a R$ 29,90. Meta: 100 pagantes em 6 meses. Tabelas Supabase: user_profiles, transactions, metas, user_investments, chat_history, email_queue, openfinance_interest, video_queue. Entregue analises claras, queries SQL prontas, projecoes de MRR e alertas acionaveis em markdown.',
-    sugestoes: [
-      'Projete o MRR mes a mes ate R$ 1M faturado',
-      'Query SQL para calcular churn mensal no Supabase',
-      'Quais metricas acompanhar semanalmente agora?',
-      'Monte o dashboard de metricas para o /admin',
-    ],
-  },
-  {
-    id: 'dev',
-    nome: 'Agente dev',
-    cargo: 'CTO',
-    descricao: 'Revisa o codigo automaticamente, identifica bugs e gera patches prontos para aplicar.',
-    status: 'ativo', cor: '#D85A30', iniciais: 'DEV',
-    systemPrompt: 'Voce e o agente dev da iMoney. Stack: Next.js 14, TypeScript, Supabase, Claude Sonnet, Vercel, Resend, Atlas Cloud Seedance API para videos. Paginas: / /login /dashboard /dashboard/assessor /dashboard/transacoes /dashboard/metas /dashboard/investimentos /dashboard/perfil /dashboard/renda /dashboard/openfinance /admin /admin/agentes. Tabelas: user_memory, transactions, metas, user_profiles, user_investments, chat_history, pluggy_connections, openfinance_interest, email_queue, admin_posts, blog_posts, video_queue. Quando identificar bug ou melhoria, retorne APENAS este JSON sem markdown sem backticks: {"diff":[{"arquivo":"caminho/arquivo.tsx","antes":"codigo atual","depois":"codigo corrigido","descricao":"o que foi corrigido"}]} Para discussao tecnica responda em markdown.',
-    sugestoes: [
-      'Revise o codigo do /dashboard/assessor e aponte melhorias',
-      'Analise a API route /api/chat e otimize para menor latencia',
-      'Identifique possiveis vazamentos de memoria no frontend',
-      'Revise as politicas RLS do Supabase e aponte falhas',
-    ],
-  },
 ]
 
 function tentarParsearJSON(text: string) {
-  // Remove blocos markdown e extrai JSON
   let limpo = text
-  // Extrai conteudo de bloco json se existir
   const blocoJson = text.match(/```json([\s\S]*?)```/)
   if (blocoJson) limpo = blocoJson[1].trim()
   else limpo = text.replace(/```[\s\S]*?```/g, '').replace(/`/g, '').trim()
-  // Tenta parsear direto
   try { return JSON.parse(limpo) } catch { }
-  // Tenta extrair objeto JSON do texto
   const matches = limpo.match(/\{[\s\S]*\}/g) ?? []
   for (const match of matches) {
     try { return JSON.parse(match) } catch { continue }
@@ -156,10 +100,8 @@ function tentarParsearJSON(text: string) {
 function parseResposta(content: string, agentId: AgentId) {
   const json = tentarParsearJSON(content)
   if (json) {
-    if (agentId === 'conteudo' && json.plano) return { texto: '', cards: json.plano }
     if (agentId === 'seo' && json.artigo) return { texto: '', cards: [{ titulo: json.artigo.titulo, texto: (json.artigo.publicar_automaticamente ? 'Publicado automaticamente' : 'Salvo como rascunho') + '\n\nSlug: /' + json.artigo.slug + '\n\nMeta: ' + json.artigo.meta_description, legenda: (json.artigo.conteudo ?? '').slice(0, 400) + '...' }] }
     if (agentId === 'growth' && json.acoes) return { texto: '', actions: json.acoes }
-    if (agentId === 'dev' && json.diff) return { texto: '', diff: json.diff }
   }
   return { texto: content }
 }
@@ -196,28 +138,6 @@ function CardConteudo({ card }: { card: Card }) {
   )
 }
 
-function CardDiff({ block }: { block: DiffBlock }) {
-  const [copiado, setCopiado] = useState(false)
-  const cmd = 'cd /workspaces/ai-finance-app && claude --print "aplique este patch em ' + block.arquivo + ': ' + block.descricao + '"'
-  return (
-    <div style={{ background: '#fff', border: '1px solid #D85A3033', borderRadius: 12, overflow: 'hidden', marginBottom: 8 }}>
-      <div style={{ background: '#D85A3010', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div><div style={{ fontSize: 10, fontWeight: 700, color: '#D85A30', marginBottom: 2 }}>PATCH</div><div style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a' }}>{block.arquivo}</div></div>
-        <button onClick={() => { navigator.clipboard.writeText(cmd); setCopiado(true); setTimeout(() => setCopiado(false), 2000) }} style={{ fontSize: 11, padding: '5px 12px', borderRadius: 8, border: 'none', background: copiado ? '#1D9E75' : '#D85A30', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
-          {copiado ? 'Copiado!' : 'Copiar comando'}
-        </button>
-      </div>
-      <div style={{ padding: '10px 14px' }}>
-        <div style={{ fontSize: 11, color: '#888', marginBottom: 10 }}>{block.descricao}</div>
-        <div style={{ fontFamily: 'monospace', fontSize: 11, borderRadius: 8, overflow: 'hidden', border: '1px solid #eee' }}>
-          {block.antes.split('\n').map((l, i) => (<div key={'a' + i} style={{ padding: '2px 10px', background: '#ffeef0', color: '#b91c1c' }}>- {l}</div>))}
-          {block.depois.split('\n').map((l, i) => (<div key={'d' + i} style={{ padding: '2px 10px', background: '#f0fff4', color: '#166534' }}>+ {l}</div>))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function CardAction({ action }: { action: AgentAction }) {
   const cores: Record<string, string> = { executado: '#1D9E75', pendente: '#EF9F27', erro: '#D85A30' }
   const icones: Record<string, string> = { email: 'EMAIL', publicar: 'POST', segmentar: 'SEG', alerta: 'AVISO' }
@@ -237,13 +157,11 @@ function CardAction({ action }: { action: AgentAction }) {
 export default function AgentesPage() {
   const [aba, setAba] = useState<Aba>('hub')
   const [agenteSelecionado, setAgenteSelecionado] = useState<Agent>(AGENTES[0])
-  const [mensagens, setMensagens] = useState<Record<AgentId, Message[]>>({ conteudo: [], seo: [], growth: [], dados: [], dev: [] })
-  const [memoriaCount, setMemoriaCount] = useState<Record<AgentId, number>>({ conteudo: 0, seo: 0, growth: 0, dados: 0, dev: 0 })
+  const [mensagens, setMensagens] = useState<Record<AgentId, Message[]>>({ seo: [], growth: [] })
+  const [memoriaCount, setMemoriaCount] = useState<Record<AgentId, number>>({ seo: 0, growth: 0 })
   const [carregandoMemoria, setCarregandoMemoria] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [videoRoteiro, setVideoRoteiro] = useState("")
-  const [videoLegenda, setVideoLegenda] = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const msgs = mensagens[agenteSelecionado.id]
@@ -252,14 +170,13 @@ export default function AgentesPage() {
     if (mensagens[agente.id].length > 0) return
     setCarregandoMemoria(true)
     try {
-      const ep = agente.id === 'conteudo' ? '/api/admin/conteudo' : '/api/admin/agentes';
-      const res = await fetch(ep + '?agentId=' + agente.id)
+      const res = await fetch('/api/admin/agentes?agentId=' + agente.id)
       const data = await res.json()
       const raw: { role: string; content: string }[] = data.messages ?? []
       if (raw.length === 0) return
       const parsed: Message[] = raw.map(m => {
         const p = parseResposta(m.content, agente.id)
-        return { role: m.role as 'user' | 'assistant', content: p.texto, ts: new Date(), cards: p.cards, diff: p.diff, actions: p.actions }
+        return { role: m.role as 'user' | 'assistant', content: p.texto, ts: new Date(), cards: p.cards, actions: p.actions }
       })
       setMensagens(prev => ({ ...prev, [agente.id]: parsed }))
       setMemoriaCount(prev => ({ ...prev, [agente.id]: raw.length }))
@@ -284,8 +201,7 @@ export default function AgentesPage() {
     setInput('')
     setLoading(true)
     try {
-      const endpoint = agenteSelecionado.id === 'conteudo' ? '/api/admin/conteudo' : '/api/admin/agentes';
-      const res = await fetch(endpoint, {
+      const res = await fetch('/api/admin/agentes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: historico.map(m => ({ role: m.role, content: m.content })), systemPrompt: agenteSelecionado.systemPrompt, agentId: agenteSelecionado.id }),
@@ -293,7 +209,7 @@ export default function AgentesPage() {
       if (!res.ok) throw new Error('Erro na API')
       const data = await res.json()
       const parsed = parseResposta(data.content ?? 'Sem resposta.', agenteSelecionado.id)
-      setMensagens(prev => ({ ...prev, [agenteSelecionado.id]: [...historico, { role: 'assistant', content: parsed.texto, ts: new Date(), cards: parsed.cards, diff: parsed.diff, actions: parsed.actions }] }))
+      setMensagens(prev => ({ ...prev, [agenteSelecionado.id]: [...historico, { role: 'assistant', content: parsed.texto, ts: new Date(), cards: parsed.cards, actions: parsed.actions }] }))
       setMemoriaCount(prev => ({ ...prev, [agenteSelecionado.id]: prev[agenteSelecionado.id] + 2 }))
     } catch {
       setMensagens(prev => ({ ...prev, [agenteSelecionado.id]: [...historico, { role: 'assistant', content: 'Erro ao conectar. Tente novamente.', ts: new Date() }] }))
@@ -322,9 +238,9 @@ export default function AgentesPage() {
         </div>
 
         <div style={{ display: 'flex', borderBottom: '1px solid #e8ede8' }}>
-          {(['hub', 'metricas', 'aprovacao', 'pipeline', 'agentes', 'videos'] as Aba[]).map(a => (
+          {(['hub', 'metricas', 'aprovacao', 'pipeline', 'agentes'] as Aba[]).map(a => (
             <button key={a} onClick={() => setAba(a)} style={{ flex: 1, padding: '10px 0', border: 'none', background: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: aba === a ? '#1D9E75' : '#aaa', borderBottom: aba === a ? '2px solid #1D9E75' : '2px solid transparent' }}>
-              {a === 'hub' ? '⚡ Hub' : a === 'metricas' ? '📊 Métricas' : a === 'aprovacao' ? '✓ Aprovação' : a === 'pipeline' ? '📋 Pipeline' : a === 'agentes' ? 'Agentes' : 'Videos'}
+              {a === 'hub' ? '⚡ Hub' : a === 'metricas' ? '📊 Métricas' : a === 'aprovacao' ? '✓ Aprovação' : a === 'pipeline' ? '📋 Pipeline' : 'Agentes'}
             </button>
           ))}
         </div>
@@ -352,12 +268,8 @@ export default function AgentesPage() {
           })}
         </div>
 
-        <div style={{ flex: 1, display: aba === 'videos' ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: 11, color: '#aaa', textAlign: 'center' }}>Fila na area principal</div>
-        </div>
-
         <div style={{ padding: '10px 14px', borderTop: '1px solid #e8ede8', fontSize: 11, color: '#bbb' }}>
-          5 agentes · Seedance · R$ 660/mes
+          2 agentes ativos · R$ 660/mes burn
         </div>
       </aside>
 
@@ -369,10 +281,6 @@ export default function AgentesPage() {
 
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'pipeline' ? 'block' : 'none' }}><ContentPipeline /></div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'videos' ? 'flex' : 'none', flexDirection: 'column' }}>
-          <VideoQueue roteiro={videoRoteiro} legenda={videoLegenda} onRoteiroChange={setVideoRoteiro} onLegendaChange={setVideoLegenda} />
-        </div>
 
         <div style={{ flex: 1, flexDirection: 'column', overflow: 'hidden', display: aba === 'agentes' ? 'flex' : 'none' }}>
           <div style={{ padding: '14px 22px', borderBottom: '1px solid #e8ede8', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -419,7 +327,7 @@ export default function AgentesPage() {
                 {msg.role === 'assistant' && (
                   <div style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0, background: agenteSelecionado.cor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: agenteSelecionado.cor, marginRight: 8, marginTop: 2, letterSpacing: '0.05em' }}>{agenteSelecionado.iniciais}</div>
                 )}
-                <div style={{ maxWidth: msg.cards || msg.diff || msg.actions ? '92%' : '72%', width: msg.cards || msg.diff || msg.actions ? '92%' : undefined }}>
+                <div style={{ maxWidth: msg.cards || msg.actions ? '92%' : '72%', width: msg.cards || msg.actions ? '92%' : undefined }}>
                   {msg.role === 'user' ? (
                     <div style={{ background: agenteSelecionado.cor, color: '#fff', borderRadius: '14px 14px 4px 14px', padding: '10px 14px', fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                       {msg.content}
@@ -428,13 +336,12 @@ export default function AgentesPage() {
                   ) : (
                     <div>
                       {msg.content && (
-                        <div style={{ background: '#fff', border: '1px solid #e8ede8', borderRadius: '4px 14px 14px 14px', padding: '12px 16px', marginBottom: msg.cards || msg.diff || msg.actions ? 8 : 0 }}>
+                        <div style={{ background: '#fff', border: '1px solid #e8ede8', borderRadius: '4px 14px 14px 14px', padding: '12px 16px', marginBottom: msg.cards || msg.actions ? 8 : 0 }}>
                           <MarkdownText content={msg.content} />
                           <div style={{ fontSize: 10, marginTop: 6, opacity: .4 }}>{msg.ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
                         </div>
                       )}
-                      {msg.cards && Array.isArray(msg.cards) && (agenteSelecionado.id === 'conteudo' ? <ConteudoCards cards={msg.cards as never} /> : msg.cards.map((card, ci) => (<CardConteudo key={ci} card={card} />)))}
-                      {msg.diff && msg.diff.map((block, di) => (<CardDiff key={di} block={block} />))}
+                      {msg.cards && Array.isArray(msg.cards) && msg.cards.map((card, ci) => (<CardConteudo key={ci} card={card} />))}
                       {msg.actions && (
                         <div>
                           <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.06em', marginBottom: 8 }}>ACOES EXECUTADAS</div>

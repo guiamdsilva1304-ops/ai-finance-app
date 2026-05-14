@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { runSeoAgent } from '@/lib/agents/seo'
 import { runGrowthAgent } from '@/lib/agents/growth'
-import { runConteudoAgent } from '@/lib/agents/conteudo'
-import { runDadosAgent } from '@/lib/agents/dados'
-import { runDevAgent } from '@/lib/agents/dev'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,9 +11,6 @@ const supabase = createClient(
 const AGENT_RUNNERS: Record<string, (mission: any) => Promise<string>> = {
   seo: runSeoAgent,
   growth: runGrowthAgent,
-  conteudo: runConteudoAgent,
-  dados: runDadosAgent,
-  dev: runDevAgent,
 }
 
 export async function GET(req: NextRequest) {

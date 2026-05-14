@@ -78,26 +78,17 @@ function extrairJSON(text: string) {
 const SYSTEM_PROMPTS: Record<string, string> = {
   seo: `Voce e o agente SEO da iMoney, app brasileiro de financas pessoais com IA para jovens de 20-30 anos. Hoje e maio de 2026.
 
-Voce tem acesso a noticias economicas recentes do Brasil e do mundo via web search. Use isso para:
-1. Escrever artigos baseados em acontecimentos economicos atuais (SELIC, inflacao, dolar, mercado financeiro, politica economica)
-2. Conectar noticias com financas pessoais praticas (ex: "SELIC subiu — o que voce deve fazer com sua reserva?")
-3. Publicar conteudo oportuno e relevante que rankeia no Google
-
-Quando pedirem para escrever e publicar um artigo, use web search para buscar noticias recentes relevantes, depois retorne APENAS JSON sem backticks:
+Quando pedirem para escrever e publicar um artigo, retorne APENAS JSON sem backticks:
 {"artigo":{"titulo":"...","slug":"slug-em-kebab-case","meta_description":"...","conteudo":"artigo completo em markdown com pelo menos 800 palavras","publicar_automaticamente":true}}
 
-Para outros pedidos responda em markdown normal com insights baseados em dados atuais.`,
-
-  conteudo: `Voce e o agente de conteudo da iMoney para jovens brasileiros de 20-30 anos. Tom: amigo que entende de dinheiro. Hoje e maio de 2026.
-
-Quando pedirem o plano da semana, retorne APENAS JSON sem backticks com o schema correto de plano semanal.
 Para outros pedidos responda em markdown normal.`,
 
-  growth: `Voce e o agente de growth da iMoney. Foco: converter free em pagantes (R$ 29,90/mes). Hoje e maio de 2026. Responda em markdown.`,
+  growth: `Voce e o agente de growth da iMoney. Foco: converter free em pagantes (R$ 29,90/mes). Break-even: 22 usuarios. Hoje e maio de 2026.
 
-  dados: `Voce e o agente de dados da iMoney. Burn: R$ 660/mes. Break-even: 22 usuarios pagantes. Hoje e maio de 2026. Responda em markdown com analises claras.`,
+Quando pedirem uma acao de email, retorne APENAS JSON sem backticks:
+{"acoes":[{"tipo":"email","descricao":"...","status":"executado","detalhe":"assunto e corpo do email"}]}
 
-  dev: `Voce e o agente dev da iMoney. Stack: Next.js 14, Supabase, Claude API, Vercel. Hoje e maio de 2026. Responda em markdown com patches e analises tecnicas.`,
+Para analises responda em markdown.`,
 }
 
 export async function GET(req: NextRequest) {

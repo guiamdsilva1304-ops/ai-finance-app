@@ -20,12 +20,8 @@ function getDefaultUserMessage(agentId: AgentId, pendingTasksCount: number): str
     : ''
 
   const messages: Record<AgentId, string> = {
-    MKT: `Execute sua rotina autônoma: crie a pauta de conteúdo para os próximos 2 dias (formatos: carrossel + reels). Considere tendências financeiras atuais no Brasil.${taskNote}`,
     SEO: `Execute sua rotina autônoma: escreva 1 artigo de blog sobre finanças pessoais para hoje. Escolha um tema relevante para jovens brasileiros. Retorne JSON completo.${taskNote}`,
     GRW: `Execute sua rotina autônoma: analise o estado atual do funil e crie ou atualize a campanha de email mais prioritária. Retorne JSON do email.${taskNote}`,
-    DAD: `Execute sua rotina autônoma: gere o relatório diário de saúde da iMoney. Analise métricas disponíveis, identifique insights e crie tarefas para outros agentes se necessário.${taskNote}`,
-    DEV: `Execute sua rotina: revise o backlog de melhorias técnicas e proponha a próxima melhoria de maior impacto. Retorne diff ou pseudocódigo.${taskNote}`,
-    VID: `Execute sua rotina autônoma: crie 1 roteiro de vídeo curto (30-60s) sobre finanças pessoais para TikTok/Reels. Retorne JSON completo com prompt para geração de vídeo.${taskNote}`,
   }
 
   return messages[agentId]
@@ -51,7 +47,7 @@ export async function POST(req: NextRequest) {
     agentId = searchParams.get('agent') as AgentId
   }
 
-  const validAgents: AgentId[] = ['MKT', 'SEO', 'GRW', 'DAD', 'DEV', 'VID']
+  const validAgents: AgentId[] = ['SEO', 'GRW']
   if (!agentId || !validAgents.includes(agentId)) {
     return NextResponse.json({ error: `Agent inválido. Use: ${validAgents.join(', ')}` }, { status: 400 })
   }
@@ -148,17 +144,8 @@ async function handleAgentOutput(agentId: AgentId, response: string, runId: stri
       })
     }
 
-    if (agentId === 'VID' && parsed?.roteiro && parsed?.prompt_video) {
-      await supabase.from('video_queue').insert({
-        titulo: parsed.titulo ?? 'Vídeo gerado pelo agente',
-        roteiro: parsed.roteiro,
-        prompt: parsed.prompt_video,
-        status: 'pending',
-        origem: 'agente_vid',
-      })
-    }
 
-  } catch {
+} catch {
     // Output não era JSON estruturado — só loga, não falha
     await logAgentAction({
       agentId,

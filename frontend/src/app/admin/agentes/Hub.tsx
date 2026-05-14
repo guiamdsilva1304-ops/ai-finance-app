@@ -32,12 +32,11 @@ interface Metricas {
 }
 
 const AGENT_CONFIG: Record<string, { cor: string; bg: string; label: string; icon: string }> = {
-  seo:      { cor: '#378ADD', bg: '#EBF4FF', label: 'SEO',     icon: '🔍' },
-  conteudo: { cor: '#1D9E75', bg: '#E1F5EE', label: 'MKT',     icon: '📱' },
-  growth:   { cor: '#7F77DD', bg: '#F0EFFF', label: 'GRW',     icon: '🚀' },
-  dados:    { cor: '#EF9F27', bg: '#FFF8EC', label: 'DAD',     icon: '📊' },
-  dev:      { cor: '#D85A30', bg: '#FFEDE8', label: 'DEV',     icon: '💻' },
+  seo:    { cor: '#378ADD', bg: '#EBF4FF', label: 'SEO', icon: '🔍' },
+  growth: { cor: '#7F77DD', bg: '#F0EFFF', label: 'GRW', icon: '🚀' },
 }
+
+const ACTIVE_AGENTS = ['seo', 'growth']
 
 const STATUS_CONFIG: Record<string, { cor: string; bg: string; label: string; dot: string }> = {
   pendente:   { cor: '#888',    bg: '#f5f5f5', label: 'Pendente',    dot: '○' },
@@ -94,9 +93,10 @@ export default function Hub() {
     }
   }
 
-  const agentes = [...new Set(missoes.map(m => m.agent_id))]
-  const concluidas = missoes.filter(m => m.status === 'concluido').length
-  const pendentes = missoes.filter(m => m.status === 'pendente').length
+  const missoesFiltradas = missoes.filter(m => ACTIVE_AGENTS.includes(m.agent_id))
+  const agentes = [...new Set(missoesFiltradas.map(m => m.agent_id))]
+  const concluidas = missoesFiltradas.filter(m => m.status === 'concluido').length
+  const pendentes = missoesFiltradas.filter(m => m.status === 'pendente').length
   const pctBreakEven = metricas ? Math.min(100, Math.round((metricas.pagantes / metricas.break_even) * 100)) : 0
   const pctBlog = metricas ? Math.min(100, Math.round((metricas.artigos_publicados / 10) * 100)) : 0
 
@@ -169,7 +169,7 @@ export default function Hub() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {agentes.map(agentId => {
             const cfg = AGENT_CONFIG[agentId] || { cor: '#888', bg: '#f5f5f5', label: agentId.toUpperCase(), icon: '🤖' }
-            const missoesDeste = missoes.filter(m => m.agent_id === agentId)
+            const missoesDeste = missoesFiltradas.filter(m => m.agent_id === agentId)
             const todosConcluidos = missoesDeste.every(m => m.status === 'concluido')
 
             return (
