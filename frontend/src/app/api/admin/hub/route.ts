@@ -20,10 +20,11 @@ async function publicarArtigo(artigo: { titulo: string; slug: string; meta_descr
   const palavras = artigo.conteudo.split(/\s+/).length
   const reading_time_min = Math.max(1, Math.ceil(palavras / 200))
   const excerpt = artigo.conteudo.replace(/#+\s/g, '').replace(/\*\*/g, '').slice(0, 200).trim() + '...'
+  const slugFinal = `${artigo.slug}-${Date.now()}`
 
   await supabase.from('blog_posts').insert({
     title: artigo.titulo,
-    slug: artigo.slug,
+    slug: slugFinal,
     excerpt,
     content: artigo.conteudo,
     seo_title: artigo.titulo,
@@ -39,7 +40,7 @@ async function publicarArtigo(artigo: { titulo: string; slug: string; meta_descr
     updated_at: new Date().toISOString(),
   })
 
-  return `Artigo "${artigo.titulo}" ${artigo.publicar_automaticamente ? 'publicado' : 'salvo como rascunho'} em /blog/${artigo.slug}`
+  return `Artigo "${artigo.titulo}" ${artigo.publicar_automaticamente ? 'publicado' : 'salvo como rascunho'} em /blog/${slugFinal}`
 }
 
 async function executarAcoesGrowth(acoes: Array<{ tipo: string; descricao: string; status: string; detalhe?: string }>) {
@@ -68,8 +69,11 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  let missao_id: string | undefined
   try {
-    const { missao_id, agent_id, prompt } = await req.json()
+    const body = await req.json()
+    missao_id = body.missao_id
+    const { agent_id, prompt } = body
     if (!missao_id || !agent_id || !prompt)
       return NextResponse.json({ error: 'missao_id, agent_id e prompt obrigatorios' }, { status: 400 })
 
@@ -106,19 +110,27 @@ export async function POST(req: NextRequest) {
       }
     } catch { /* usa resultado parcial */ }
 
-    // Atualiza missão como concluída
+    // Busca contador atual para incrementar corretamente
+    const { data: missaoAtual } = await supabase
+      .from('agent_missions')
+      .select('execucoes_total')
+      .eq('id', missao_id)
+      .single()
+
     await supabase.from('agent_missions').update({
       status: 'concluido',
       ultimo_resultado: resultado,
       ultima_execucao: new Date().toISOString(),
       proxima_execucao: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      execucoes_total: supabase.rpc('increment', { x: 1 }),
+      execucoes_total: (missaoAtual?.execucoes_total ?? 0) + 1,
     }).eq('id', missao_id)
 
     return NextResponse.json({ resultado, sucesso: true })
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    await supabase.from('agent_missions').update({ status: 'erro', ultimo_resultado: msg }).eq('id', 'unknown')
+    if (missao_id) {
+      await supabase.from('agent_missions').update({ status: 'erro', ultimo_resultado: msg }).eq('id', missao_id)
+    }
     console.error('[/api/admin/hub]', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }

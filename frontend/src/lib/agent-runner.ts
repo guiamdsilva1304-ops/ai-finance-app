@@ -150,32 +150,27 @@ async function consumeBudget(agentId: AgentId, tokensUsed: number, inputTokens: 
   // Custo aproximado: Sonnet input $3/1M, output $15/1M
   const usdCost = (inputTokens * 0.000003) + ((tokensUsed - inputTokens) * 0.000015)
 
-  await supabase.rpc('increment_agent_budget', {
+  const { error: rpcErr } = await supabase.rpc('increment_agent_budget', {
     p_agent_id: agentId,
     p_tokens: tokensUsed,
     p_usd: usdCost,
-  }).then(async ({ error }) => {
-    // Fallback se a RPC não existir ainda: update direto
-    if (error) {
-      await supabase
-        .from('agent_budgets')
-        .update({
-          tokens_used: supabase.rpc('coalesce', {} as never), // fallback abaixo
-        })
-        .eq('agent_id', agentId)
-
-      // Fallback simples com SQL
-      await supabase.from('agent_budgets').select('tokens_used, usd_used').eq('agent_id', agentId).single()
-        .then(async ({ data }) => {
-          if (data) {
-            await supabase.from('agent_budgets').update({
-              tokens_used: (data.tokens_used ?? 0) + tokensUsed,
-              usd_used: (parseFloat(data.usd_used) ?? 0) + usdCost,
-            }).eq('agent_id', agentId)
-          }
-        })
-    }
   })
+
+  if (rpcErr) {
+    // Fallback: ler valor atual e incrementar
+    const { data: current } = await supabase
+      .from('agent_budgets')
+      .select('tokens_used, usd_used')
+      .eq('agent_id', agentId)
+      .single()
+
+    if (current) {
+      await supabase.from('agent_budgets').update({
+        tokens_used: (current.tokens_used ?? 0) + tokensUsed,
+        usd_used: (parseFloat(current.usd_used) ?? 0) + usdCost,
+      }).eq('agent_id', agentId)
+    }
+  }
 }
 
 // ─── 8. Salvar resposta na memória do agente ─────────────────────────────────
@@ -219,7 +214,7 @@ export async function runAgent(opts: RunOptions): Promise<RunResult> {
     ]
 
     const completion = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: maxTokens,
       system: systemPrompt,
       messages,

@@ -62,7 +62,7 @@ Responda APENAS com este JSON (sem texto antes ou depois):
 }`
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-20250514',
     max_tokens: 4096,
     messages: [{ role: 'user', content: prompt }],
   })

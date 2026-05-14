@@ -114,13 +114,26 @@ async function handleAgentOutput(agentId: AgentId, response: string, runId: stri
     const parsed = jsonMatch ? JSON.parse(jsonMatch[1] ?? jsonMatch[0]) : null
 
     if (agentId === 'SEO' && parsed?.titulo && parsed?.conteudo_markdown) {
+      const slugBase = parsed.slug ?? parsed.titulo.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      const slugFinal = `${slugBase}-${Date.now()}`
+      const palavras = parsed.conteudo_markdown.split(/\s+/).length
+      const excerpt = parsed.conteudo_markdown.replace(/#+\s*/g, '').replace(/\*\*/g, '').slice(0, 200).trim() + '...'
       await supabase.from('blog_posts').insert({
-        titulo: parsed.titulo,
-        slug: parsed.slug ?? parsed.titulo.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-        conteudo: parsed.conteudo_markdown,
-        meta_description: parsed.meta_description ?? '',
-        status: 'draft', // admin revisa antes de publicar
-        autor: 'Agente SEO',
+        title: parsed.titulo,
+        slug: slugFinal,
+        excerpt,
+        content: parsed.conteudo_markdown,
+        seo_title: parsed.titulo,
+        seo_description: parsed.meta_description ?? '',
+        author: 'Agente SEO',
+        category: 'educacao-financeira',
+        tags: parsed.keywords ?? [],
+        reading_time_min: Math.max(1, Math.ceil(palavras / 200)),
+        published: false,
+        published_at: null,
+        generated_by: 'agente-seo',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
     }
 
