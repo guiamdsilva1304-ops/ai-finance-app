@@ -50,6 +50,7 @@ function statusLeft(meta: MetaExt): string {
   const pct = meta.valor_alvo > 0 ? Math.round((meta.valor_atual / meta.valor_alvo) * 100) : 0;
   if (pct < 5) return `${pct}% · começando`;
   const m = meta.prazo_meses;
+  if (!m || m <= 0) return `${pct}% · sem prazo definido`;
   if (m >= 24) return `${pct}% · ${Math.round(m / 12)} anos restantes`;
   if (m === 1) return `${pct}% · último mês`;
   return `${pct}% · faltam ${m} meses`;
@@ -138,8 +139,8 @@ export default function MetasPage() {
     const alvo = parseFloat(valorAlvo.replace(",", "."));
     if (isNaN(alvo) || alvo <= 0) { setFormError("Valor alvo inválido."); return; }
     const atual = parseFloat((valorAtual || "0").replace(",", "."));
-    const meses = parseInt(prazo);
-    if (meses < 1 || meses > 600) { setFormError("Prazo deve ser entre 1 e 600 meses."); return; }
+    const meses = prazo.trim() === "" ? 0 : parseInt(prazo);
+    if (!isNaN(meses) && meses > 600) { setFormError("Prazo deve ser no máximo 600 meses."); return; }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     await supabase.from("metas").insert({
@@ -156,8 +157,8 @@ export default function MetasPage() {
     e.preventDefault();
     const alvo = parseFloat(onboardingValor.replace(",", "."));
     if (isNaN(alvo) || alvo <= 0) return;
-    const meses = parseInt(onboardingPrazo);
-    if (meses < 1 || meses > 600) return;
+    const meses = onboardingPrazo.trim() === "" ? 0 : (parseInt(onboardingPrazo) || 0);
+    if (meses > 600) return;
     const nomeMeta = selectedCategory || onboardingName || "Minha meta";
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -210,7 +211,7 @@ export default function MetasPage() {
 
   function calcAporte(meta: MetaExt): number {
     const falta = meta.valor_alvo - meta.valor_atual;
-    return falta > 0 ? falta / meta.prazo_meses : 0;
+    return falta > 0 && meta.prazo_meses > 0 ? falta / meta.prazo_meses : 0;
   }
 
   const sorted = [
@@ -219,12 +220,14 @@ export default function MetasPage() {
     ...metas.filter(m => m.concluida),
   ];
 
-  const aporteEstimado = valorAlvo && prazo
-    ? (parseFloat(valorAlvo.replace(",", ".") || "0") - parseFloat(valorAtual.replace(",", ".") || "0")) / parseInt(prazo || "1")
+  const mesesForm = parseInt(prazo) || 0;
+  const aporteEstimado = valorAlvo && mesesForm > 0
+    ? (parseFloat(valorAlvo.replace(",", ".") || "0") - parseFloat(valorAtual.replace(",", ".") || "0")) / mesesForm
     : null;
 
-  const onbAporte = onboardingValor && onboardingPrazo
-    ? parseFloat(onboardingValor.replace(",", ".") || "0") / parseInt(onboardingPrazo || "12")
+  const mesesOnb = parseInt(onboardingPrazo) || 0;
+  const onbAporte = onboardingValor && mesesOnb > 0
+    ? parseFloat(onboardingValor.replace(",", ".") || "0") / mesesOnb
     : null;
 
   return (
