@@ -134,23 +134,6 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
         </button>
       </aside>
 
-      {/* Mobile top header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#e4f5e9] px-4 py-3 flex items-center justify-between">
-        <Logo size={100} showText={false} showTagline={false} />
-        <div className="flex items-center gap-2">
-          {plan === 'free' && (
-            <Link href="/dashboard/pro" className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex items-center gap-1" style={{ background: '#1D9E75' }}>
-              <Icon name="sparkles" size={12} color="#fff" /> Pro
-            </Link>
-          )}
-          {plan === 'pro' && (
-            <span className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1" style={{ background: '#E1F5EE', color: '#085041' }}>
-              <Icon name="sparkles" size={12} color="#085041" /> Pro
-            </span>
-          )}
-        </div>
-      </div>
-
       {/* Mobile bottom navigation with FAB */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e4f5e9] flex items-end justify-around px-2"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 72 }}>

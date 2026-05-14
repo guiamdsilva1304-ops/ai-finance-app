@@ -1,5 +1,8 @@
 "use client";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { Logo } from "@/components/ui/Logo";
+import { Icon } from "@/components/imoney/primitives";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 
@@ -30,9 +33,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="flex min-h-screen bg-[#f8fdf9]">
-      <Sidebar email={email} plan={plan} />
-      <main className="flex-1 min-w-0 overflow-x-hidden pb-20 md:pb-0 pt-16 md:pt-0">{children}</main>
+    <div className="flex flex-col min-h-screen bg-[#f8fdf9]">
+      {/* Mobile header — scrolls with page, no overlap */}
+      <div className="md:hidden bg-white border-b border-[#e4f5e9] px-4 py-3 flex items-center justify-between">
+        <Logo size={100} showText={false} showTagline={false} />
+        <div className="flex items-center gap-2">
+          {plan === 'free' && (
+            <Link href="/dashboard/pro" className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex items-center gap-1" style={{ background: '#1D9E75' }}>
+              <Icon name="sparkles" size={12} color="#fff" /> Pro
+            </Link>
+          )}
+          {plan === 'pro' && (
+            <span className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1" style={{ background: '#E1F5EE', color: '#085041' }}>
+              <Icon name="sparkles" size={12} color="#085041" /> Pro
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-1 min-h-0">
+        <Sidebar email={email} plan={plan} />
+        <main className="flex-1 min-w-0 overflow-x-hidden pb-24 md:pb-0">{children}</main>
+      </div>
     </div>
   );
 }
