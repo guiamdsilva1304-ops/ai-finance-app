@@ -4,6 +4,22 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
+  const { pathname } = req.nextUrl;
+
+  // Admin — autenticação separada via cookie, não depende de sessão Supabase
+  if (pathname.startsWith("/admin")) {
+    if (pathname === "/admin/login") return res;
+
+    const adminCookie = req.cookies.get("imoney_admin_session");
+    const sessionSecret = process.env.ADMIN_SESSION_SECRET || "imoney-admin-secret-2025";
+
+    if (adminCookie?.value !== sessionSecret) {
+      const url = new URL("/admin/login", req.url);
+      url.searchParams.set("from", pathname);
+      return NextResponse.redirect(url);
+    }
+    return res;
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,8 +41,6 @@ export async function middleware(req: NextRequest) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
-
-  const { pathname } = req.nextUrl;
 
   // Rotas públicas — sempre permitidas
   const publicPaths = ["/", "/login", "/privacidade", "/termos", "/blog", "/esqueci-senha", "/onboarding", "/redefinir-senha"];
