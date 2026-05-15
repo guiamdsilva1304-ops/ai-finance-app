@@ -134,66 +134,6 @@ export function Hero() {
   );
 }
 
-/* ───── PWA Install Guide ───── */
-type PWAPlatform = 'ios' | 'android';
-const PWA_STEPS: Record<PWAPlatform, { emoji: string; title: string; desc: string }[]> = {
-  ios: [
-    { emoji: '🌐', title: 'Abra no Safari', desc: 'Acesse imoney.ia.br pelo Safari — não funciona no Chrome ou Firefox no iOS.' },
-    { emoji: '⬆️', title: 'Toque em "Compartilhar"', desc: 'Ícone na barra inferior: quadrado com seta pra cima.' },
-    { emoji: '➕', title: '"Adicionar à Tela de Início"', desc: 'Role as opções, confirme o nome e toque em Adicionar.' },
-    { emoji: '✅', title: 'Pronto!', desc: 'Ícone aparece na tela inicial e abre sem barra de endereço em tela cheia.' },
-  ],
-  android: [
-    { emoji: '🌐', title: 'Abra no Chrome', desc: 'Acesse imoney.ia.br pelo Google Chrome.' },
-    { emoji: '⋮', title: 'Toque em "Menu"', desc: 'Três pontos no canto superior direito.' },
-    { emoji: '📲', title: '"Adicionar à tela inicial"', desc: 'Ou "Instalar app" em versões mais recentes. Confirme.' },
-    { emoji: '✅', title: 'Pronto!', desc: 'Funciona como app nativo sem precisar da Play Store.' },
-  ],
-};
-function PWAInstallGuide() {
-  const [open, setOpen] = React.useState(false);
-  const [platform, setPlatform] = React.useState<PWAPlatform>('ios');
-  const steps = PWA_STEPS[platform];
-  return (
-    <div style={{ marginTop: 32, fontFamily: FONT }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: FONT, fontSize: 15, fontWeight: 700, color: C.green500, padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'underline', textUnderlineOffset: 3 }}
-      >
-        Instale o aplicativo em sua tela de celular
-        <span style={{ fontSize: 11, display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
-      </button>
-      {open && (
-        <div style={{ background: '#0d1f0d', borderRadius: 20, padding: '40px 36px', marginTop: 20 }}>
-          <div style={{ display: 'inline-block', background: 'rgba(0,200,83,0.15)', color: '#00C853', fontWeight: 800, fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '6px 14px', borderRadius: 100, marginBottom: 18 }}>Use como app</div>
-          <h3 style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: '0 0 8px', lineHeight: 1.15, letterSpacing: '-0.02em' }}>Instale em 4 passos simples</h3>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', margin: '0 0 28px', lineHeight: 1.6, maxWidth: 480 }}>O iMoney funciona como um app nativo — sem ocupar espaço da Play Store ou App Store.</p>
-          <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.08)', borderRadius: 100, padding: 4, marginBottom: 28 }}>
-            {(['ios', 'android'] as PWAPlatform[]).map(p => (
-              <button key={p} onClick={() => setPlatform(p)} style={{ padding: '8px 20px', borderRadius: 100, border: 'none', cursor: 'pointer', fontFamily: FONT, fontSize: 13, fontWeight: 700, background: platform === p ? '#00C853' : 'transparent', color: platform === p ? '#0d1f0d' : 'rgba(255,255,255,0.7)', transition: 'all 0.18s ease' }}>
-                {p === 'ios' ? 'iPhone / iPad' : 'Android'}
-              </button>
-            ))}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-            {steps.map((step, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#00C853', color: '#0d1f0d', fontWeight: 800, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
-                  <span style={{ fontSize: 20 }}>{step.emoji}</span>
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{step.title}</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.55 }}>{step.desc}</div>
-              </div>
-            ))}
-          </div>
-          <p style={{ margin: '24px 0 0', fontSize: 12.5, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>Nenhum download necessário · Funciona offline · Atualizações automáticas</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ───── Feature grid ───── */
 export function FeatureGrid() {
   const features = [
@@ -223,7 +163,66 @@ export function FeatureGrid() {
             </Card>
           ))}
         </div>
-        <PWAInstallGuide />
+        <div style={{ marginTop: 40, textAlign: 'center' }}>
+          <a
+            href="#pwa-guide"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: C.green500, color: C.green900, fontFamily: FONT, fontWeight: 800, fontSize: 15, padding: '14px 28px', borderRadius: 100, textDecoration: 'none' }}
+          >
+            📲 Instale o aplicativo em sua tela de celular
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ───── PWA Section ───── */
+export function PWASection() {
+  const [platform, setPlatform] = React.useState<'ios' | 'android'>('ios');
+  const steps = {
+    ios: [
+      { emoji: '🌐', title: 'Abra no Safari', desc: 'Acesse imoney.ia.br pelo Safari — não funciona no Chrome ou Firefox no iOS.' },
+      { emoji: '⬆️', title: 'Toque em "Compartilhar"', desc: 'Ícone na barra inferior: quadrado com seta pra cima.' },
+      { emoji: '➕', title: '"Adicionar à Tela de Início"', desc: 'Role as opções, confirme o nome e toque em Adicionar.' },
+      { emoji: '✅', title: 'Pronto!', desc: 'Ícone aparece na tela inicial e abre sem barra de endereço em tela cheia.' },
+    ],
+    android: [
+      { emoji: '🌐', title: 'Abra no Chrome', desc: 'Acesse imoney.ia.br pelo Google Chrome.' },
+      { emoji: '⋮', title: 'Toque em "Menu"', desc: 'Três pontos no canto superior direito.' },
+      { emoji: '📲', title: '"Adicionar à tela inicial"', desc: 'Ou "Instalar app" em versões mais recentes. Confirme.' },
+      { emoji: '✅', title: 'Pronto!', desc: 'Funciona como app nativo sem precisar da Play Store.' },
+    ],
+  }[platform];
+  return (
+    <section id="pwa-guide" style={{ padding: '80px 32px', background: '#0d1f0d', fontFamily: FONT }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ display: 'inline-block', background: 'rgba(0,200,83,0.15)', color: C.green500, fontWeight: 800, fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '6px 14px', borderRadius: 100, marginBottom: 20 }}>Use como app</div>
+        <h2 style={{ fontSize: 40, fontWeight: 800, color: '#fff', margin: '0 0 10px', lineHeight: 1.15, letterSpacing: '-0.02em' }}>Instale em 4 passos simples</h2>
+        <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', margin: '0 0 32px', lineHeight: 1.6, maxWidth: 520 }}>
+          O iMoney funciona como app nativo — sem ocupar espaço da Play Store ou App Store.
+        </p>
+        <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.08)', borderRadius: 100, padding: 4, marginBottom: 32 }}>
+          {(['ios', 'android'] as const).map(p => (
+            <button key={p} onClick={() => setPlatform(p)} style={{ padding: '10px 24px', borderRadius: 100, border: 'none', cursor: 'pointer', fontFamily: FONT, fontSize: 14, fontWeight: 700, background: platform === p ? C.green500 : 'transparent', color: platform === p ? '#0d1f0d' : 'rgba(255,255,255,0.7)', transition: 'all 0.18s ease' }}>
+              {p === 'ios' ? 'iPhone / iPad' : 'Android'}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+          {steps.map((step, i) => (
+            <div key={i} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: '24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.green500, color: '#0d1f0d', fontWeight: 800, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
+                <span style={{ fontSize: 22 }}>{step.emoji}</span>
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{step.title}</div>
+              <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.55 }}>{step.desc}</div>
+            </div>
+          ))}
+        </div>
+        <p style={{ margin: '32px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>
+          Nenhum download necessário · Funciona offline · Atualizações automáticas
+        </p>
       </div>
     </section>
   );

@@ -1,5 +1,5 @@
 import {
-  MarketingNavBar, Hero, FeatureGrid, DreamShowcase,
+  MarketingNavBar, Hero, FeatureGrid, PWASection, DreamShowcase,
   PricingTable, BlogPreview, Footer,
 } from '@/components/imoney';
 
@@ -9,6 +9,7 @@ export default function HomePage() {
       <MarketingNavBar/>
       <Hero/>
       <FeatureGrid/>
+      <PWASection/>
       <DreamShowcase/>
       <PricingTable/>
       <BlogPreview/>
