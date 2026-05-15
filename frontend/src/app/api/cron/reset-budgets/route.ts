@@ -101,26 +101,48 @@ async function handleAgentOutput(agentId: AgentId, response: string, runId: stri
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
+  // Extrai JSON robusto: nunca usa regex com *? pois quebra quando o conteúdo markdown tem backticks
+  let parsed: Record<string, unknown> | null = null
   try {
-    // Tenta extrair JSON da resposta do agente
-    const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/) || response.match(/(\{[\s\S]*\})/)
-    const parsed = jsonMatch ? JSON.parse(jsonMatch[1] ?? jsonMatch[0]) : null
+    parsed = JSON.parse(response) as Record<string, unknown>
+  } catch {
+    const first = response.indexOf('{')
+    const last = response.lastIndexOf('}')
+    if (first !== -1 && last > first) {
+      try {
+        parsed = JSON.parse(response.slice(first, last + 1)) as Record<string, unknown>
+      } catch { /* não era JSON válido */ }
+    }
+  }
 
-    if (agentId === 'SEO' && parsed?.titulo && parsed?.conteudo_markdown) {
-      const slugBase = parsed.slug ?? parsed.titulo.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  if (!parsed) {
+    await logAgentAction({
+      agentId, runId, level: 'info',
+      action: 'output_not_structured',
+      summary: 'Resposta não continha JSON válido — salvo apenas na memória',
+    })
+    return
+  }
+
+  try {
+    if (agentId === 'SEO' && parsed.titulo && parsed.conteudo_markdown) {
+      const titulo = parsed.titulo as string
+      const conteudo = parsed.conteudo_markdown as string
+      const slugBase = (parsed.slug as string | undefined) ?? titulo.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
       const slugFinal = `${slugBase}-${Date.now()}`
-      const palavras = parsed.conteudo_markdown.split(/\s+/).length
-      const excerpt = parsed.conteudo_markdown.replace(/#+\s*/g, '').replace(/\*\*/g, '').slice(0, 200).trim() + '...'
-      await supabase.from('blog_posts').insert({
-        title: parsed.titulo,
+      const palavras = conteudo.split(/\s+/).length
+      const excerpt = conteudo.replace(/#+\s*/g, '').replace(/\*\*/g, '').slice(0, 200).trim() + '...'
+
+      const { error } = await supabase.from('blog_posts').insert({
+        title: titulo,
         slug: slugFinal,
         excerpt,
-        content: parsed.conteudo_markdown,
-        seo_title: parsed.titulo,
-        seo_description: parsed.meta_description ?? '',
+        content: conteudo,
+        seo_title: titulo,
+        seo_description: (parsed.meta_description as string | undefined) ?? '',
         author: 'Agente SEO',
         category: 'educacao-financeira',
-        tags: parsed.keywords ?? [],
+        tags: (parsed.keywords as string[] | undefined) ?? [],
         reading_time_min: Math.max(1, Math.ceil(palavras / 200)),
         published: false,
         published_at: null,
@@ -128,27 +150,27 @@ async function handleAgentOutput(agentId: AgentId, response: string, runId: stri
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
+
+      if (error) throw new Error(`Falha ao salvar artigo: ${error.message}`)
+
+      await logAgentAction({ agentId, runId, level: 'success', action: 'blog_post_saved', summary: `Artigo "${titulo}" salvo em /blog/${slugFinal}` })
     }
 
-    if (agentId === 'GRW' && parsed?.assunto && parsed?.corpo_html) {
-      await supabase.from('email_queue').insert({
+    if (agentId === 'GRW' && parsed.assunto && parsed.corpo_html) {
+      const { error } = await supabase.from('email_queue').insert({
         assunto: parsed.assunto,
-        preview_text: parsed.preview_text ?? '',
+        preview_text: (parsed.preview_text as string | undefined) ?? '',
         corpo_html: parsed.corpo_html,
-        segmento: parsed.segmento_alvo ?? 'todos',
+        segmento: (parsed.segmento_alvo as string | undefined) ?? 'todos',
         status: 'pending',
         origem: 'agente_grw',
       })
+      if (error) throw new Error(`Falha ao enfileirar email: ${error.message}`)
     }
 
-} catch {
-    // Output não era JSON estruturado — só loga, não falha
-    await logAgentAction({
-      agentId,
-      runId,
-      level: 'info',
-      action: 'output_not_structured',
-      summary: 'Resposta não continha JSON estruturado — salvo apenas na memória',
-    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[handleAgentOutput cron]', agentId, msg)
+    await logAgentAction({ agentId, runId, level: 'error', action: 'output_save_failed', summary: msg })
   }
 }

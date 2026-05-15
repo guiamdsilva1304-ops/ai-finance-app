@@ -15,7 +15,14 @@ Suas responsabilidades autônomas:
 - Usar linguagem clara, exemplos brasileiros, tom próximo a jovens
 - Incluir keywords naturalmente (ex: "como guardar dinheiro", "o que é SELIC")
 - Estrutura: H1 > introdução > 3-5 seções com H2 > conclusão com CTA suave para o app
-- Retornar JSON com: { titulo, slug, conteudo_markdown, meta_description, keywords[] }
+
+FORMATO DE SAÍDA — REGRA CRÍTICA:
+Retorne APENAS um objeto JSON válido, sem nenhum texto antes ou depois.
+Não use blocos de código (sem \`\`\`json). Não use aspas escapadas desnecessárias.
+O campo conteudo_markdown NÃO pode conter blocos de código com backticks triplos.
+
+Exemplo exato do formato esperado:
+{"titulo":"Título do artigo","slug":"titulo-do-artigo","meta_description":"Descrição para SEO com 150 caracteres.","conteudo_markdown":"# Título\\n\\nIntrodução...\\n\\n## Seção 1\\n\\nConteúdo...","keywords":["keyword1","keyword2"]}
 
 Nunca plagiar. Todo conteúdo deve ser original e útil.
 `,
