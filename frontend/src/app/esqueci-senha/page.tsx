@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { createSupabaseBrowser as createClientComponentClient } from "@/lib/supabase";
 import Link from "next/link";
 
-
 export default function EsqueciSenhaPage() {
-  const supabase = createClientComponentClient();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -17,13 +14,20 @@ export default function EsqueciSenhaPage() {
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    const res = await fetch("/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
     });
 
     setLoading(false);
 
-    if (error) {
+    if (res.status === 429) {
+      setError("Muitas tentativas. Aguarde 1 hora antes de tentar novamente.");
+      return;
+    }
+
+    if (!res.ok) {
       setError("Não foi possível enviar o email. Verifique o endereço e tente novamente.");
       return;
     }
@@ -95,7 +99,7 @@ export default function EsqueciSenhaPage() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Email enviado!</h2>
             <p className="text-gray-500 text-sm mb-2">
-              Enviamos um link de recuperação para:
+              Se esse email estiver cadastrado, você receberá um link de recuperação em:
             </p>
             <p className="font-semibold text-gray-800 text-sm mb-6">{email}</p>
             <p className="text-gray-400 text-xs mb-8">

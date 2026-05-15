@@ -45,7 +45,7 @@ export default function AuthPage() {
     if (msg.includes("too many") || st === 429) return "Muitas tentativas. Aguarde alguns minutos.";
     if (msg.includes("user not found")) return "Email nao encontrado. Crie uma conta primeiro.";
     if (msg.includes("already registered") || msg.includes("already exists")) return "Este email ja esta cadastrado. Faca login.";
-    if (msg.includes("password should be")) return "Senha muito curta. Use minimo 6 caracteres.";
+    if (msg.includes("password should be")) return "Senha muito curta. Use minimo 8 caracteres.";
     if (msg.includes("unable to validate email") || msg.includes("invalid email")) return "Email invalido. Verifique o formato.";
     if (msg.includes("signup is disabled")) return "Cadastros temporariamente desabilitados.";
     if (msg.includes("fetch") || msg.includes("network")) return "Erro de conexao. Verifique sua internet.";
@@ -97,7 +97,7 @@ export default function AuthPage() {
     if (!em) { setError("Digite seu email."); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { setError("Email invalido."); return; }
     if (!password) { setError("Digite uma senha."); return; }
-    if (password.length < 6) { setError("Senha deve ter minimo 6 caracteres."); return; }
+    if (password.length < 8) { setError("Senha deve ter minimo 8 caracteres."); return; }
     if (password !== confirmPassword) { setError("As senhas nao coincidem."); return; }
     setLoading(true);
     try {
@@ -230,7 +230,7 @@ export default function AuthPage() {
                     <div className="relative">
                       <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8db89d]"/>
                       <input type={showPass ? "text" : "password"} value={password}
-                        onChange={e => setPassword(e.target.value)} placeholder="Minimo 6 caracteres"
+                        onChange={e => setPassword(e.target.value)} placeholder="Minimo 8 caracteres"
                         className="input pl-10 pr-10" disabled={loading}/>
                       <button type="button" onClick={() => setShowPass(!showPass)}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8db89d] hover:text-[#15803d]">
