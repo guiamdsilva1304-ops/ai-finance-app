@@ -37,44 +37,23 @@ ARTIGO (600–700 palavras, markdown):
 - 4 FAQs curtas (30–40 palavras cada)
 - 2–3 internal links (anchor descritivo, nunca "clique aqui")
 
-PROIBIDO: emoji em H1/H2/meta_title, "No mundo de hoje...", ativo específico, crypto, day-trade, promessa de retorno.
+PROIBIDO: blocos de codigo no output (nao use tres crases antes/depois do JSON), emoji em H1/H2/meta_title, "No mundo de hoje...", ativo especifico, crypto, day-trade, promessa de retorno.
 
-Retorne APENAS este JSON sem markdown fences:
-{"decision":{"day_type":"","article_type":"","keyword_principal":"","intent":"","rationale":""},"competitor_analysis":{"top3_urls":[],"coverage_gaps":[],"our_differentiation":""},"article":{"h1":"","slug":"","meta_title":"","meta_description":"","og_image_alt":"","body_markdown":"","word_count":0,"internal_links":[{"anchor":"","slug":""}],"faq_schema":[{"question":"","answer":""}],"lsi_keywords_used":[]},"self_critique":{"intro_hook":"","specificity":"","engagement":"","cta_naturalness":"","beats_top3":"","unique_insight":""}}`
+OUTPUT — retorne APENAS JSON puro, sem nenhum texto ou delimitador ao redor:
+{"h1":"","slug":"","meta_title":"","meta_description":"","og_image_alt":"","article_type":"","body_markdown":"","word_count":0,"faq_schema":[{"question":"","answer":""}],"lsi_keywords_used":[]}`
 
 interface ArticleJSON {
-  decision: {
-    day_type: string
-    article_type: string
-    keyword_principal: string
-    intent: string
-    rationale: string
-  }
-  competitor_analysis: {
-    top3_urls: string[]
-    coverage_gaps: string[]
-    our_differentiation: string
-  }
-  article: {
-    h1: string
-    slug: string
-    meta_title: string
-    meta_description: string
-    og_image_alt: string
-    body_markdown: string
-    word_count: number
-    internal_links: Array<{ anchor: string; slug: string }>
-    faq_schema: Array<{ question: string; answer: string }>
-    lsi_keywords_used: string[]
-  }
-  self_critique: {
-    intro_hook: string
-    specificity: string
-    engagement: string
-    cta_naturalness: string
-    beats_top3: string
-    unique_insight: string
-  }
+  h1: string
+  slug: string
+  meta_title: string
+  meta_description: string
+  og_image_alt: string
+  article_type: string
+  body_markdown: string
+  word_count: number
+  internal_links?: Array<{ anchor: string; slug: string }>
+  faq_schema: Array<{ question: string; answer: string }>
+  lsi_keywords_used: string[]
 }
 
 interface ResearchData {
@@ -220,12 +199,12 @@ export async function GET(req: NextRequest) {
     console.log(`[SEO v2] Gerando artigo — dia: ${today} | keyword: ${research?.keyword_principal ?? 'sem pesquisa'}`)
 
     const researchContext = research
-      ? `\n\n## PESQUISA JÁ REALIZADA — USE ESTES DADOS:\n${JSON.stringify(research, null, 2)}`
-      : `\n\nNenhuma pesquisa prévia disponível. Escolha um tema relevante para jovens brasileiros e use dados financeiros conhecidos (SELIC ~14,75%, IPCA 2026 ~5,5%, salário mínimo R$1.518).`
+      ? `\nPESQUISA: keyword="${research.keyword_principal}" | tipo=${research.article_type ?? today} | intent=${research.intent ?? 'informacional'} | gaps=${JSON.stringify(research.coverage_gaps ?? [])} | diferencial="${research.our_differentiation ?? ''}" | lsi=${JSON.stringify(research.lsi_keywords ?? [])} | dados=${JSON.stringify(research.financial_data ?? {})}`
+      : `\nSem pesquisa prévia. Use tema relevante para jovens brasileiros. Dados: SELIC 14,75%, IPCA 2026 ~5,5%, salário mínimo R$1.518.`
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1500,
+      max_tokens: 2000,
       system: SYSTEM_PROMPT_V2,
       messages: [{
         role: 'user',
@@ -251,15 +230,12 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('[SEO v2] JSON OK:', {
-      article_type: parsed.decision?.article_type,
-      keyword: parsed.decision?.keyword_principal,
-      word_count: parsed.article?.word_count,
-      faq_count: parsed.article?.faq_schema?.length,
-      links_count: parsed.article?.internal_links?.length,
+      article_type: parsed.article_type,
+      word_count: parsed.word_count,
+      faq_count: parsed.faq_schema?.length,
     })
 
-    const validatedLinks = await validateInternalLinks(parsed.article?.internal_links ?? [])
-    console.log(`[SEO v2] Links válidos: ${validatedLinks.length}/${parsed.article?.internal_links?.length ?? 0}`)
+    const validatedLinks = await validateInternalLinks(parsed.internal_links ?? [])
 
     if (dryRun) {
       return NextResponse.json({
@@ -271,7 +247,7 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    const { h1, slug, meta_title, meta_description, og_image_alt, body_markdown, word_count, faq_schema, lsi_keywords_used } = parsed.article
+    const { h1, slug, meta_title, meta_description, og_image_alt, article_type, body_markdown, word_count, faq_schema, lsi_keywords_used } = parsed
     if (!h1 || !slug || !body_markdown)
       return NextResponse.json({ error: 'Campos obrigatórios ausentes: h1, slug, body_markdown' }, { status: 500 })
 
@@ -292,10 +268,9 @@ export async function GET(req: NextRequest) {
       og_image_alt: og_image_alt ?? '',
       faq_schema: faq_schema ?? [],
       internal_links: validatedLinks,
-      keyword_principal: parsed.decision?.keyword_principal ?? '',
-      article_type: parsed.decision?.article_type ?? '',
+      keyword_principal: research?.keyword_principal ?? '',
+      article_type: article_type ?? research?.article_type ?? '',
       word_count: palavras,
-      agent_critique: parsed.self_critique ?? {},
       agent_version: 'v2.0',
       author: 'Gui da iMoney',
       category: 'educacao-financeira',
@@ -319,8 +294,8 @@ export async function GET(req: NextRequest) {
       titulo: h1,
       slug: slugFinal,
       palavras,
-      article_type: parsed.decision?.article_type,
-      keyword: parsed.decision?.keyword_principal,
+      article_type: article_type ?? research?.article_type,
+      keyword: research?.keyword_principal ?? null,
       research_used: research?.keyword_principal ?? null,
     })
 
