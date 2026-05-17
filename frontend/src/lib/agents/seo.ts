@@ -8,89 +8,119 @@ const supabase = createClient(
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-const TOPICOS_SEO = [
-  'como organizar as finanças pessoais em 2025',
-  'o que é reserva de emergência e como montar a sua',
-  'tesouro direto para iniciantes: tudo que você precisa saber',
-  'como sair das dívidas rapidamente: guia prático',
-  'diferença entre IPCA, SELIC e CDI explicada de forma simples',
-  'como investir com pouco dinheiro no brasil',
-  'cartão de crédito: armadilhas e como usar a seu favor',
-  'planejamento financeiro mensal: passo a passo',
-  'renda extra: ideias para ganhar mais em 2025',
-  'FGTS: como funciona e quando você pode sacar',
-  'o que é e como calcular seu patrimônio líquido',
-  'metas financeiras inteligentes: como definir e alcançar',
-]
+interface SeoOutput {
+  research?: {
+    topic: string
+    keywords: string[]
+    search_intents: string[]
+    suggested_titles: string[]
+  }
+  article?: {
+    titulo: string
+    slug: string
+    meta_description: string
+    conteudo_markdown: string
+    keywords: string[]
+  }
+}
 
-export async function runSeoAgent(mission: any): Promise<string> {
-  const { data: existentes } = await supabase
-    .from('blog_posts')
-    .select('title')
+export async function runSeoAgent(_mission: unknown): Promise<string> {
+  // Fetch recent SEO research to avoid duplicate topics and enrich the prompt
+  const { data: recentInsights } = await supabase
+    .from('seo_insights')
+    .select('topic, keywords, search_intents')
     .order('created_at', { ascending: false })
-    .limit(20)
+    .limit(10)
 
-  const titulosExistentes = (existentes || []).map((p: any) => p.title.toLowerCase())
+  const insightsContext = recentInsights?.length
+    ? `\n\nPESQUISAS ANTERIORES (escolha tema diferente, incorpore keywords no artigo):\n` +
+      recentInsights
+        .map((i: { topic: string; keywords: string[]; search_intents: string[] }) =>
+          `- ${i.topic}: keywords=[${(i.keywords as string[]).slice(0, 3).join(', ')}]`)
+        .join('\n')
+    : ''
 
-  const topico = TOPICOS_SEO.find(
-    t => !titulosExistentes.some(e => e.includes(t.split(' ')[2]))
-  ) || TOPICOS_SEO[Math.floor(Math.random() * TOPICOS_SEO.length)]
+  const prompt = `Você é o agente SEO da iMoney, fintech brasileira de finanças pessoais para jovens adultos.
 
-  const prompt = `Você é o agente SEO da iMoney, um app brasileiro de finanças pessoais com IA para jovens adultos.
+Execute DUAS fases nesta ordem:
 
-Escreva um artigo de blog completo e otimizado para SEO sobre: "${topico}"
+FASE 1 — PESQUISA INTERNA (não vai ao blog):
+Escolha 1 tema de finanças pessoais para jovens brasileiros 18-35 anos que gere buscas reais.
+Analise keywords de alto volume, intenção de busca e ângulos originais.${insightsContext}
 
-REGRAS:
-- Tom: educativo, próximo, sem jargão excessivo
-- Público: jovens brasileiros 18-30 anos
-- Tamanho: 800-1200 palavras de conteúdo real
-- Inclua: H2s claros, listas quando útil, exemplos práticos com valores em reais
-- Mencione o iMoney naturalmente 1-2x como ferramenta que pode ajudar
-- Não use markdown com ** ou # — use o formato JSON abaixo
+FASE 2 — ARTIGO REAL (vai ao blog):
+Escreva 1 artigo genuinamente útil (800-1200 palavras) usando a pesquisa.
+- Tom: educativo, próximo, como um amigo que entende de finanças
+- Estrutura: introdução envolvente > 3-4 seções H2 > conclusão com CTA suave para o iMoney
+- Incorpore keywords naturalmente — NUNCA as liste explicitamente
+- Use HTML simples: <h2>, <p>, <ul>, <li>, <strong>
+- Exemplos com valores em R$ e contexto 100% brasileiro
+- Mencione o iMoney naturalmente 1-2x
 
-Responda APENAS com este JSON (sem texto antes ou depois):
-{
-  "title": "título principal do artigo (60-70 chars)",
-  "seo_title": "título para SEO (55-65 chars)",
-  "seo_description": "meta description (150-160 chars)",
-  "excerpt": "resumo do artigo em 2 frases",
-  "slug": "slug-em-kebab-case",
-  "category": "categoria (ex: Investimentos, Dívidas, Orçamento, Poupança)",
-  "tags": ["tag1", "tag2", "tag3"],
-  "reading_time_min": 5,
-  "content": "conteúdo completo em HTML simples (use <h2>, <p>, <ul>, <li>, <strong>)"
-}`
+Retorne APENAS este JSON (sem texto antes/depois, sem blocos de código):
+{"research":{"topic":"tema pesquisado","keywords":["kw1","kw2","kw3","kw4","kw5"],"search_intents":["intent1","intent2","intent3"],"suggested_titles":["título alternativo 1","título alternativo 2"]},"article":{"titulo":"Título para o leitor (60-70 chars)","slug":"titulo-em-kebab","meta_description":"Meta description 150-160 chars","conteudo_markdown":"conteúdo em HTML simples","keywords":["kw1","kw2","kw3"]}}`
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 4096,
     messages: [{ role: 'user', content: prompt }],
   })
 
   const raw = response.content[0].type === 'text' ? response.content[0].text : ''
-  const jsonStr = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-  const artigo = JSON.parse(jsonStr)
+  let parsed: SeoOutput | null = null
+  try {
+    parsed = JSON.parse(raw) as SeoOutput
+  } catch {
+    const first = raw.indexOf('{')
+    const last = raw.lastIndexOf('}')
+    if (first !== -1 && last > first) {
+      parsed = JSON.parse(raw.slice(first, last + 1)) as SeoOutput
+    }
+  }
 
-  const slugBase = artigo.slug || topico.replace(/\s+/g, '-').toLowerCase()
-  const slugFinal = `${slugBase}-${Date.now()}`
+  if (!parsed) throw new Error('Resposta inválida da IA — JSON não encontrado')
 
-  const { error } = await supabase.from('blog_posts').insert({
-    slug: slugFinal,
-    title: artigo.title,
-    excerpt: artigo.excerpt,
-    content: artigo.content,
-    author: 'iMoney IA',
-    category: artigo.category,
-    tags: artigo.tags,
-    reading_time_min: artigo.reading_time_min || 5,
-    published: true,
-    published_at: new Date().toISOString(),
-    seo_title: artigo.seo_title,
-    seo_description: artigo.seo_description,
-    generated_by: 'agent:seo',
-  })
+  const results: string[] = []
 
-  if (error) throw new Error(`Erro ao salvar artigo: ${error.message}`)
+  // Save SEO research internally (never goes to the public blog)
+  if (parsed.research?.topic) {
+    const { error: resErr } = await supabase.from('seo_insights').insert({
+      topic: parsed.research.topic,
+      keywords: parsed.research.keywords ?? [],
+      search_intents: parsed.research.search_intents ?? [],
+      suggested_titles: parsed.research.suggested_titles ?? [],
+      raw_data: JSON.stringify(parsed.research),
+    })
+    if (resErr) console.error('[seo agent] seo_insights insert error:', resErr.message)
+    else results.push(`Pesquisa salva: "${parsed.research.topic}"`)
+  }
 
-  return `Artigo publicado: "${artigo.title}" | slug: ${slugFinal} | categoria: ${artigo.category}`
+  // Save reader article to blog_posts
+  if (parsed.article?.titulo && parsed.article?.conteudo_markdown) {
+    const { titulo, slug, meta_description, conteudo_markdown, keywords } = parsed.article
+    const slugFinal = `${slug || titulo.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}-${Date.now()}`
+    const palavras = conteudo_markdown.split(/\s+/).length
+    const excerpt = conteudo_markdown.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 200).trim() + '...'
+
+    const { error } = await supabase.from('blog_posts').insert({
+      slug: slugFinal,
+      title: titulo,
+      excerpt,
+      content: conteudo_markdown,
+      author: 'iMoney IA',
+      category: 'educacao-financeira',
+      tags: keywords ?? [],
+      reading_time_min: Math.max(1, Math.ceil(palavras / 200)),
+      published: true,
+      published_at: new Date().toISOString(),
+      seo_title: titulo,
+      seo_description: meta_description ?? '',
+      generated_by: 'agent:seo',
+    })
+
+    if (error) throw new Error(`Erro ao salvar artigo: ${error.message}`)
+    results.push(`Artigo publicado: "${titulo}" | /blog/${slugFinal}`)
+  }
+
+  return results.join(' | ') || 'Nenhuma ação executada'
 }

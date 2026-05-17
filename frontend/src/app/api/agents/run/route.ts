@@ -14,13 +14,17 @@ function isAuthorized(req: NextRequest): boolean {
 }
 
 // Mensagens de execução autônoma padrão por agente
-function getDefaultUserMessage(agentId: AgentId, pendingTasksCount: number): string {
+function getDefaultUserMessage(agentId: AgentId, pendingTasksCount: number, seoInsightsContext = ''): string {
   const taskNote = pendingTasksCount > 0
     ? `\n\nVocê tem ${pendingTasksCount} tarefa(s) pendente(s) de outros agentes na fila. Priorize-as.`
     : ''
 
+  const seoNote = seoInsightsContext
+    ? `\n\nPESQUISAS ANTERIORES (use como base para escolher tema diferente e incorporar keywords no artigo):\n${seoInsightsContext}`
+    : ''
+
   const messages: Record<AgentId, string> = {
-    SEO: `Execute sua rotina autônoma: escreva 1 artigo de blog sobre finanças pessoais para hoje. Escolha um tema relevante para jovens brasileiros. Retorne JSON completo.${taskNote}`,
+    SEO: `Execute sua rotina autônoma de SEO: realize a pesquisa de um tema novo e escreva o artigo correspondente. Escolha tema relevante para jovens brasileiros, diferente dos já pesquisados.${seoNote}${taskNote}`,
     GRW: `Execute sua rotina autônoma: analise o estado atual do funil e crie ou atualize a campanha de email mais prioritária. Retorne JSON do email.${taskNote}`,
   }
 
@@ -59,7 +63,26 @@ export async function POST(req: NextRequest) {
 
   // Buscar tarefas pendentes de outros agentes
   const pendingTasks = await pickPendingTasks(agentId)
-  const userMessage = customMessage ?? getDefaultUserMessage(agentId, pendingTasks.length)
+
+  // Para o SEO: enriquece a mensagem com insights de pesquisas anteriores
+  let seoInsightsContext = ''
+  if (agentId === 'SEO' && !customMessage) {
+    const { createClient } = await import('@supabase/supabase-js')
+    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const { data: insights } = await sb
+      .from('seo_insights')
+      .select('topic, keywords, search_intents')
+      .order('created_at', { ascending: false })
+      .limit(10)
+    if (insights?.length) {
+      seoInsightsContext = insights
+        .map((i: { topic: string; keywords: string[]; search_intents: string[] }) =>
+          `- Tema: ${i.topic} | Keywords: ${(i.keywords as string[]).slice(0, 4).join(', ')} | Intents: ${(i.search_intents as string[]).slice(0, 2).join('; ')}`)
+        .join('\n')
+    }
+  }
+
+  const userMessage = customMessage ?? getDefaultUserMessage(agentId, pendingTasks.length, seoInsightsContext)
 
   // Enriquecer mensagem com contexto das tarefas pendentes
   let fullMessage = userMessage
@@ -140,35 +163,63 @@ async function handleAgentOutput(agentId: AgentId, response: string, runId: stri
   }
 
   try {
-    if (agentId === 'SEO' && parsed.titulo && parsed.conteudo_markdown) {
-      const titulo = parsed.titulo as string
-      const conteudo = parsed.conteudo_markdown as string
-      const slugBase = (parsed.slug as string | undefined) ?? titulo.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-      const slugFinal = `${slugBase}-${Date.now()}`
-      const palavras = conteudo.split(/\s+/).length
-      const excerpt = conteudo.replace(/#+\s*/g, '').replace(/\*\*/g, '').slice(0, 200).trim() + '...'
+    if (agentId === 'SEO') {
+      // New two-phase format: { research: {...}, article: {...} }
+      const research = parsed.research as Record<string, unknown> | undefined
+      const articleData = parsed.article as Record<string, unknown> | undefined
 
-      const { error } = await supabase.from('blog_posts').insert({
-        title: titulo,
-        slug: slugFinal,
-        excerpt,
-        content: conteudo,
-        seo_title: titulo,
-        seo_description: (parsed.meta_description as string | undefined) ?? '',
-        author: 'Agente SEO',
-        category: 'educacao-financeira',
-        tags: (parsed.keywords as string[] | undefined) ?? [],
-        reading_time_min: Math.max(1, Math.ceil(palavras / 200)),
-        published: false,
-        published_at: null,
-        generated_by: 'agente-seo',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      // Also support legacy single-object format (titulo + conteudo_markdown at root)
+      const legacyTitulo = parsed.titulo as string | undefined
+      const legacyConteudo = parsed.conteudo_markdown as string | undefined
 
-      if (error) throw new Error(`Falha ao salvar artigo: ${error.message}`)
+      // Phase 1: save SEO research internally (never published)
+      if (research?.topic) {
+        const { error: resErr } = await supabase.from('seo_insights').insert({
+          topic: research.topic,
+          keywords: research.keywords ?? [],
+          search_intents: research.search_intents ?? [],
+          suggested_titles: research.suggested_titles ?? [],
+          raw_data: JSON.stringify(research),
+        })
+        if (resErr) console.error('[handleAgentOutput] seo_insights insert error:', resErr.message)
+        else await logAgentAction({ agentId, runId, level: 'info', action: 'seo_research_saved', summary: `Pesquisa SEO sobre "${research.topic}" salva internamente` })
+      }
 
-      await logAgentAction({ agentId, runId, level: 'success', action: 'blog_post_saved', summary: `Artigo "${titulo}" salvo em /blog/${slugFinal}` })
+      // Phase 2: save reader article to blog_posts
+      const titulo = (articleData?.titulo ?? legacyTitulo) as string | undefined
+      const conteudo = (articleData?.conteudo_markdown ?? legacyConteudo) as string | undefined
+
+      if (titulo && conteudo) {
+        const slugBase = ((articleData?.slug ?? parsed.slug) as string | undefined)
+          ?? titulo.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+        const slugFinal = `${slugBase}-${Date.now()}`
+        const palavras = conteudo.split(/\s+/).length
+        const excerpt = conteudo.replace(/#+\s*/g, '').replace(/\*\*/g, '').slice(0, 200).trim() + '...'
+        const metaDescription = ((articleData?.meta_description ?? parsed.meta_description) as string | undefined) ?? ''
+        const keywords = ((articleData?.keywords ?? parsed.keywords) as string[] | undefined) ?? []
+
+        const { error } = await supabase.from('blog_posts').insert({
+          title: titulo,
+          slug: slugFinal,
+          excerpt,
+          content: conteudo,
+          seo_title: titulo,
+          seo_description: metaDescription,
+          author: 'Agente SEO',
+          category: 'educacao-financeira',
+          tags: keywords,
+          reading_time_min: Math.max(1, Math.ceil(palavras / 200)),
+          published: true,
+          published_at: new Date().toISOString(),
+          generated_by: 'agente-seo',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+
+        if (error) throw new Error(`Falha ao salvar artigo: ${error.message}`)
+
+        await logAgentAction({ agentId, runId, level: 'success', action: 'blog_post_saved', summary: `Artigo "${titulo}" publicado em /blog/${slugFinal}` })
+      }
     }
 
     if (agentId === 'GRW' && parsed.assunto && parsed.corpo_html) {
