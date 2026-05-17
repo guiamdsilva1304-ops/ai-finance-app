@@ -27,19 +27,18 @@ VOCABULÁRIO OK: sonho, meta, conquista, jornada. PROIBIDO: erro, falhou, culpa,
 
 PESQUISA: fornecida na mensagem do usuário. Use keyword_principal, coverage_gaps, financial_data, lsi_keywords. Não invente dados financeiros.
 
-ARTIGO (600–700 palavras, markdown):
+ARTIGO (450–500 palavras, markdown):
 - H1 com keyword
-- Intro: gancho emocional + o que vai aprender (3 linhas)
-- 4 H2s — 1º H2 responde intenção em até 60 palavras (featured snippet)
-- Após 2º H2: mid-CTA contextual. Ex: 💡 No iMoney, você define essa meta grátis. [Começar →](/login)
-- 1 tabela ou lista numerada
-- Conclusão: 3 bullets + CTA final
-- 4 FAQs curtas (30–40 palavras cada)
-- 2–3 internal links (anchor descritivo, nunca "clique aqui")
+- Intro: gancho emocional + o que vai aprender (2 linhas)
+- 3 H2s — 1º H2 responde intenção em até 50 palavras (featured snippet)
+- Após 2º H2: mid-CTA. Ex: No iMoney, você define essa meta grátis. [Começar](/login)
+- 1 lista numerada (4 itens)
+- Conclusão: 2 bullets + CTA final
+- 3 FAQs curtas (20 palavras cada)
 
-PROIBIDO: blocos de codigo no output (nao use tres crases antes/depois do JSON), emoji em H1/H2/meta_title, "No mundo de hoje...", ativo especifico, crypto, day-trade, promessa de retorno.
+PROIBIDO: blocos de codigo no output, emoji em H1/H2/meta_title, "No mundo de hoje...", ativo especifico, crypto, day-trade, promessa de retorno.
 
-OUTPUT — retorne APENAS JSON puro, sem nenhum texto ou delimitador ao redor:
+CRITICO: retorne APENAS o JSON minificado abaixo, sem texto antes/depois, sem indentacao, sem quebras de linha entre chaves:
 {"h1":"","slug":"","meta_title":"","meta_description":"","og_image_alt":"","article_type":"","body_markdown":"","word_count":0,"faq_schema":[{"question":"","answer":""}],"lsi_keywords_used":[]}`
 
 interface ArticleJSON {
@@ -216,7 +215,7 @@ export async function GET(req: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
+      max_tokens: 2500,
       system: SYSTEM_PROMPT_V2,
       messages: [{
         role: 'user',
@@ -224,13 +223,18 @@ export async function GET(req: NextRequest) {
       }],
     })
 
+    if (response.stop_reason === 'max_tokens') {
+      console.error('[SEO v2] Resposta truncada por max_tokens — JSON incompleto')
+      return NextResponse.json({ error: 'max_tokens atingido — artigo truncado antes de fechar o JSON' }, { status: 500 })
+    }
+
     const rawJson = extractFinalJson(response.content)
     if (!rawJson) {
       const preview = response.content
         .filter((b): b is Anthropic.Messages.TextBlock => b.type === 'text')
         .map(b => b.text).join('').slice(0, 500)
-      console.error('[SEO v2] JSON não extraído. Preview:', preview)
-      return NextResponse.json({ error: 'JSON não extraído', preview }, { status: 500 })
+      console.error('[SEO v2] JSON não extraído. stop_reason:', response.stop_reason, '| Preview:', preview)
+      return NextResponse.json({ error: 'JSON não extraído', stop_reason: response.stop_reason, preview }, { status: 500 })
     }
 
     let parsed: ArticleJSON
