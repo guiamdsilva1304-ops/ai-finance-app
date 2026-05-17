@@ -22,6 +22,10 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user?.email) return NextResponse.json({ ok: false, reason: 'invalid_token' })
 
+    // Só envia para usuários criados nos últimos 3 dias
+    const diasDesdeCadastro = (Date.now() - new Date(user.created_at).getTime()) / 86400000
+    if (diasDesdeCadastro > 3) return NextResponse.json({ ok: false, reason: 'not_new_user' })
+
     // Verifica se o email de boas-vindas já foi enviado
     const { data: jaEnviou } = await supabase
       .from('email_queue')
