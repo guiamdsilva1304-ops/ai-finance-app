@@ -23,6 +23,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .eq('id', data.user.id)
         .maybeSingle();
       setPlan(perfil?.plan ?? 'free');
+
+      // Dispara email de boas-vindas no primeiro acesso (fire-and-forget)
+      supabase.auth.getSession().then(({ data: s }) => {
+        if (s.session?.access_token) {
+          fetch('/api/onboarding/welcome', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${s.session.access_token}` },
+          }).catch(() => {});
+        }
+      });
     });
   }, []);
 

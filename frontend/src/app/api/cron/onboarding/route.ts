@@ -9,12 +9,8 @@ const supabase = createClient(
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM = 'Gui da iMoney <gui@imoney.ia.br>'
 
+// Dia 0 (boas-vindas) é disparado via /api/onboarding/welcome no primeiro acesso ao dashboard
 const SEQUENCIA = [
-  {
-    dia: 0,
-    assunto: 'Bem-vindo à iMoney 🧭 — sua bússola financeira com IA',
-    html: () => `<div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto"><div style="background:linear-gradient(135deg,#0a3d28,#1D9E75);padding:40px 32px;text-align:center;border-radius:12px 12px 0 0"><h1 style="color:#fff;font-size:26px;font-weight:900;margin:0 0 8px">Oi! Bem-vindo à iMoney 👋</h1><p style="color:#9FE1CB;font-size:15px;margin:0">Sua bússola financeira pessoal com IA</p></div><div style="padding:32px;background:#fff"><p style="font-size:16px;color:#1a1a1a;line-height:1.7">Fico feliz que você chegou até aqui. Sou o Gui, fundador da iMoney.</p><p style="font-size:15px;color:#444;line-height:1.7">A iMoney nasceu porque eu queria algo que <strong>entendesse minha situação e me dissesse o que fazer</strong> — não só gráficos bonitos.</p><div style="text-align:center;margin:28px 0"><a href="https://imoney.ia.br/dashboard/assessor" style="background:#1D9E75;color:#fff;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">Conversar com o Assessor →</a></div><p style="font-size:13px;color:#888">Responde esse email com qualquer dúvida. Eu leio tudo.</p><p style="font-size:14px;color:#1a1a1a;font-weight:600">Gui<br><span style="font-weight:400;color:#888">Fundador da iMoney</span></p></div></div>`
-  },
   {
     dia: 2,
     assunto: 'Você sabe quanto gasta por mês? 🤔',
