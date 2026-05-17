@@ -1,14 +1,9 @@
 {
   "crons": [
     { "path": "/api/cron/emails", "schedule": "0 8 * * *" },
-    { "path": "/api/cron/seo", "schedule": "0 10 * * *" },
-    { "path": "/api/agents/run?agent=MKT&secret=imoneyval1BI", "schedule": "0 18 * * 2,4" },
+    { "path": "/api/agents/run?agent=SEO&secret=imoneyval1BI", "schedule": "0 7 * * *" },
     { "path": "/api/agents/run?agent=GRW&secret=imoneyval1BI", "schedule": "0 9 * * 1,5" },
-    { "path": "/api/agents/run?agent=DAD&secret=imoneyval1BI", "schedule": "0 8 * * *" },
-    { "path": "/api/agents/run?agent=VID&secret=imoneyval1BI", "schedule": "0 10 * * 3" },
     { "path": "/api/cron/reset-budgets", "schedule": "0 0 1 * *" },
-    { "path": "/api/cron/agents", "schedule": "0 9 * * *" },
-    { "path": "/api/cron/emails-agents", "schedule": "0 10 * * *" },
     { "path": "/api/cron/monthly-summary", "schedule": "0 8 1 * *" }
   ]
 }
