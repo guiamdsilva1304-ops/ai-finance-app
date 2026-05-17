@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
         .from('email_queue')
         .select('id')
         .eq('tipo', `onboarding_dia_${seq.dia}`)
-        .eq('destinatario', user.email)
+        .eq('user_id', user.id)
         .maybeSingle()
 
       if (jaEnviou) continue
@@ -66,10 +66,14 @@ export async function GET(req: NextRequest) {
       await resend.emails.send({ from: FROM, to: user.email, subject: seq.assunto, html: seq.html() })
 
       await supabase.from('email_queue').insert({
+        user_id: user.id,
+        email: user.email,
+        type: `onboarding_dia_${seq.dia}`,
         tipo: `onboarding_dia_${seq.dia}`,
-        destinatario: user.email,
+        subject: seq.assunto,
+        scheduled_for: new Date().toISOString(),
+        sent_at: new Date().toISOString(),
         status: 'enviado',
-        criado_em: new Date().toISOString(),
       })
 
       enviados++

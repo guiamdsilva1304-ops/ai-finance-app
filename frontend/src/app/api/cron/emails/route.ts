@@ -86,8 +86,9 @@ async function processEmailQueue(): Promise<{ queued: number }> {
   const { data: emails, error } = await supabaseAdmin
     .from('email_queue')
     .select('id, user_id, email, type')
-    .lte('scheduled_at', now)
-    .eq('sent', false)
+    .lte('scheduled_for', now)
+    .is('sent_at', null)
+    .neq('status', 'enviado')
     .limit(50)
 
   if (error) throw error
@@ -109,7 +110,7 @@ async function processEmailQueue(): Promise<{ queued: number }> {
 
       await supabaseAdmin
         .from('email_queue')
-        .update({ sent: true, sent_at: new Date().toISOString() })
+        .update({ sent_at: new Date().toISOString(), status: 'enviado' })
         .eq('id', item.id)
 
       count++
@@ -118,7 +119,7 @@ async function processEmailQueue(): Promise<{ queued: number }> {
       try {
         await supabaseAdmin
           .from('email_queue')
-          .update({ error: e instanceof Error ? e.message : String(e) })
+          .update({ status: 'erro', metadata: { error: e instanceof Error ? e.message : String(e) } })
           .eq('id', item.id)
       } catch {}
     }
