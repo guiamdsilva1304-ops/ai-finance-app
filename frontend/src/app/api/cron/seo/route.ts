@@ -78,35 +78,47 @@ function isAuthorized(req: NextRequest): boolean {
   return searchParams.get('secret') === cronSecret
 }
 
+// Extrai o primeiro JSON objeto completo de um texto, respeitando strings (ignora { } dentro de valores)
+function parseJsonFromText(text: string): string {
+  const cleaned = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim()
+  const start = cleaned.indexOf('{')
+  if (start === -1) return ''
+
+  let depth = 0
+  let inString = false
+  let escaped = false
+
+  for (let i = start; i < cleaned.length; i++) {
+    const ch = cleaned[i]
+    if (escaped) { escaped = false; continue }
+    if (ch === '\\' && inString) { escaped = true; continue }
+    if (ch === '"') { inString = !inString; continue }
+    if (inString) continue // ignora { } dentro de valores de string
+    if (ch === '{') depth++
+    else if (ch === '}') {
+      depth--
+      if (depth === 0) {
+        const candidate = cleaned.slice(start, i + 1)
+        try { JSON.parse(candidate); return candidate } catch { return '' }
+      }
+    }
+  }
+  return ''
+}
+
 function extractFinalJson(content: Anthropic.Messages.ContentBlock[]): string {
   const texts = content
     .filter((b): b is Anthropic.Messages.TextBlock => b.type === 'text')
     .map(b => b.text)
 
+  // Tenta cada bloco de texto do último para o primeiro
   for (let i = texts.length - 1; i >= 0; i--) {
-    const cleaned = texts[i].replace(/```json\s*/gi, '').replace(/```/g, '').trim()
-    const first = cleaned.indexOf('{')
-    if (first === -1) continue
-    let depth = 0, last = -1
-    for (let j = first; j < cleaned.length; j++) {
-      if (cleaned[j] === '{') depth++
-      else if (cleaned[j] === '}') { depth--; if (depth === 0) { last = j; break } }
-    }
-    if (last !== -1) {
-      try { JSON.parse(cleaned.slice(first, last + 1)); return cleaned.slice(first, last + 1) } catch { continue }
-    }
+    const result = parseJsonFromText(texts[i])
+    if (result) return result
   }
 
-  // Fallback: junta todos os blocos
-  const combined = texts.join('\n').replace(/```json\s*/gi, '').replace(/```/g, '').trim()
-  const first = combined.indexOf('{')
-  if (first === -1) return ''
-  let depth = 0, last = -1
-  for (let i = first; i < combined.length; i++) {
-    if (combined[i] === '{') depth++
-    else if (combined[i] === '}') { depth--; if (depth === 0) { last = i; break } }
-  }
-  return last !== -1 ? combined.slice(first, last + 1) : ''
+  // Fallback: junta todos os blocos e tenta de novo
+  return parseJsonFromText(texts.join('\n'))
 }
 
 async function validateInternalLinks(
