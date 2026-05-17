@@ -1,50 +1,124 @@
-"use client";
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { createSupabaseBrowser } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { marked } from "marked";
+import type { Metadata } from "next";
 
 marked.setOptions({ breaks: true, gfm: true });
 
-export default function ArticlePage() {
-  const { slug } = useParams();
-  const [post, setPost] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [html, setHtml] = useState('');
-  const supabase = createSupabaseBrowser();
+type Props = { params: Promise<{ slug: string }> };
 
-  useEffect(() => {
-    if (!slug) return;
-    supabase.from("blog_posts")
-      .select("*")
-      .eq("slug", slug)
-      .eq("published", true)
-      .single()
-      .then(({ data }) => {
-        setPost(data);
-        if (data?.content) {
-          setHtml(marked(data.content) as string);
-        }
-        setLoading(false);
-      });
-  }, [slug]);
+interface BlogPost {
+  id: string
+  slug: string
+  title: string
+  excerpt: string | null
+  content: string
+  author: string | null
+  category: string | null
+  tags: string[] | null
+  reading_time_min: number | null
+  published_at: string | null
+  seo_title: string | null
+  seo_description: string | null
+  meta_title: string | null
+  meta_description: string | null
+  og_image_alt: string | null
+  faq_schema: Array<{ question: string; answer: string }> | null
+  internal_links: Array<{ anchor: string; slug: string }> | null
+  keyword_principal: string | null
+  article_type: string | null
+}
 
-  if (loading) return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontFamily: "'Nunito', sans-serif" }}>
-      <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid #1D9E75", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
-  if (!post) return (
-    <div style={{ textAlign: "center", padding: 60, fontFamily: "'Nunito', sans-serif" }}>
-      Artigo não encontrado. <Link href="/blog" style={{ color: "#1D9E75" }}>Voltar ao blog</Link>
-    </div>
-  );
+async function getPost(slug: string): Promise<BlogPost | null> {
+  const { data } = await getSupabase()
+    .from("blog_posts")
+    .select("*")
+    .eq("slug", slug)
+    .eq("published", true)
+    .single()
+  return data as BlogPost | null
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  const post = await getPost(slug)
+  if (!post) return { title: "Artigo não encontrado | iMoney" }
+  const title = post.meta_title || post.seo_title || post.title
+  const description = post.meta_description || post.seo_description || post.excerpt || ""
+  return {
+    title: `${title} | iMoney`,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "article",
+      publishedTime: post.published_at ?? undefined,
+      authors: [post.author ?? "Gui da iMoney"],
+    },
+    alternates: { canonical: `https://imoney.ia.br/blog/${post.slug}` },
+  }
+}
+
+export default async function ArticlePage({ params }: Props) {
+  const { slug } = await params
+  const post = await getPost(slug)
+
+  if (!post) {
+    return (
+      <div style={{ textAlign: "center", padding: 60, fontFamily: "'Nunito', sans-serif" }}>
+        Artigo não encontrado.{" "}
+        <Link href="/blog" style={{ color: "#1D9E75" }}>
+          Voltar ao blog
+        </Link>
+      </div>
+    )
+  }
+
+  const html = marked(post.content) as string
+  const hasFaq = post.faq_schema && post.faq_schema.length > 0
+
+  const faqJsonLd = hasFaq
+    ? JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: post.faq_schema!.map((f) => ({
+          "@type": "Question",
+          name: f.question,
+          acceptedAnswer: { "@type": "Answer", text: f.answer },
+        })),
+      })
+    : null
+
+  const articleJsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.meta_title || post.title,
+    description: post.meta_description || post.excerpt,
+    author: { "@type": "Person", name: post.author ?? "Gui da iMoney" },
+    publisher: {
+      "@type": "Organization",
+      name: "iMoney",
+      url: "https://imoney.ia.br",
+    },
+    datePublished: post.published_at,
+    keywords: post.keyword_principal ?? undefined,
+  })
 
   return (
     <div style={{ minHeight: "100vh", background: "#fff", fontFamily: "'Nunito', sans-serif" }}>
+      {/* JSON-LD schemas */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleJsonLd }} />
+      {faqJsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqJsonLd }} />
+      )}
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
         .prose h1{font-size:28px;font-weight:900;color:#0f172a;margin:32px 0 16px;line-height:1.3}
@@ -68,6 +142,11 @@ export default function ArticlePage() {
         .prose th{background:#f0fdf4;padding:10px 14px;text-align:left;font-weight:700;color:#085041;font-size:14px}
         .prose td{padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:15px;color:#334155}
         .prose img{max-width:100%;border-radius:10px;margin:16px 0}
+        .faq-item{border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;overflow:hidden}
+        .faq-item summary{padding:14px 18px;font-weight:700;font-size:15px;color:#0f172a;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
+        .faq-item summary::after{content:"＋";color:#1D9E75;font-size:18px;font-weight:400;transition:transform 0.2s}
+        .faq-item[open] summary::after{content:"－"}
+        .faq-item p{padding:0 18px 14px;margin:0;font-size:15px;color:#334155;line-height:1.7}
       `}</style>
 
       {/* Nav */}
@@ -99,12 +178,14 @@ export default function ArticlePage() {
         </h1>
 
         {/* Excerpt */}
-        <p style={{ fontSize: 18, color: "#475569", margin: "0 0 28px", lineHeight: 1.7, fontWeight: 500 }}>
-          {post.excerpt}
-        </p>
+        {post.excerpt && (
+          <p style={{ fontSize: 18, color: "#475569", margin: "0 0 28px", lineHeight: 1.7, fontWeight: 500 }}>
+            {post.excerpt}
+          </p>
+        )}
 
         {/* Tags */}
-        {post.tags?.length > 0 && (
+        {post.tags && post.tags.length > 0 && (
           <div style={{ display: "flex", gap: 6, marginBottom: 32, flexWrap: "wrap" }}>
             {post.tags.map((tag: string) => (
               <span key={tag} style={{ fontSize: 11, color: "#64748b", background: "#f1f5f9", padding: "3px 10px", borderRadius: 20 }}>#{tag}</span>
@@ -116,6 +197,19 @@ export default function ArticlePage() {
 
         {/* Conteúdo renderizado */}
         <div className="prose" dangerouslySetInnerHTML={{ __html: html }} />
+
+        {/* FAQ visual */}
+        {hasFaq && (
+          <div style={{ margin: "48px 0 0" }}>
+            <h2 style={{ fontWeight: 800, fontSize: 22, color: "#0f172a", marginBottom: 20 }}>Perguntas frequentes</h2>
+            {post.faq_schema!.map((item, idx) => (
+              <details key={idx} className="faq-item">
+                <summary>{item.question}</summary>
+                <p>{item.answer}</p>
+              </details>
+            ))}
+          </div>
+        )}
 
         <hr style={{ border: "none", borderTop: "2px solid #f0fdf4", margin: "48px 0 40px" }} />
 
@@ -134,5 +228,5 @@ export default function ArticlePage() {
         </div>
       </div>
     </div>
-  );
+  )
 }
