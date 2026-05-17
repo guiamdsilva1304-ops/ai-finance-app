@@ -270,7 +270,17 @@ export async function GET(req: NextRequest) {
     const slugFinal = `${slug}-${new Date().toISOString().slice(0, 10)}`
     const palavras = word_count || body_markdown.split(/\s+/).length
     const reading_time_min = Math.max(1, Math.ceil(palavras / 200))
-    const excerpt = body_markdown.replace(/#+\s*/g, '').replace(/\*\*/g, '').replace(/\n+/g, ' ').slice(0, 200).trim() + '...'
+    const excerpt = (
+      body_markdown
+        .split('\n')
+        .map(l => l.trim())
+        .find(l => l.length > 40 && !l.startsWith('#') && !l.startsWith('---') && !l.startsWith('>'))
+        ?? body_markdown.slice(0, 200)
+    )
+      .replace(/\*\*/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .slice(0, 200)
+      .trim() + '...'
 
     const { error: dbError } = await supabase.from('blog_posts').insert({
       title: h1,
