@@ -37,12 +37,11 @@ const RESEARCH_SYSTEM_PROMPT = `Você é o pesquisador de SEO da iMoney, SaaS br
 ## Concorrentes a monitorar
 Mobills, Organizze, Nubank blog, Serasa blog, InfoMoney, Exame Invest, Monerama
 
-## Sua tarefa (use web_search para tudo):
+## Sua tarefa (máximo 3 web_searches — seja eficiente):
 1. Identifique o tipo de artigo do dia baseado no dia da semana informado
-2. Pesquise 2–3 keywords candidatas com potencial de tráfego para jovens brasileiros
-3. Escolha 1 keyword principal: intenção clara, concorrência atacável, long-tail preferível
-4. Analise os 3 primeiros resultados do Google para essa keyword
-5. Confirme dados financeiros atuais: SELIC, IPCA acumulado 2026, salário mínimo
+2. Use 1 web_search para encontrar a keyword ideal (volume alto, concorrência atacável)
+3. Use 1 web_search para analisar os 3 primeiros resultados do Google para essa keyword
+4. Use 1 web_search para confirmar dados financeiros atuais: SELIC, IPCA 2026, salário mínimo
 
 ## Output — retorne APENAS este JSON sem markdown fences:
 {"day_type":"<segunda|terca|quarta|quinta|sexta|sabado|domingo>","article_type":"<pillar|cluster|fundo_funil|atualizacao|trending|faq>","keyword_principal":"<string>","intent":"<informacional|comparativo|transacional>","rationale":"<2-3 frases>","top3_urls":["<url1>","<url2>","<url3>"],"coverage_gaps":["<gap1>","<gap2>"],"our_differentiation":"<como superar em 1 frase>","financial_data":{"selic":"<X%>","ipca_2026":"<X%>","salario_minimo":"R$<X>"},"lsi_keywords":["<kw1>","<kw2>","<kw3>"]}`
@@ -69,7 +68,7 @@ export async function GET(req: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1500,
+      max_tokens: 800,
       system: RESEARCH_SYSTEM_PROMPT,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: [{ type: 'web_search_20250305', name: 'web_search' } as any],

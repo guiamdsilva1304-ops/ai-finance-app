@@ -63,14 +63,15 @@ NÃO repita o que todos cobrem. ADICIONE o que coverage_gaps identificou.
 - Frases curtas (15–20 palavras). Parágrafos máximo 3 frases.
 - Use "você". Dados concretos com R$. Exemplos numéricos reais.
 - Densidade da keyword: 0,8%–1,5% (natural, nunca forçado)
+- Extensão alvo: 700–1000 palavras (qualidade > quantidade — o Google prefere artigos focados e úteis)
 - Estrutura obrigatória:
   1. H1 com keyword principal
-  2. Intro: gancho emocional (problema real da Marina) + o que ela vai aprender
-  3. 5–8 H2s — primeiro H2 responde a intenção principal em até 60 palavras (featured snippet)
-  4. Mid-CTA após 3º H2: contextual, nunca banner. Ex: *💡 No iMoney, você define essa meta em 30 segundos. [Comece grátis →](/login)*
+  2. Intro: gancho emocional (problema real da Marina) + o que ela vai aprender (3–4 linhas)
+  3. 4–5 H2s — primeiro H2 responde a intenção principal em até 60 palavras (featured snippet)
+  4. Mid-CTA após 2º H2: contextual, nunca banner. Ex: *💡 No iMoney, você define essa meta em 30 segundos. [Comece grátis →](/login)*
   5. Pelo menos 1 tabela comparativa OU lista numerada
   6. Conclusão: 3 bullets do que a Marina aprendeu + CTA final
-  7. 4–6 perguntas frequentes (FAQ)
+  7. 4 perguntas frequentes (FAQ) — respostas diretas de 30–40 palavras
 - 3–5 internal links com anchor descritivo (nunca "clique aqui")
 - Nunca use emoji em H1, H2 ou meta_title
 - Nunca comece intro com "No mundo de hoje..." ou "Em tempos de..."
@@ -292,7 +293,7 @@ export async function GET(req: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
+      max_tokens: 2000,
       system: SYSTEM_PROMPT_V2,
       messages: [{
         role: 'user',
