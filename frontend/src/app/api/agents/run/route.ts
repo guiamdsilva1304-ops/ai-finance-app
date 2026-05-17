@@ -104,17 +104,29 @@ async function handleAgentOutput(agentId: AgentId, response: string, runId: stri
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Extrai JSON robusto: nunca usa regex com *? pois quebra quando o conteúdo markdown tem backticks
+  // Extrai JSON robusto: remove backticks, depois tenta parse direto ou por delimitadores
   let parsed: Record<string, unknown> | null = null
-  try {
-    parsed = JSON.parse(response) as Record<string, unknown>
-  } catch {
-    const first = response.indexOf('{')
-    const last = response.lastIndexOf('}')
-    if (first !== -1 && last > first) {
-      try {
-        parsed = JSON.parse(response.slice(first, last + 1)) as Record<string, unknown>
-      } catch { /* não era JSON válido */ }
+  const cleaned = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+  for (const candidate of [cleaned, response]) {
+    try {
+      parsed = JSON.parse(candidate) as Record<string, unknown>
+      break
+    } catch {
+      // tenta extrair pelo primeiro { e último } balanceado
+      const first = candidate.indexOf('{')
+      if (first === -1) continue
+      let depth = 0
+      let last = -1
+      for (let i = first; i < candidate.length; i++) {
+        if (candidate[i] === '{') depth++
+        else if (candidate[i] === '}') { depth--; if (depth === 0) { last = i; break } }
+      }
+      if (last !== -1) {
+        try {
+          parsed = JSON.parse(candidate.slice(first, last + 1)) as Record<string, unknown>
+          break
+        } catch { /* continua */ }
+      }
     }
   }
 

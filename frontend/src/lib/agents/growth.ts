@@ -28,7 +28,7 @@ async function reativarInativos(mission: any): Promise<string> {
 
   const { data: inativos, error } = await supabase
     .from('user_profiles')
-    .select('user_id, nome, perfil, renda, gastos, onboarding_completo')
+    .select('user_id, email, nome, perfil, renda, gastos, onboarding_completo')
     .eq('followup_sent', false)
     .lt('last_login_at', seteDiasAtras.toISOString())
     .not('last_login_at', 'is', null)
@@ -38,7 +38,7 @@ async function reativarInativos(mission: any): Promise<string> {
   if (!inativos || inativos.length === 0) return 'Nenhum usuário inativo para reativar.'
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     messages: [{
       role: 'user',
@@ -56,10 +56,12 @@ Responda APENAS com este JSON:
   })
 
   const raw = response.content[0].type === 'text' ? response.content[0].text : ''
-  const emailData = JSON.parse(raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim())
+  const first = raw.indexOf('{'), last = raw.lastIndexOf('}')
+  const emailData = JSON.parse(first !== -1 ? raw.slice(first, last + 1) : raw)
 
-  const inserts = inativos.map((u: any) => ({
+  const inserts = inativos.map((u: { user_id: string; email: string; [key: string]: unknown }) => ({
     user_id: u.user_id,
+    email: u.email,
     tipo: 'reativacao',
     type: 'reativacao',
     subject: emailData.subject,
@@ -83,7 +85,7 @@ Responda APENAS com este JSON:
 async function campanhaUpgrade(mission: any): Promise<string> {
   const { data: candidatos, error } = await supabase
     .from('user_profiles')
-    .select('user_id, nome, chat_messages_this_month, plan')
+    .select('user_id, email, nome, chat_messages_this_month, plan')
     .eq('plan', 'free')
     .gte('chat_messages_this_month', 3)
     .limit(100)
@@ -92,7 +94,7 @@ async function campanhaUpgrade(mission: any): Promise<string> {
   if (!candidatos || candidatos.length === 0) return 'Nenhum candidato para upgrade encontrado.'
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     messages: [{
       role: 'user',
@@ -111,10 +113,12 @@ Responda APENAS com este JSON:
   })
 
   const raw = response.content[0].type === 'text' ? response.content[0].text : ''
-  const emailData = JSON.parse(raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim())
+  const first = raw.indexOf('{'), last = raw.lastIndexOf('}')
+  const emailData = JSON.parse(first !== -1 ? raw.slice(first, last + 1) : raw)
 
-  const inserts = candidatos.map((u: any) => ({
+  const inserts = candidatos.map((u: { user_id: string; email: string; [key: string]: unknown }) => ({
     user_id: u.user_id,
+    email: u.email,
     tipo: 'upgrade_pro',
     type: 'upgrade_pro',
     subject: emailData.subject,

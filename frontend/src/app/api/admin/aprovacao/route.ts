@@ -109,14 +109,10 @@ async function executarAcaoAprovada(item: {
       })
     }
 
+    // Campanhas de email aprovadas são broadcast — não têm user_id individual
+    // O agente GRW é responsável por enfileirar emails com user_id via lib/agents/growth.ts
     if (item.tipo === 'email' || item.tipo === 'campanha') {
-      await supabase.from('email_queue').insert({
-        tipo: item.tipo,
-        conteudo: item.conteudo,
-        descricao: item.titulo,
-        status: 'pendente',
-        criado_em: new Date().toISOString(),
-      })
+      console.log('[aprovacao] Campanha aprovada para execução pelo agente GRW:', item.titulo)
     }
   } catch (e) {
     console.error('[aprovacao] Erro ao executar ação:', e)

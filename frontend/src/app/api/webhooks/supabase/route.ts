@@ -49,22 +49,19 @@ export async function POST(req: NextRequest) {
         user_id: userId,
         email,
         type: 'welcome',
-        scheduled_at: now.toISOString(),
-        sent: false,
+        scheduled_for: now.toISOString(),
       },
       {
         user_id: userId,
         email,
         type: 'onboarding_day3',
-        scheduled_at: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-        sent: false,
+        scheduled_for: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
       },
       {
         user_id: userId,
         email,
         type: 'onboarding_day7',
-        scheduled_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        sent: false,
+        scheduled_for: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       },
     ])
 

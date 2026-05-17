@@ -21,7 +21,7 @@ export function useMFA() {
       const { data, error } = await supabase.auth.mfa.listFactors();
       if (error) throw error;
       const verified = data.totp.filter((f) => f.status === "verified");
-      setFactors(verified);
+      setFactors(verified.map(f => ({ id: f.id, type: f.factor_type, status: f.status, created_at: f.created_at })));
       setStatus(verified.length > 0 ? "enabled" : "disabled");
     } catch {
       setStatus("disabled");

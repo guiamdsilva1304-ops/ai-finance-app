@@ -8,7 +8,7 @@ export const maxDuration = 60;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function POST(req: NextRequest) {
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const { month, year, platform, audience, aesthetic } = await req.json();
 
     const message = await anthropic.messages.create({
-      model: "claude-opus-4-5-20251101",
+      model: "claude-sonnet-4-6",
       max_tokens: 8000,
       system: "Responda SOMENTE com JSON válido. Sem markdown. Sem texto fora do JSON.",
       messages: [{
@@ -56,13 +56,13 @@ RETORNE SOMENTE este JSON:
       }]
     });
 
-    const raw = message.content.filter((b) => b.type === "text").map((b: any) => b.text).join("").trim();
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("Resposta inválida");
-    const parsed = JSON.parse(match[0]);
+    const raw = message.content.filter((b) => b.type === "text").map((b) => (b as { type: "text"; text: string }).text).join("").trim();
+    const first = raw.indexOf('{'), last = raw.lastIndexOf('}');
+    if (first === -1) throw new Error("Resposta inválida da IA");
+    const parsed = JSON.parse(raw.slice(first, last + 1)) as { posts: Array<{ format: string; tone: string; theme: string; post: string; hashtags: string[]; melhor_horario: string; hook: string; gemini_prompt: string }> };
 
     // Salva todos os posts no Supabase
-    const postsToInsert = parsed.posts.map((p: any) => ({
+    const postsToInsert = parsed.posts.map((p) => ({
       platform,
       audience,
       aesthetic,
@@ -81,7 +81,8 @@ RETORNE SOMENTE este JSON:
     await supabase.from("admin_posts").insert(postsToInsert);
 
     return NextResponse.json(parsed);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

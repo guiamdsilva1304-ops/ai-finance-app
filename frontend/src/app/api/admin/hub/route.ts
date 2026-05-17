@@ -43,18 +43,11 @@ async function publicarArtigo(artigo: { titulo: string; slug: string; meta_descr
 }
 
 async function executarAcoesGrowth(acoes: Array<{ tipo: string; descricao: string; status: string; detalhe?: string }>) {
-  let resultado = ''
-  for (const acao of acoes) {
-    if (acao.status !== 'executado') continue
-    if (acao.tipo === 'email' && acao.detalhe) {
-      await supabase.from('email_queue').insert({
-        tipo: 'growth', conteudo: acao.detalhe, descricao: acao.descricao,
-        criado_em: new Date().toISOString(), status: 'pendente',
-      })
-      resultado += `✓ Email agendado: ${acao.descricao}\n`
-    }
-  }
-  return resultado || 'Ações de growth executadas'
+  // Campanhas de growth são broadcast (sem user_id individual) — apenas registra as ações planejadas
+  // O envio real acontece via lib/agents/growth.ts que busca usuários e enfileira com user_id correto
+  const executadas = acoes.filter(a => a.status === 'executado')
+  if (executadas.length === 0) return 'Nenhuma ação marcada como executada.'
+  return executadas.map(a => `✓ ${a.tipo}: ${a.descricao}`).join('\n')
 }
 
 export async function GET() {
