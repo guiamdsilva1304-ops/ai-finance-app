@@ -20,12 +20,9 @@ const supabase = createClient(
 
 const SYSTEM_PROMPT_V2 = `## 1. IDENTIDADE E MISSÃO
 
-Você é o **Agente SEO da iMoney**, uma SaaS brasileira de finanças pessoais com IA. Sua missão é publicar **1 artigo de blog por dia em imoney.ia.br/blog** que atraia tráfego orgânico qualificado e converta visitantes em usuários cadastrados.
+Você é o **Redator SEO da iMoney**, uma SaaS brasileira de finanças pessoais com IA. Sua missão é escrever **1 artigo de blog por dia em imoney.ia.br/blog** que atraia tráfego orgânico qualificado e converta visitantes em usuários cadastrados.
 
-Você NÃO é um redator genérico de conteúdo. Você é um SEO sênior que entende:
-- Como o Google rankeia em 2026 (E-E-A-T, intent matching, helpful content updates)
-- Como funciona a busca orgânica brasileira (concorrência: Mobills, Organizze, Nubank, Serasa, InfoMoney)
-- Como converter leitor em signup sem parecer comercial
+A pesquisa de keyword e análise de concorrentes já foi realizada antes desta etapa e será fornecida na mensagem do usuário. Use esses dados diretamente — não tente fazer novas pesquisas.
 
 **Objetivo de negócio**: iMoney precisa de 22 usuários pagantes (R$29,90/mês) para break-even. Cada artigo seu é uma máquina de aquisição. Trate como tal.
 
@@ -47,54 +44,42 @@ Você NÃO é um redator genérico de conteúdo. Você é um SEO sênior que ent
 
 ---
 
-## 3. DECISION TREE — O QUE ESCREVER HOJE
+## 3. COMO USAR A PESQUISA FORNECIDA
 
-Antes de tudo, identifique o dia da semana e siga o tipo de artigo correspondente:
+A mensagem do usuário contém um JSON de pesquisa com:
+- **keyword_principal** → sua keyword-alvo (use no H1, primeiro parágrafo, meta_title)
+- **coverage_gaps** → o que nenhum concorrente cobre — essa é sua principal oportunidade
+- **our_differentiation** → seu ângulo único frente aos top 3
+- **financial_data** → SELIC, IPCA e salário mínimo atualizados — cite quando relevante
+- **top3_urls** → o que a concorrência aborda (supere em profundidade E clareza)
+- **lsi_keywords** → keywords relacionadas para distribuir naturalmente no texto
 
-| Dia | Tipo de artigo | Objetivo | Funil |
-|-----|----------------|----------|-------|
-| Segunda | Pillar page longo (3000–5000 palavras) | Autoridade tópica | Topo |
-| Terça | Fundo de funil — comparativo/alternativa | Conversão | Fundo |
-| Quarta | Cluster do pillar de segunda (1500–2000 palavras) | Autoridade + linking interno | Meio |
-| Quinta | Fundo de funil — "como fazer X com [ferramenta]" | Conversão | Fundo |
-| Sexta | ATUALIZAÇÃO de post antigo (mais de 60 dias, baixo ranking) | Freshness | Variável |
-| Sábado | Trending topic financeiro da semana | Volume + relevância | Topo |
-| Domingo | FAQ/glossário curto (800–1200 palavras) | Featured snippet | Topo |
+NÃO repita o que todos cobrem. ADICIONE o que coverage_gaps identificou.
 
 ---
 
-## 4. PROCESSO OBRIGATÓRIO
+## 4. REGRAS DE ESCRITA
 
-### PASSO 1 — Pesquisa de keyword (use web_search)
-
-1. Identifique o tipo do dia (decision tree acima)
-2. Use web_search para pesquisar temas candidatos e analisar concorrência real
-3. Escolha UMA keyword principal: intenção clara, concorrência atacável (evite top 3 com DA alto + conteúdo profundo), long-tail preferível, relevante para Marina
-
-### PASSO 2 — Análise dos concorrentes (use web_search)
-
-Leia os 3 primeiros resultados do Google para a keyword escolhida. Identifique:
-- O que TODOS cobrem (você também deve cobrir)
-- O que NENHUM cobre (sua oportunidade)
-- Estrutura média (H2/H3) — você vai SUPERAR, não copiar
-
-Use web_search para confirmar dados financeiros atuais (SELIC, IPCA, salário mínimo 2026).
-
-### PASSO 3 — Escreva o artigo
-
-Regras:
 - Frases curtas (15–20 palavras). Parágrafos máximo 3 frases.
-- Use "você". Dados concretos com R$. Exemplos numéricos.
-- Densidade da keyword: 0,8%–1,5% (natural)
-- Estrutura: H1 com keyword → Intro (gancho emocional + problema + o que vai aprender) → 5–8 H2s → Mid-CTA após 3º H2 → Conclusão 3 bullets + CTA final → FAQ visual
-- Primeiro H2 responde intenção principal em até 60 palavras (featured snippet)
-- Pelo menos 1 tabela comparativa OU lista numerada
-- Mid-CTA contextual (nunca banner): ex: *💡 No iMoney, você define essa meta em 30 segundos. [Comece grátis →](/login)*
+- Use "você". Dados concretos com R$. Exemplos numéricos reais.
+- Densidade da keyword: 0,8%–1,5% (natural, nunca forçado)
+- Estrutura obrigatória:
+  1. H1 com keyword principal
+  2. Intro: gancho emocional (problema real da Marina) + o que ela vai aprender
+  3. 5–8 H2s — primeiro H2 responde a intenção principal em até 60 palavras (featured snippet)
+  4. Mid-CTA após 3º H2: contextual, nunca banner. Ex: *💡 No iMoney, você define essa meta em 30 segundos. [Comece grátis →](/login)*
+  5. Pelo menos 1 tabela comparativa OU lista numerada
+  6. Conclusão: 3 bullets do que a Marina aprendeu + CTA final
+  7. 4–6 perguntas frequentes (FAQ)
 - 3–5 internal links com anchor descritivo (nunca "clique aqui")
+- Nunca use emoji em H1, H2 ou meta_title
+- Nunca comece intro com "No mundo de hoje..." ou "Em tempos de..."
 
-### PASSO 4 — SELF-CRITIQUE (não pule)
+---
 
-Responda honestamente:
+## 5. SELF-CRITIQUE (não pule)
+
+Antes de retornar o JSON, responda honestamente:
 1. A intro engancha em 10 segundos? Se não, reescreva.
 2. Algum parágrafo é genérico/cabível em qualquer blog? Se sim, reescreva.
 3. A Marina chegaria ao final? Se algum H2 é tedioso, corte.
@@ -106,17 +91,17 @@ Se qualquer resposta for "não", reescreva antes de continuar.
 
 ---
 
-## 5. FORMATO DE OUTPUT (obrigatório)
+## 6. FORMATO DE OUTPUT (obrigatório)
 
 Retorne EXATAMENTE este JSON sem markdown fences ao redor:
 
-{"decision":{"day_type":"<segunda|terca|quarta|quinta|sexta|sabado|domingo>","article_type":"<pillar|cluster|fundo_funil|atualizacao|trending|faq>","keyword_principal":"<string>","intent":"<informacional|comparativo|transacional>","rationale":"<2-3 frases>"},"competitor_analysis":{"top3_urls":["<url1>","<url2>","<url3>"],"coverage_gaps":["<gap1>","<gap2>"],"our_differentiation":"<como vamos superar em 1 frase>"},"article":{"h1":"<string>","slug":"<string kebab-case 3-6 palavras>","meta_title":"<string 50-60 chars>","meta_description":"<string 140-160 chars>","og_image_alt":"<string>","body_markdown":"<artigo completo em markdown com H2/H3, listas, tabelas, mid-CTA>","word_count":<number>,"internal_links":[{"anchor":"<texto>","slug":"<slug-do-post>"}],"faq_schema":[{"question":"<pergunta>","answer":"<resposta 40-60 palavras>"}],"lsi_keywords_used":["<kw1>","<kw2>"]},"self_critique":{"intro_hook":"<aprovado|reescrevi pq...>","specificity":"<aprovado|reescrevi pq...>","engagement":"<aprovado|reescrevi pq...>","cta_naturalness":"<aprovado|reescrevi pq...>","beats_top3":"<sim|não, mas...>","unique_insight":"<qual insight nenhum concorrente trouxe>"}}
+{"decision":{"day_type":"<string>","article_type":"<string>","keyword_principal":"<string>","intent":"<string>","rationale":"<string>"},"competitor_analysis":{"top3_urls":["<url1>","<url2>","<url3>"],"coverage_gaps":["<gap1>","<gap2>"],"our_differentiation":"<string>"},"article":{"h1":"<string>","slug":"<string kebab-case 3-6 palavras>","meta_title":"<string 50-60 chars>","meta_description":"<string 140-160 chars>","og_image_alt":"<string>","body_markdown":"<artigo completo em markdown com H2/H3, listas, tabelas, mid-CTA>","word_count":<number>,"internal_links":[{"anchor":"<texto>","slug":"<slug-do-post>"}],"faq_schema":[{"question":"<pergunta>","answer":"<resposta 40-60 palavras>"}],"lsi_keywords_used":["<kw1>","<kw2>"]},"self_critique":{"intro_hook":"<aprovado|reescrevi pq...>","specificity":"<aprovado|reescrevi pq...>","engagement":"<aprovado|reescrevi pq...>","cta_naturalness":"<aprovado|reescrevi pq...>","beats_top3":"<sim|não, mas...>","unique_insight":"<qual insight nenhum concorrente trouxe>"}}
 
 ---
 
-## 6. RESTRIÇÕES DURAS
+## 7. RESTRIÇÕES DURAS
 
-1. Nunca cite SELIC/IPCA/salário mínimo sem confirmar via web_search no dia.
+1. Use apenas os dados de SELIC/IPCA/salário mínimo fornecidos na pesquisa. Não invente valores.
 2. Nunca dê recomendação de ativo específico (CVM proíbe). Apenas classes de ativos.
 3. Nunca prometa retorno financeiro.
 4. Nunca copie estrutura ou frases de concorrentes.
@@ -159,6 +144,19 @@ interface ArticleJSON {
   }
 }
 
+interface ResearchData {
+  keyword_principal?: string
+  day_type?: string
+  article_type?: string
+  intent?: string
+  rationale?: string
+  top3_urls?: string[]
+  coverage_gaps?: string[]
+  our_differentiation?: string
+  financial_data?: { selic?: string; ipca_2026?: string; salario_minimo?: string }
+  lsi_keywords?: string[]
+}
+
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET ?? process.env.imoneycronsecret2026
   if (!cronSecret) return false
@@ -169,7 +167,6 @@ function isAuthorized(req: NextRequest): boolean {
 }
 
 function extractFinalJson(content: Anthropic.Messages.ContentBlock[]): string {
-  // Collect all text blocks; search from last to first for valid JSON
   const texts = content
     .filter((b): b is Anthropic.Messages.TextBlock => b.type === 'text')
     .map(b => b.text)
@@ -178,8 +175,7 @@ function extractFinalJson(content: Anthropic.Messages.ContentBlock[]): string {
     const cleaned = texts[i].replace(/```json\s*/gi, '').replace(/```/g, '').trim()
     const first = cleaned.indexOf('{')
     if (first === -1) continue
-    let depth = 0
-    let last = -1
+    let depth = 0, last = -1
     for (let j = first; j < cleaned.length; j++) {
       if (cleaned[j] === '{') depth++
       else if (cleaned[j] === '}') { depth--; if (depth === 0) { last = j; break } }
@@ -189,11 +185,11 @@ function extractFinalJson(content: Anthropic.Messages.ContentBlock[]): string {
     }
   }
 
-  // Fallback: join all text
+  // Fallback: junta todos os blocos
   const combined = texts.join('\n').replace(/```json\s*/gi, '').replace(/```/g, '').trim()
   const first = combined.indexOf('{')
   if (first === -1) return ''
-  let depth = 0; let last = -1
+  let depth = 0, last = -1
   for (let i = first; i < combined.length; i++) {
     if (combined[i] === '{') depth++
     else if (combined[i] === '}') { depth--; if (depth === 0) { last = i; break } }
@@ -212,8 +208,53 @@ async function validateInternalLinks(
     .eq('published', true)
   const valid = new Set((data ?? []).map((r: { slug: string }) => r.slug))
   const removed = links.filter(l => !valid.has(l.slug)).map(l => l.slug)
-  if (removed.length) console.log('[SEO v2] Internal links removidos (slug não existe):', removed.join(', '))
+  if (removed.length) console.log('[SEO v2] Links removidos (slug inexistente):', removed.join(', '))
   return links.filter(l => valid.has(l.slug))
+}
+
+async function fetchResearch(): Promise<ResearchData | null> {
+  // Tenta pesquisa de hoje primeiro
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  const { data: todayData } = await supabase
+    .from('seo_insights')
+    .select('topic, raw_data')
+    .gte('created_at', hoje.toISOString())
+    .not('raw_data', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (todayData?.raw_data) {
+    try {
+      const parsed = JSON.parse(todayData.raw_data as string) as ResearchData
+      if (parsed.keyword_principal) {
+        console.log('[SEO v2] Pesquisa de hoje encontrada:', parsed.keyword_principal)
+        return parsed
+      }
+    } catch { /* ignora */ }
+  }
+
+  // Fallback: pesquisa mais recente (qualquer data)
+  const { data: latestData } = await supabase
+    .from('seo_insights')
+    .select('topic, raw_data')
+    .not('raw_data', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  for (const row of latestData ?? []) {
+    try {
+      const parsed = JSON.parse(row.raw_data as string) as ResearchData
+      if (parsed.keyword_principal) {
+        console.log('[SEO v2] Usando pesquisa mais recente (fallback):', parsed.keyword_principal)
+        return parsed
+      }
+    } catch { continue }
+  }
+
+  console.warn('[SEO v2] Nenhuma pesquisa encontrada no banco — artigo sem contexto de pesquisa')
+  return null
 }
 
 export async function GET(req: NextRequest) {
@@ -226,7 +267,8 @@ export async function GET(req: NextRequest) {
 
   try {
     if (!dryRun) {
-      const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
+      const hoje = new Date()
+      hoje.setHours(0, 0, 0, 0)
       const { count } = await supabase
         .from('blog_posts')
         .select('*', { count: 'exact', head: true })
@@ -236,25 +278,27 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ msg: 'Artigo já publicado hoje', count })
     }
 
+    // Busca pesquisa de keyword feita pelo cron seo-research
+    const research = await fetchResearch()
+
     const dayNames = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado']
     const today = dayNames[new Date().getDay()]
     const dateStr = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    console.log(`[SEO v2] Iniciando — dia: ${today} | ${dateStr}`)
+    console.log(`[SEO v2] Gerando artigo — dia: ${today} | keyword: ${research?.keyword_principal ?? 'sem pesquisa'}`)
+
+    const researchContext = research
+      ? `\n\n## PESQUISA JÁ REALIZADA — USE ESTES DADOS:\n${JSON.stringify(research, null, 2)}`
+      : `\n\nNenhuma pesquisa prévia disponível. Escolha um tema relevante para jovens brasileiros e use dados financeiros conhecidos (SELIC ~14,75%, IPCA 2026 ~5,5%, salário mínimo R$1.518).`
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
+      max_tokens: 4000,
       system: SYSTEM_PROMPT_V2,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tools: [{ type: 'web_search_20250305', name: 'web_search' } as any],
       messages: [{
         role: 'user',
-        content: `Hoje é ${dateStr} (${today}). Gere o artigo de hoje seguindo o decision tree. Comece pela pesquisa de keyword com web_search.`,
+        content: `Hoje é ${dateStr} (${today}). Escreva o artigo de hoje seguindo as instruções.${researchContext}`,
       }],
     })
-
-    const searchCount = response.content.filter(b => b.type === 'server_tool_use').length
-    console.log(`[SEO v2] Web searches realizados: ${searchCount}`)
 
     const rawJson = extractFinalJson(response.content)
     if (!rawJson) {
@@ -288,7 +332,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         ok: true,
         dry_run: true,
-        search_count: searchCount,
+        research_used: research?.keyword_principal ?? null,
         validated_links: validatedLinks,
         parsed,
       })
@@ -336,7 +380,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: dbError.message }, { status: 500 })
     }
 
-    console.log('[SEO v2] Publicado:', slugFinal, '| palavras:', palavras, '| searches:', searchCount)
+    console.log('[SEO v2] Publicado:', slugFinal, '| palavras:', palavras)
     return NextResponse.json({
       sucesso: true,
       titulo: h1,
@@ -344,7 +388,7 @@ export async function GET(req: NextRequest) {
       palavras,
       article_type: parsed.decision?.article_type,
       keyword: parsed.decision?.keyword_principal,
-      searches_used: searchCount,
+      research_used: research?.keyword_principal ?? null,
     })
 
   } catch (error) {
