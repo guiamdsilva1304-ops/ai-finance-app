@@ -62,9 +62,9 @@ export function MarketingNavBar() {
           <span style={{ fontSize: 22, fontWeight: 800, color: C.green900, letterSpacing: '-0.02em' }}>iMoney</span>
         </div>
         <div className="mkt-nav-links" style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
-          <a href="#como-funciona" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Como funciona</a>
-          <a href="#sonhos" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Sonhos</a>
-          <a href="#precos" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Preços</a>
+          <a href="/#como-funciona" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Como funciona</a>
+          <a href="/#sonhos" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Sonhos</a>
+          <a href="/#precos" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Preços</a>
           <a href="/blog" style={{ fontSize: 14, fontWeight: 700, color: C.green900, textDecoration: 'none', cursor: 'pointer' }}>Blog</a>
         </div>
         <Button href="/login" style={{ padding: '10px 18px', fontSize: 14 }}>Acesso grátis</Button>
