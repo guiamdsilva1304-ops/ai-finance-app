@@ -1,9 +1,9 @@
 {
   "crons": [
-    { "path": "/api/cron/emails", "schedule": "0 8 * * *" },
-    { "path": "/api/cron/onboarding", "schedule": "0 9 * * *" },
     { "path": "/api/cron/seo-research", "schedule": "30 6 * * *" },
     { "path": "/api/cron/seo", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/emails", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/onboarding", "schedule": "0 9 * * *" },
     { "path": "/api/agents/run?agent=GRW&secret=imoneyval1BI", "schedule": "0 9 * * *" },
     { "path": "/api/cron/reactivation", "schedule": "0 12 * * *" },
     { "path": "/api/cron/reset-budgets", "schedule": "0 0 1 * *" },
