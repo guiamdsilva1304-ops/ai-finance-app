@@ -42,6 +42,7 @@ async function getPost(slug: string): Promise<BlogPost | null> {
     .select("*")
     .eq("slug", slug)
     .eq("published", true)
+    .lte("published_at", new Date().toISOString())
     .single()
   return data as BlogPost | null
 }

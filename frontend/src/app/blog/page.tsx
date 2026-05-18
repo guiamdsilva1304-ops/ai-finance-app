@@ -60,6 +60,7 @@ export default async function BlogPage({ searchParams }: Props) {
     .from("blog_posts")
     .select("id, slug, title, excerpt, category, reading_time_min, published_at, cover_image_url")
     .eq("published", true)
+    .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false })
     .limit(50)
 
