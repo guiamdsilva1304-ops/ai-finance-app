@@ -21,6 +21,15 @@ const FEATURES_PRO = [
   'Suporte prioritário',
 ]
 
+const FEATURES_PREMIUM = [
+  'Tudo do plano Pro',
+  'Assessor IA ilimitado · 24h',
+  'Exportação de dados em CSV',
+  'Relatório mensal em PDF',
+  'Histórico completo ilimitado',
+  'Suporte VIP',
+]
+
 export default function ProPage() {
   const supabase = createSupabaseBrowser()
   const [loading, setLoading] = useState(false)
@@ -53,11 +62,8 @@ export default function ProPage() {
     load()
   }, [])
 
-  async function assinar() {
-    if (!userId || !userEmail) {
-      window.location.href = '/login'
-      return
-    }
+  async function assinarPro() {
+    if (!userId || !userEmail) { window.location.href = '/login'; return }
     setLoading(true)
     try {
       const res = await fetch('/api/payment/subscribe', {
@@ -66,11 +72,8 @@ export default function ProPage() {
         body: JSON.stringify({ user_id: userId, email: userEmail, periodo }),
       })
       const data = await res.json()
-      if (data.checkout_url) {
-        window.open(data.checkout_url, '_blank')
-      } else {
-        alert('Erro: ' + (data.error ?? 'Tente novamente.'))
-      }
+      if (data.checkout_url) window.open(data.checkout_url, '_blank')
+      else alert('Erro: ' + (data.error ?? 'Tente novamente.'))
     } catch {
       alert('Erro ao conectar. Tente novamente.')
     } finally {
@@ -78,136 +81,173 @@ export default function ProPage() {
     }
   }
 
-  const preco = periodo === 'mensal' ? 29.90 : 23.90
-  const precoAnual = (preco * 12).toFixed(2)
+  const precoPro = periodo === 'mensal' ? 29.90 : 23.90
+
+  const Check = ({ dark }: { dark?: boolean }) => (
+    <div style={{
+      width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+      background: dark ? 'rgba(255,255,255,0.2)' : '#E1F5EE',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <span style={{ fontSize: 11, fontWeight: 900, color: dark ? '#fff' : '#1D9E75' }}>✓</span>
+    </div>
+  )
 
   return (
     <div style={{ minHeight: 'calc(100vh - 60px)', background: '#f8f9f8', fontFamily: "'Nunito', sans-serif", padding: '0 0 80px' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
+        .plans-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        @media (max-width: 900px) { .plans-grid { grid-template-columns: 1fr; } }
       `}</style>
 
-      <div style={{ background: 'linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)', padding: '40px 20px 60px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-        <div style={{ position: 'absolute', bottom: -60, left: -30, width: 250, height: 250, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.15)', borderRadius: 20, padding: '6px 16px', marginBottom: 20 }}>
-            <span style={{ fontSize: 14 }}>✨</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#E1F5EE', letterSpacing: '0.05em' }}>iMoney Pro</span>
-          </div>
-          <h1 style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 900, color: '#fff', margin: '0 0 16px', lineHeight: 1.15 }}>
-            Sua bússola financeira<br />
-            <span style={{ color: '#9FE1CB' }}>completa com IA</span>
-          </h1>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.75)', margin: '0 auto', maxWidth: 480, lineHeight: 1.6 }}>
-            O Assessor IA ilimitado que entende sua situação financeira e te ajuda a tomar decisões melhores todo dia.
-          </p>
-        </div>
+      {/* Hero */}
+      <div style={{ background: 'linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)', padding: '40px 24px 56px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 900, color: '#fff', margin: '0 0 12px', lineHeight: 1.15 }}>
+          Escolha o plano certo para você
+        </h1>
+        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', margin: '0 auto', maxWidth: 480, lineHeight: 1.6 }}>
+          Comece grátis e faça upgrade quando quiser — sem burocracia.
+        </p>
       </div>
 
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 20px' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 20px' }}>
 
-        <div style={{ background: '#fff', borderRadius: 16, padding: 6, display: 'flex', gap: 4, marginTop: -28, marginBottom: 28, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', position: 'relative', zIndex: 10 }}>
+        {/* Toggle mensal/anual */}
+        <div style={{ background: '#fff', borderRadius: 14, padding: 5, display: 'flex', gap: 4, marginTop: -24, marginBottom: 28, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', position: 'relative', zIndex: 10, maxWidth: 320, marginLeft: 'auto', marginRight: 'auto' }}>
           {(['mensal', 'anual'] as const).map(p => (
             <button key={p} onClick={() => setPeriodo(p)}
-              style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'all .2s', background: periodo === p ? '#1D9E75' : 'transparent', color: periodo === p ? '#fff' : '#888' }}>
+              style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all .2s', background: periodo === p ? '#1D9E75' : 'transparent', color: periodo === p ? '#fff' : '#888' }}>
               {p === 'mensal' ? 'Mensal' : 'Anual'}
-              {p === 'anual' && (
-                <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, background: periodo === 'anual' ? 'rgba(255,255,255,0.25)' : '#E1F5EE', color: periodo === 'anual' ? '#fff' : '#085041', padding: '2px 8px', borderRadius: 20 }}>-20%</span>
-              )}
+              {p === 'anual' && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, background: periodo === 'anual' ? 'rgba(255,255,255,0.25)' : '#E1F5EE', color: periodo === 'anual' ? '#fff' : '#085041', padding: '2px 7px', borderRadius: 20 }}>-20%</span>}
             </button>
           ))}
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 32px rgba(29,158,117,0.12)', border: '2px solid #1D9E75', marginBottom: 20 }}>
-          <div style={{ background: '#1D9E75', padding: '24px 28px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>R$</span>
-              <span style={{ fontSize: 56, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{preco.toFixed(2).replace('.', ',')}</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>/mês</span>
+        {/* 3 colunas */}
+        <div className="plans-grid">
+
+          {/* ── Free ── */}
+          <div style={{ background: '#fff', border: '1.5px solid #e8ede8', borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Gratuito</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#1a1a1a', marginBottom: 4 }}>Comece grátis</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, marginBottom: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#888', marginBottom: 6 }}>R$</span>
+              <span style={{ fontSize: 44, fontWeight: 900, color: '#1a1a1a', lineHeight: 1 }}>0</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#888', marginBottom: 6 }}>/mês</span>
             </div>
-            {periodo === 'anual' && (
-              <div style={{ fontSize: 13, color: '#9FE1CB', marginTop: 4 }}>
-                R$ {precoAnual.replace('.', ',')} cobrado anualmente · você economiza R$ 72/ano
-              </div>
-            )}
-          </div>
-          <div style={{ padding: '24px 28px' }}>
-            {FEATURES_PRO.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#E1F5EE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ fontSize: 12, color: '#1D9E75', fontWeight: 900 }}>✓</span>
+            <div style={{ fontSize: 12, color: '#aaa', marginBottom: 24 }}>para sempre</div>
+
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {FEATURES_FREE.map(f => (
+                <li key={f} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13.5, color: '#444' }}>
+                  <Check /> {f}
+                </li>
+              ))}
+            </ul>
+
+            <div style={{ marginTop: 28 }}>
+              {plano === 'free' ? (
+                <div style={{ textAlign: 'center', padding: '12px 0', borderRadius: 12, background: '#f0f0f0', fontSize: 13, fontWeight: 700, color: '#888' }}>
+                  Plano atual
                 </div>
-                <span style={{ fontSize: 14, color: '#1a1a1a', fontWeight: i < 1 ? 600 : 400 }}>{f}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {plano === 'pro' ? (
-          <div style={{ background: '#E1F5EE', borderRadius: 16, padding: '20px 28px', textAlign: 'center', marginBottom: 20 }}>
-            <div style={{ fontSize: 22 }}>🎉</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#085041', marginTop: 8 }}>Você já é Pro!</div>
-            <div style={{ fontSize: 13, color: '#1D9E75', marginTop: 4 }}>Aproveite todos os recursos ilimitados.</div>
-          </div>
-        ) : (
-          <button onClick={assinar} disabled={loading || !userLoaded}
-            style={{
-              width: '100%', padding: '18px 0',
-              background: !userLoaded ? '#e8ede8' : loading ? '#ccc' : 'linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)',
-              color: !userLoaded || loading ? '#aaa' : '#fff',
-              border: 'none', borderRadius: 16, fontSize: 16, fontWeight: 800,
-              cursor: loading || !userLoaded ? 'not-allowed' : 'pointer',
-              marginBottom: 12, letterSpacing: '0.02em',
-              boxShadow: userLoaded && !loading ? '0 4px 20px rgba(29,158,117,0.35)' : 'none',
-              transition: 'all .2s',
-              animation: loading ? 'pulse 1.5s ease-in-out infinite' : 'none',
-            }}>
-            {!userLoaded ? 'Carregando...' : loading ? 'Redirecionando...' : `Assinar iMoney Pro — R$ ${preco.toFixed(2).replace('.', ',')}/mês`}
-          </button>
-        )}
-
-        <p style={{ textAlign: 'center', fontSize: 12, color: '#aaa', margin: '0 0 28px' }}>
-          Pague com cartão de crédito · Cancele quando quiser · Sem multa
-        </p>
-
-        <div style={{ background: '#fff', borderRadius: 20, padding: '24px 28px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', marginBottom: 28 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#aaa', letterSpacing: '0.05em', marginBottom: 16 }}>PLANO GRATUITO (atual)</div>
-          {FEATURES_FREE.map((f, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontSize: 12, color: '#aaa', fontWeight: 900 }}>✓</span>
-              </div>
-              <span style={{ fontSize: 14, color: '#666' }}>{f}</span>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '12px 0', borderRadius: 12, border: '1.5px solid #e8ede8', fontSize: 13, fontWeight: 700, color: '#aaa' }}>
+                  Incluído no seu plano
+                </div>
+              )}
             </div>
-          ))}
+          </div>
+
+          {/* ── Pro ── */}
+          <div style={{ background: 'linear-gradient(180deg, #0a3d28 0%, #1D9E75 100%)', borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(29,158,117,0.30)', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: 16, right: 16, background: '#00c853', color: '#0a3d28', padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em' }}>MAIS POPULAR</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>✨ Pro</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>Invista no seu sonho</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, marginBottom: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>R$</span>
+              <span style={{ fontSize: 44, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{precoPro.toFixed(2).replace('.', ',')}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.65)', marginBottom: 6 }}>/mês</span>
+            </div>
+            {periodo === 'anual'
+              ? <div style={{ fontSize: 12, color: '#9FE1CB', marginBottom: 24 }}>R$ {(precoPro * 12).toFixed(2).replace('.', ',')} cobrado anualmente · economize R$ 72/ano</div>
+              : <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 24 }}>menos de R$1/dia</div>
+            }
+
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {FEATURES_PRO.map(f => (
+                <li key={f} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13.5, color: '#fff' }}>
+                  <Check dark /> {f}
+                </li>
+              ))}
+            </ul>
+
+            <div style={{ marginTop: 28 }}>
+              {plano === 'pro' ? (
+                <div style={{ textAlign: 'center', padding: '14px 0', borderRadius: 12, background: 'rgba(255,255,255,0.15)', fontSize: 14, fontWeight: 700, color: '#fff' }}>
+                  🎉 Plano atual
+                </div>
+              ) : plano === 'premium' ? (
+                <div style={{ textAlign: 'center', padding: '14px 0', borderRadius: 12, background: 'rgba(255,255,255,0.1)', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+                  Incluído no Premium
+                </div>
+              ) : (
+                <button onClick={assinarPro} disabled={loading || !userLoaded}
+                  style={{ width: '100%', padding: '14px 0', background: loading || !userLoaded ? 'rgba(255,255,255,0.3)' : '#fff', color: loading || !userLoaded ? 'rgba(255,255,255,0.5)' : '#0a3d28', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: loading || !userLoaded ? 'not-allowed' : 'pointer', transition: 'all .2s', animation: loading ? 'pulse 1.5s ease-in-out infinite' : 'none' }}>
+                  {!userLoaded ? 'Carregando...' : loading ? 'Redirecionando...' : `Assinar Pro — R$ ${precoPro.toFixed(2).replace('.', ',')}/mês`}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ── Premium ── */}
+          <div style={{ background: 'linear-gradient(180deg, #78350f 0%, #F59E0B 100%)', borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(245,158,11,0.25)' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>⭐ Premium</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>Controle total</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, marginBottom: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>R$</span>
+              <span style={{ fontSize: 44, fontWeight: 900, color: '#fff', lineHeight: 1 }}>59,90</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.65)', marginBottom: 6 }}>/mês</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 24 }}>menos de R$2/dia</div>
+
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {FEATURES_PREMIUM.map(f => (
+                <li key={f} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13.5, color: '#fff' }}>
+                  <Check dark /> {f}
+                </li>
+              ))}
+            </ul>
+
+            <div style={{ marginTop: 28 }}>
+              {plano === 'premium' ? (
+                <div style={{ textAlign: 'center', padding: '14px 0', borderRadius: 12, background: 'rgba(255,255,255,0.2)', fontSize: 14, fontWeight: 700, color: '#fff' }}>
+                  ⭐ Plano atual
+                </div>
+              ) : (
+                <a href="/dashboard/premium"
+                  style={{ display: 'block', textAlign: 'center', padding: '14px 0', background: '#fff', color: '#78350f', borderRadius: 12, fontSize: 15, fontWeight: 800, textDecoration: 'none', transition: 'all .2s' }}>
+                  Começar Premium →
+                </a>
+              )}
+            </div>
+          </div>
+
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 16, padding: '20px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', marginBottom: 20 }}>
-          <div style={{ fontSize: 28, flexShrink: 0 }}>🛡️</div>
+        {/* Garantia */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: '18px 22px', display: 'flex', gap: 14, alignItems: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', marginTop: 24 }}>
+          <div style={{ fontSize: 26, flexShrink: 0 }}>🛡️</div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', marginBottom: 4 }}>Garantia de 7 dias</div>
-            <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>Não ficou satisfeito? Devolvemos 100% do valor sem perguntas nos primeiros 7 dias.</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>Garantia de 7 dias</div>
+            <div style={{ fontSize: 13, color: '#888', lineHeight: 1.5, marginTop: 2 }}>Não ficou satisfeito? Devolvemos 100% do valor sem perguntas nos primeiros 7 dias.</div>
+          </div>
+          <div style={{ marginLeft: 'auto', fontSize: 12, color: '#aaa', textAlign: 'right', flexShrink: 0 }}>
+            Cartão de crédito<br />Cancele quando quiser
           </div>
         </div>
 
-        {/* Upsell Premium */}
-        <div style={{ background: 'linear-gradient(135deg, #78350f 0%, #F59E0B 100%)', borderRadius: 16, padding: '20px 24px' }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>⭐ Quer ir além?</div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 4 }}>iMoney Premium — R$59,90/mês</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 16, lineHeight: 1.5 }}>
-            Assessor IA ilimitado, exportação CSV, relatório em PDF e suporte VIP.
-          </div>
-          <a href="/dashboard/premium" style={{
-            display: 'block', textAlign: 'center',
-            background: '#fff', color: '#78350f',
-            padding: '12px 0', borderRadius: 10,
-            textDecoration: 'none', fontWeight: 800, fontSize: 14,
-          }}>
-            Ver plano Premium →
-          </a>
-        </div>
       </div>
     </div>
   )
