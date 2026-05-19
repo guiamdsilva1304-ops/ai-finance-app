@@ -272,57 +272,104 @@ export function DreamShowcase() {
 export function PricingTable() {
   return (
     <section id="precos" className="mkt-pricing-sect" style={{ padding: '80px 32px', background: '#fff', fontFamily: FONT }}>
-      <div style={{ maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: C.green500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Planos</div>
         <h2 className="mkt-pricing-h2" style={{ fontSize: 44, fontWeight: 800, color: C.green900, letterSpacing: '-0.02em', margin: '8px 0 16px', lineHeight: 1.1 }}>
-          Comece grátis. Cresça com o Pro.
+          Escolha o plano certo para você
         </h2>
         <p className="mkt-pricing-p" style={{ fontSize: 16, color: C.ink2, maxWidth: 560, margin: '0 auto 40px', lineHeight: 1.55 }}>
-          O essencial é gratuito. O Pro é menos de R$1 por dia — o preço de um café.
+          Do gratuito ao ilimitado — comece sem cartão e cresça no seu ritmo.
         </p>
 
-        <div className="mkt-pricing-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, textAlign: 'left' }}>
-          <div style={{ background: '#fff', border: `1.5px solid ${C.divider}`, borderRadius: 20, padding: 30 }}>
+        <div className="mkt-pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, textAlign: 'left' }}>
+
+          {/* Gratuito */}
+          <div style={{ background: '#fff', border: `1.5px solid ${C.divider}`, borderRadius: 20, padding: 28 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: C.ink3, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Gratuito</div>
-            <h3 style={{ fontSize: 28, fontWeight: 800, color: C.green900, margin: '6px 0 14px', letterSpacing: '-0.02em' }}>Comece sua jornada</h3>
-            <div><Money value="0" cents="00" size={36} color={C.green900}/></div>
+            <h3 style={{ fontSize: 24, fontWeight: 800, color: C.green900, margin: '6px 0 14px', letterSpacing: '-0.02em' }}>Comece sua jornada</h3>
+            <div><Money value="0" cents="00" size={32} color={C.green900}/></div>
             <div style={{ fontSize: 13, color: C.ink3, marginTop: 4 }}>para sempre</div>
-            <ul style={{ listStyle: 'none', padding: 0, margin: '24px 0 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {['Dashboard completo', 'Metas ilimitadas', 'Assessor IA · 10 msgs/dia', 'Transações manuais'].map(t => (
-                <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14.5, color: C.ink }}>
-                  <Icon name="check" size={18} color={C.green500} stroke={2.4}/>{t}
+            <ul style={{ listStyle: 'none', padding: 0, margin: '20px 0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                'Dashboard completo',
+                'Metas ilimitadas',
+                'Assessor IA · 3 msgs/dia',
+                'Transações manuais',
+                'Taxas SELIC e IPCA',
+              ].map(t => (
+                <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14, color: C.ink }}>
+                  <Icon name="check" size={16} color={C.green500} stroke={2.4}/>{t}
                 </li>
               ))}
             </ul>
             <Button variant="dark" full href="/login">Acesso grátis</Button>
           </div>
 
+          {/* Pro — recomendado */}
           <div style={{
-            background: 'linear-gradient(180deg, #f9a825 0%, #f4b54a 100%)',
-            borderRadius: 20, padding: 30, color: '#2a1a00',
-            boxShadow: '0 24px 60px rgba(249,168,37,0.30)', position: 'relative',
+            background: 'linear-gradient(180deg, #1a3a1a 0%, #1D9E75 100%)',
+            borderRadius: 20, padding: 28, color: '#fff',
+            boxShadow: '0 24px 60px rgba(29,158,117,0.30)', position: 'relative',
           }}>
             <div style={{
               position: 'absolute', top: 16, right: 20,
-              background: '#2a1a00', color: C.gold, padding: '4px 10px',
+              background: C.green500, color: C.green900, padding: '4px 10px',
               borderRadius: 999, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em',
-            }}>RECOMENDADO</div>
-            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.7 }}>✨ Pro</div>
-            <h3 style={{ fontSize: 28, fontWeight: 800, margin: '6px 0 14px', letterSpacing: '-0.02em' }}>Invista no seu sonho</h3>
+            }}>MAIS POPULAR</div>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.75 }}>✨ Pro</div>
+            <h3 style={{ fontSize: 24, fontWeight: 800, margin: '6px 0 14px', letterSpacing: '-0.02em' }}>Invista no seu sonho</h3>
             <div>
-              <Money value="29" cents="90" size={36} color="#2a1a00"/>
-              <span style={{ fontSize: 14, fontWeight: 800, marginLeft: 4 }}>/mês</span>
+              <Money value="29" cents="90" size={32} color="#fff"/>
+              <span style={{ fontSize: 14, fontWeight: 800, marginLeft: 4, opacity: 0.85 }}>/mês</span>
             </div>
-            <div style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>menos de R$1/dia</div>
-            <ul style={{ listStyle: 'none', padding: 0, margin: '24px 0 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {['Tudo do Gratuito +', 'Assessor IA ilimitado · 24h', 'Análises avançadas', 'Relatórios mensais', 'Suporte prioritário 4h'].map(t => (
-                <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14.5 }}>
-                  <Icon name="check" size={18} color="#2a1a00" stroke={2.4}/>{t}
+            <div style={{ fontSize: 13, opacity: 0.65, marginTop: 4 }}>menos de R$1/dia</div>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '20px 0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                'Tudo do Gratuito',
+                'Assessor IA · 10 msgs/dia',
+                'Controle de investimentos',
+                'Análises avançadas de gastos',
+                'Relatórios mensais automáticos',
+                'Suporte prioritário',
+              ].map(t => (
+                <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14, color: '#fff' }}>
+                  <Icon name="check" size={16} color={C.green500} stroke={2.4}/>{t}
                 </li>
               ))}
             </ul>
-            <Button variant="pro" full href="/dashboard/pro">✨ Virar Pro →</Button>
+            <Button variant="pro" full href="/dashboard/pro">✨ Assinar Pro →</Button>
           </div>
+
+          {/* Premium */}
+          <div style={{
+            background: 'linear-gradient(180deg, #78350f 0%, #F59E0B 100%)',
+            borderRadius: 20, padding: 28, color: '#2a1a00',
+            boxShadow: '0 24px 60px rgba(245,158,11,0.25)', position: 'relative',
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.75 }}>⭐ Premium</div>
+            <h3 style={{ fontSize: 24, fontWeight: 800, margin: '6px 0 14px', letterSpacing: '-0.02em' }}>Controle total</h3>
+            <div>
+              <Money value="59" cents="90" size={32} color="#2a1a00"/>
+              <span style={{ fontSize: 14, fontWeight: 800, marginLeft: 4, opacity: 0.75 }}>/mês</span>
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.65, marginTop: 4 }}>menos de R$2/dia</div>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '20px 0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                'Tudo do Pro',
+                'Assessor IA ilimitado · 24h',
+                'Exportação de dados em CSV',
+                'Relatório mensal em PDF',
+                'Histórico completo ilimitado',
+                'Suporte VIP',
+              ].map(t => (
+                <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14, color: '#2a1a00' }}>
+                  <Icon name="check" size={16} color="#2a1a00" stroke={2.4}/>{t}
+                </li>
+              ))}
+            </ul>
+            <Button variant="pro" full href="/dashboard/premium">⭐ Começar Premium →</Button>
+          </div>
+
         </div>
       </div>
     </section>

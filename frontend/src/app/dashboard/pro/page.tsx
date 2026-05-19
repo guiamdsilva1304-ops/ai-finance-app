@@ -6,19 +6,19 @@ import { createSupabaseBrowser } from '@/lib/supabase'
 const FEATURES_FREE = [
   'Dashboard financeiro completo',
   'Controle de transações',
-  'Metas financeiras (até 3)',
+  'Metas financeiras ilimitadas',
   'Taxas SELIC e IPCA em tempo real',
+  'Assessor IA · 3 msgs/dia',
 ]
 
 const FEATURES_PRO = [
   'Tudo do plano gratuito',
-  'Assessor IA ilimitado',
-  'Metas financeiras ilimitadas',
+  'Assessor IA · 10 msgs/dia',
   'Controle de investimentos',
   'Análise de renda e gastos',
   'Relatórios mensais automáticos',
   'Histórico completo',
-  'Prioridade no suporte',
+  'Suporte prioritário',
 ]
 
 export default function ProPage() {
@@ -184,12 +184,29 @@ export default function ProPage() {
           ))}
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 16, padding: '20px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: '#fff', borderRadius: 16, padding: '20px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', marginBottom: 20 }}>
           <div style={{ fontSize: 28, flexShrink: 0 }}>🛡️</div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', marginBottom: 4 }}>Garantia de 7 dias</div>
             <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>Não ficou satisfeito? Devolvemos 100% do valor sem perguntas nos primeiros 7 dias.</div>
           </div>
+        </div>
+
+        {/* Upsell Premium */}
+        <div style={{ background: 'linear-gradient(135deg, #78350f 0%, #F59E0B 100%)', borderRadius: 16, padding: '20px 24px' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>⭐ Quer ir além?</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 4 }}>iMoney Premium — R$59,90/mês</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 16, lineHeight: 1.5 }}>
+            Assessor IA ilimitado, exportação CSV, relatório em PDF e suporte VIP.
+          </div>
+          <a href="/dashboard/premium" style={{
+            display: 'block', textAlign: 'center',
+            background: '#fff', color: '#78350f',
+            padding: '12px 0', borderRadius: 10,
+            textDecoration: 'none', fontWeight: 800, fontSize: 14,
+          }}>
+            Ver plano Premium →
+          </a>
         </div>
       </div>
     </div>
