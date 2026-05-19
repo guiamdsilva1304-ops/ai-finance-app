@@ -90,7 +90,7 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
             style={{ background: 'linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)' }}
           >
             <Icon name="sparkles" size={14} color="#fff" />
-            Assinar Pro
+            Fazer upgrade
           </Link>
         </div>
       )}
@@ -100,6 +100,14 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
           <div className="flex items-center gap-2 w-full justify-center py-2 px-4 rounded-xl text-xs font-bold" style={{ background: '#E1F5EE', color: '#085041' }}>
             <Icon name="sparkles" size={12} color="#085041" />
             iMoney Pro ativo
+          </div>
+        </div>
+      )}
+
+      {!collapsed && plan === 'premium' && (
+        <div className="px-3 pb-3">
+          <div className="flex items-center gap-2 w-full justify-center py-2 px-4 rounded-xl text-xs font-bold" style={{ background: '#FEF3C7', color: '#92400E' }}>
+            ⭐ Premium
           </div>
         </div>
       )}

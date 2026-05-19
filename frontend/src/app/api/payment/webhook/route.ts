@@ -18,7 +18,6 @@ async function getPreapproval(id: string) {
 }
 
 async function ativarPro(user_id: string, mp_preapproval_id: string, next_payment_date: string) {
-  // Atualiza subscriptions
   await supabase.from('subscriptions').upsert({
     user_id,
     mp_preapproval_id,
@@ -29,14 +28,30 @@ async function ativarPro(user_id: string, mp_preapproval_id: string, next_paymen
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' })
 
-  // Atualiza user_profiles
   await supabase.from('user_profiles').update({
     plan: 'pro',
     plan_expires_at: next_payment_date,
   }).eq('id', user_id)
 }
 
-async function cancelarPro(user_id: string, mp_preapproval_id: string) {
+async function ativarPremium(user_id: string, mp_preapproval_id: string, next_payment_date: string) {
+  await supabase.from('subscriptions').upsert({
+    user_id,
+    mp_preapproval_id,
+    status: 'active',
+    plan: 'premium',
+    amount: 59.90,
+    next_payment_date,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id' })
+
+  await supabase.from('user_profiles').update({
+    plan: 'premium',
+    premium_expires_at: next_payment_date,
+  }).eq('id', user_id)
+}
+
+async function cancelarPlano(user_id: string, mp_preapproval_id: string) {
   await supabase.from('subscriptions').update({
     status: 'cancelled',
     updated_at: new Date().toISOString(),
@@ -45,7 +60,13 @@ async function cancelarPro(user_id: string, mp_preapproval_id: string) {
   await supabase.from('user_profiles').update({
     plan: 'free',
     plan_expires_at: null,
+    premium_expires_at: null,
   }).eq('id', user_id)
+}
+
+// Mantém para compatibilidade retroativa
+async function cancelarPro(user_id: string, mp_preapproval_id: string) {
+  return cancelarPlano(user_id, mp_preapproval_id)
 }
 
 async function enviarEmailBoasVindas(email: string) {
@@ -119,22 +140,36 @@ export async function POST(req: NextRequest) {
       const user_id = external_reference
 
       if (preapproval.status === 'authorized') {
-        // Busca email do usuário
         const { data: userData } = await supabase.auth.admin.getUserById(user_id)
         const email = userData?.user?.email
 
-        await ativarPro(user_id, preapproval.id, preapproval.next_payment_date)
+        // Descobre qual plano está pendente para esse usuário
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('plan')
+          .eq('user_id', user_id)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        const planoPendente = sub?.plan ?? 'pro'
+
+        if (planoPendente === 'premium') {
+          await ativarPremium(user_id, preapproval.id, preapproval.next_payment_date)
+          console.log('[Webhook] Premium ativado para:', user_id)
+        } else {
+          await ativarPro(user_id, preapproval.id, preapproval.next_payment_date)
+          console.log('[Webhook] Pro ativado para:', user_id)
+        }
 
         if (email) {
           await enviarEmailBoasVindas(email).catch(e => console.error('Email erro:', e))
         }
-
-        console.log('[Webhook] Pro ativado para:', user_id)
       }
 
       if (preapproval.status === 'cancelled' || preapproval.status === 'paused') {
-        await cancelarPro(user_id, preapproval.id)
-        console.log('[Webhook] Pro cancelado para:', user_id)
+        await cancelarPlano(user_id, preapproval.id)
+        console.log('[Webhook] Plano cancelado para:', user_id)
       }
     }
 

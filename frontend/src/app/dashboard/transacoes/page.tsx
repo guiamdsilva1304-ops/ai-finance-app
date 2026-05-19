@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { formatBRL, formatDate } from "@/lib/utils";
-import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Search, Tag } from "lucide-react";
+import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Search, Tag, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORIAS, type Categoria, type Transaction } from "@/types";
+import Link from "next/link";
 
 const CAT_COLORS: Record<string, string> = {
   Moradia:"bg-blue-100 text-blue-700", Alimentação:"bg-orange-100 text-orange-700",
@@ -23,6 +24,9 @@ export default function TransacoesPage() {
   const [filterCat, setFilterCat] = useState<string>("todas");
   const [showForm, setShowForm] = useState(false);
   const [categorizando, setCategorizando] = useState(false);
+  const [plan, setPlan] = useState<string>("free");
+  const [exportando, setExportando] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   // Form state
   const [desc, setDesc] = useState("");
@@ -38,14 +42,41 @@ export default function TransacoesPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase
-      .from("transactions").select("*")
-      .eq("user_id", user.id)
-      .order("date", { ascending: false })
-      .limit(500);
+    const [{ data }, { data: perfil }] = await Promise.all([
+      supabase.from("transactions").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(500),
+      supabase.from("user_profiles").select("plan").eq("id", user.id).single(),
+    ]);
     setTransactions(data ?? []);
+    if (perfil?.plan) setPlan(perfil.plan);
     setLoading(false);
   }, [supabase]);
+
+  async function exportarCSV() {
+    if (plan !== "premium") {
+      setShowPremiumModal(true);
+      return;
+    }
+    setExportando(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/export/transactions", {
+        headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const now = new Date();
+      a.download = `imoney-transacoes-${String(now.getMonth() + 1).padStart(2, "0")}-${now.getFullYear()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Erro ao exportar: " + e);
+    } finally {
+      setExportando(false);
+    }
+  }
 
   useEffect(() => { load(); }, [load]);
 
@@ -121,6 +152,9 @@ export default function TransacoesPage() {
         </div>
         <div className="flex gap-2">
           <button onClick={load} className="btn-ghost p-2.5"><RefreshCw size={16} className={loading ? "animate-spin" : ""}/></button>
+          <button onClick={exportarCSV} disabled={exportando} className="btn-ghost p-2.5" title="Exportar CSV (Premium)">
+            <Download size={16} className={exportando ? "animate-pulse" : ""}/>
+          </button>
           <button onClick={() => setShowForm(!showForm)} className="btn-primary">
             <Plus size={16}/> Nova
           </button>
@@ -273,6 +307,31 @@ export default function TransacoesPage() {
       <p className="text-xs text-center text-[#8db89d] mt-4">
         {filtered.length} transaç{filtered.length === 1 ? "ão" : "ões"} · máx. 500 por usuário
       </p>
+
+      {/* Modal Premium */}
+      {showPremiumModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+          onClick={() => setShowPremiumModal(false)}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", maxWidth: 380, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>⭐</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a1a", marginBottom: 8, fontFamily: "Nunito, sans-serif" }}>
+              Exportação CSV é Premium
+            </div>
+            <p style={{ fontSize: 14, color: "#666", lineHeight: 1.6, marginBottom: 24 }}>
+              Com o plano Premium você exporta todas as suas transações em CSV para usar em planilhas, contadores ou onde precisar.
+            </p>
+            <Link href="/dashboard/premium"
+              style={{ display: "block", background: "linear-gradient(135deg, #78350f 0%, #F59E0B 100%)", color: "#fff", padding: "14px 0", borderRadius: 12, textDecoration: "none", fontWeight: 800, fontSize: 15, marginBottom: 12, fontFamily: "Nunito, sans-serif" }}>
+              Ver plano Premium — R$59,90/mês
+            </Link>
+            <button onClick={() => setShowPremiumModal(false)}
+              style={{ background: "none", border: "none", color: "#aaa", fontSize: 13, cursor: "pointer" }}>
+              Agora não
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

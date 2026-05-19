@@ -9,8 +9,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const LIMITE_FREE = 10 // mensagens por dia
-const LIMITE_PRO = 999 // ilimitado na prática
+const LIMITE_FREE = 3  // mensagens por dia
+const LIMITE_PRO = 10  // mensagens por dia
 
 async function verificarLimite(userId: string): Promise<{ permitido: boolean; usadas: number; limite: number; plano: string }> {
   // Busca plano do usuário
@@ -21,6 +21,9 @@ async function verificarLimite(userId: string): Promise<{ permitido: boolean; us
     .single()
 
   const plano = perfil?.plan ?? 'free'
+
+  if (plano === 'premium') return { permitido: true, usadas: 0, limite: 0, plano }
+
   const limite = plano === 'pro' ? LIMITE_PRO : LIMITE_FREE
 
   if (plano === 'pro') return { permitido: true, usadas: 0, limite, plano }
@@ -85,7 +88,7 @@ export async function POST(req: NextRequest) {
         usadas,
         limite,
         plano,
-        mensagem: `Você usou ${usadas} de ${limite} mensagens gratuitas hoje. Assine o Pro para ter acesso ilimitado ao Assessor IA.`,
+        mensagem: `Você usou ${usadas} de ${limite} mensagens hoje. Assine o Pro (10/dia) ou Premium (ilimitado) para continuar.`,
       }, { status: 429 })
     }
 
