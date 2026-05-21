@@ -11,13 +11,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// === LEGACY PROMPT v1 — manter por 30 dias para rollback rápido ===
-// const SYSTEM_PROMPT_V1 = `Voce e o agente SEO da iMoney, app brasileiro de financas pessoais com IA para jovens de 20-30 anos.
-// Hoje e ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.
-// SELIC atual: 14,75% a.a. IPCA acumulado 2026: ~5,5%.
-// Escreva um artigo completo em portugues brasileiro otimizado para SEO sobre o tema fornecido.
-// Retorne APENAS o JSON: {"artigo":{"titulo":"...","slug":"...","meta_description":"...","conteudo":"..."}}`;
-
 const SYSTEM_PROMPT_V2 = `Você é o redator SEO da iMoney (SaaS de finanças pessoais para brasileiros 20–35 anos).
 
 PRODUTO: iMoney une metas de vida + gestão financeira + assessor IA. Preço: R$29,90/mês.
@@ -77,7 +70,6 @@ function isAuthorized(req: NextRequest): boolean {
   return searchParams.get('secret') === cronSecret
 }
 
-// Extrai o primeiro JSON objeto completo de um texto, respeitando strings (ignora { } dentro de valores)
 function parseJsonFromText(text: string): string {
   const cleaned = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim()
   const start = cleaned.indexOf('{')
@@ -92,7 +84,7 @@ function parseJsonFromText(text: string): string {
     if (escaped) { escaped = false; continue }
     if (ch === '\\' && inString) { escaped = true; continue }
     if (ch === '"') { inString = !inString; continue }
-    if (inString) continue // ignora { } dentro de valores de string
+    if (inString) continue
     if (ch === '{') depth++
     else if (ch === '}') {
       depth--
@@ -110,13 +102,11 @@ function extractFinalJson(content: Anthropic.Messages.ContentBlock[]): string {
     .filter((b): b is Anthropic.Messages.TextBlock => b.type === 'text')
     .map(b => b.text)
 
-  // Tenta cada bloco de texto do último para o primeiro
   for (let i = texts.length - 1; i >= 0; i--) {
     const result = parseJsonFromText(texts[i])
     if (result) return result
   }
 
-  // Fallback: junta todos os blocos e tenta de novo
   return parseJsonFromText(texts.join('\n'))
 }
 
@@ -136,7 +126,6 @@ async function validateInternalLinks(
 }
 
 async function fetchResearch(): Promise<ResearchData | null> {
-  // Tenta pesquisa de hoje primeiro
   const hoje = new Date()
   hoje.setHours(0, 0, 0, 0)
   const { data: todayData } = await supabase
@@ -158,7 +147,6 @@ async function fetchResearch(): Promise<ResearchData | null> {
     } catch { /* ignora */ }
   }
 
-  // Fallback: pesquisa mais recente (qualquer data)
   const { data: latestData } = await supabase
     .from('seo_insights')
     .select('topic, raw_data')
@@ -176,7 +164,7 @@ async function fetchResearch(): Promise<ResearchData | null> {
     } catch { continue }
   }
 
-  console.warn('[SEO v2] Nenhuma pesquisa encontrada no banco — artigo sem contexto de pesquisa')
+  console.warn('[SEO v2] Nenhuma pesquisa encontrada — artigo sem contexto de pesquisa')
   return null
 }
 
@@ -201,7 +189,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ msg: 'Artigo já publicado hoje', count })
     }
 
-    // Busca pesquisa de keyword feita pelo cron seo-research
     const research = await fetchResearch()
 
     const dayNames = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado']
@@ -224,7 +211,7 @@ export async function GET(req: NextRequest) {
     })
 
     if (response.stop_reason === 'max_tokens') {
-      console.error('[SEO v2] Resposta truncada por max_tokens — JSON incompleto')
+      console.error('[SEO v2] Resposta truncada por max_tokens')
       return NextResponse.json({ error: 'max_tokens atingido — artigo truncado antes de fechar o JSON' }, { status: 500 })
     }
 
@@ -275,11 +262,11 @@ export async function GET(req: NextRequest) {
         .split('\n')
         .map(l => l.trim())
         .find(l => l.length > 40 && !l.startsWith('#') && !l.startsWith('---') && !l.startsWith('>'))
-        ?? body_markdown.slice(0, 200)
+        ?? body_markdown.slice(0, 320)
     )
       .replace(/\*\*/g, '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .slice(0, 200)
+      .slice(0, 320)
       .trim() + '...'
 
     const { error: dbError } = await supabase.from('blog_posts').insert({
