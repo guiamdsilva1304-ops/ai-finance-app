@@ -63,6 +63,44 @@ async function publicarArtigo(artigo: {
   return published ? 'publicado' : 'rascunho'
 }
 
+async function enfileirarEmails(acoes: Array<{
+  tipo: string
+  descricao: string
+  status: string
+  detalhe: string
+  assunto?: string
+  subject?: string
+  corpo?: string
+  body_html?: string
+  segmento?: string
+}>) {
+  for (const acao of acoes) {
+    if (acao.tipo !== 'email') continue
+
+    // Suporta tanto 'assunto'/'corpo' quanto 'subject'/'body_html'
+    const subject = acao.subject ?? acao.assunto ?? acao.descricao
+    const body_html = acao.body_html ?? acao.corpo ?? acao.detalhe
+
+    const { error } = await supabase.from('email_queue').insert({
+      user_id: MEMORIA_ADMIN_ID,
+      email: 'growth@imoney.ia.br',
+      type: 'growth_campaign',
+      subject,
+      body_html,
+      status: 'pending',
+      scheduled_for: new Date().toISOString(),
+      metadata: { acao, gerado_por: 'agente-growth' },
+      created_at: new Date().toISOString(),
+    })
+
+    if (error) {
+      console.error('[GRW] Falha ao enfileirar email:', error.message)
+    } else {
+      console.log('[GRW] Email enfileirado:', subject)
+    }
+  }
+}
+
 function extrairJSON(text: string) {
   const blocoJson = text.match(/```json([\s\S]*?)```/)
   if (blocoJson) {
@@ -86,7 +124,7 @@ Para outros pedidos responda em markdown normal.`,
   growth: `Voce e o agente de growth da iMoney. Foco: converter free em pagantes (R$ 29,90/mes). Break-even: 22 usuarios. Hoje e maio de 2026.
 
 Quando pedirem uma acao de email, retorne APENAS JSON sem backticks:
-{"acoes":[{"tipo":"email","descricao":"...","status":"executado","detalhe":"assunto e corpo do email"}]}
+{"acoes":[{"tipo":"email","descricao":"...","status":"executado","subject":"assunto do email","body_html":"<p>corpo do email em HTML</p>"}]}
 
 Para analises responda em markdown.`,
 }
@@ -106,7 +144,6 @@ export async function POST(req: NextRequest) {
 
     const system = systemPrompt || SYSTEM_PROMPTS[agentId] || 'Voce e um agente da iMoney. Responda em markdown.'
 
-    // Agente SEO usa web search para noticias atuais
     const tools: Anthropic.Tool[] | undefined = agentId === 'seo' ? [{ type: 'web_search_20250305' as const, name: 'web_search' } as unknown as Anthropic.Tool] : undefined
 
     const response = await anthropic.messages.create({
@@ -120,21 +157,19 @@ export async function POST(req: NextRequest) {
       })),
     })
 
-    // Extrai texto da resposta (pode ter tool_use intercalado)
     const content = response.content
       .filter((b) => b.type === 'text')
       .map((b) => (b as { type: 'text'; text: string }).text)
       .join('\n')
 
-    // Salva na memória
     if (agentId) {
       const lastUser = messages[messages.length - 1]
       if (lastUser?.role === 'user') await salvarMensagem(agentId, 'user', lastUser.content)
       await salvarMensagem(agentId, 'assistant', content)
     }
 
-    // Executa ações automáticas
     const json = extrairJSON(content)
+
     if (json && agentId === 'seo' && json.artigo) {
       try {
         const status = await publicarArtigo(json.artigo)
@@ -142,6 +177,10 @@ export async function POST(req: NextRequest) {
       } catch (e) {
         console.error('[SEO] Erro ao publicar:', e)
       }
+    }
+
+    if (json && agentId === 'growth' && Array.isArray(json.acoes)) {
+      await enfileirarEmails(json.acoes)
     }
 
     return NextResponse.json({ content, agentId })
