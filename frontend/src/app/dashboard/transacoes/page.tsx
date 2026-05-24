@@ -7,6 +7,7 @@ import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Search, Tag, Downloa
 import { cn } from "@/lib/utils";
 import { CATEGORIAS, type Categoria, type Transaction } from "@/types";
 import Link from "next/link";
+import ImportarExtrato from "@/components/ImportarExtrato";
 
 const CAT_COLORS: Record<string, string> = {
   Moradia:"bg-blue-100 text-blue-700", Alimentação:"bg-orange-100 text-orange-700",
@@ -27,6 +28,7 @@ export default function TransacoesPage() {
   const [plan, setPlan] = useState<string>("free");
   const [exportando, setExportando] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Form state
   const [desc, setDesc] = useState("");
@@ -80,7 +82,6 @@ export default function TransacoesPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Auto-categorize via FastAPI
   async function autoCategorizar() {
     if (!desc || !valor) return;
     setCategorizando(true);
@@ -129,7 +130,6 @@ export default function TransacoesPage() {
     load();
   }
 
-  // Filtered list
   const filtered = transactions.filter(t => {
     if (filterTipo !== "todos" && t.tipo !== filterTipo) return false;
     if (filterCat !== "todas" && t.categoria !== filterCat) return false;
@@ -154,6 +154,9 @@ export default function TransacoesPage() {
           <button onClick={load} className="btn-ghost p-2.5"><RefreshCw size={16} className={loading ? "animate-spin" : ""}/></button>
           <button onClick={exportarCSV} disabled={exportando} className="btn-ghost p-2.5" title="Exportar CSV (Premium)">
             <Download size={16} className={exportando ? "animate-pulse" : ""}/>
+          </button>
+          <button onClick={() => setShowImportModal(true)} className="btn-ghost p-2.5" title="Importar extrato">
+            📂
           </button>
           <button onClick={() => setShowForm(!showForm)} className="btn-primary">
             <Plus size={16}/> Nova
@@ -289,6 +292,9 @@ export default function TransacoesPage() {
                   {t.source === "pluggy" && (
                     <span className="badge bg-blue-50 text-blue-600 text-[10px] px-1.5 py-0.5">🏦 Open Finance</span>
                   )}
+                  {t.importado_via && t.importado_via !== "manual" && (
+                    <span className="badge bg-purple-50 text-purple-600 text-[10px] px-1.5 py-0.5">📂 Importado</span>
+                  )}
                 </div>
               </div>
               <p className={cn("font-black text-sm shrink-0", t.tipo === "gasto" ? "text-red-500" : "text-[#16a34a]")}
@@ -307,6 +313,27 @@ export default function TransacoesPage() {
       <p className="text-xs text-center text-[#8db89d] mt-4">
         {filtered.length} transaç{filtered.length === 1 ? "ão" : "ões"} · máx. 500 por usuário
       </p>
+
+      {/* Modal Importar Extrato */}
+      {showImportModal && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+          onClick={() => setShowImportModal(false)}
+        >
+          <div
+            style={{ background: "#fff", borderRadius: 20, padding: "28px 24px", maxWidth: 480, width: "100%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
+                📂 Importar Extrato
+              </h2>
+              <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
+            </div>
+            <ImportarExtrato onSucesso={() => { setShowImportModal(false); load(); }} />
+          </div>
+        </div>
+      )}
 
       {/* Modal Premium */}
       {showPremiumModal && (
