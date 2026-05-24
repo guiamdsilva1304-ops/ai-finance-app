@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { createClient } from '@supabase/supabase-js'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
 export async function POST(req: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = req.headers.get('authorization')
+  const token = auth?.replace('Bearer ', '') ?? ''
+
+  const { data: { user } } = await supabase.auth.getUser(token)
+  if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
   const formData = await req.formData()
   const file = formData.get('file') as File
@@ -16,7 +23,7 @@ export async function POST(req: NextRequest) {
   const conteudo = await file.text()
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 4000,
     messages: [{
       role: 'user',
@@ -48,7 +55,7 @@ ${conteudo.substring(0, 8000)}`
 
   const texto = response.content[0].type === 'text' ? response.content[0].text : ''
 
-  let transacoes = []
+  let transacoes: any[] = []
   try {
     const clean = texto.replace(/```json|```/g, '').trim()
     const parsed = JSON.parse(clean)
