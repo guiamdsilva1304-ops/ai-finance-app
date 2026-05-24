@@ -177,6 +177,7 @@ export async function GET(req: NextRequest) {
   if (dryRun) console.log('[SEO v2] Modo dry_run — não insere no banco')
 
   try {
+    // ── Guarda 1: já publicou hoje? ──────────────────────────────────────────
     if (!dryRun) {
       const hoje = new Date()
       hoje.setHours(0, 0, 0, 0)
@@ -189,8 +190,31 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ msg: 'Artigo já publicado hoje', count })
     }
 
+    // ── Busca pesquisa ───────────────────────────────────────────────────────
     const research = await fetchResearch()
 
+    // ── Guarda 2: keyword já usada nos últimos 7 dias? ───────────────────────
+    if (!dryRun && research?.keyword_principal) {
+      const seteDiasAtras = new Date()
+      seteDiasAtras.setDate(seteDiasAtras.getDate() - 7)
+
+      const { count: kwCount } = await supabase
+        .from('blog_posts')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', seteDiasAtras.toISOString())
+        .eq('keyword_principal', research.keyword_principal)
+
+      if ((kwCount ?? 0) >= 1) {
+        console.warn('[SEO v2] Keyword já usada nos últimos 7 dias:', research.keyword_principal)
+        return NextResponse.json({
+          msg: 'Keyword já publicada recentemente — nenhum artigo gerado',
+          keyword: research.keyword_principal,
+          skipped: true,
+        })
+      }
+    }
+
+    // ── Geração ──────────────────────────────────────────────────────────────
     const dayNames = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado']
     const today = dayNames[new Date().getDay()]
     const dateStr = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
@@ -250,6 +274,7 @@ export async function GET(req: NextRequest) {
       })
     }
 
+    // ── Inserção no banco ────────────────────────────────────────────────────
     const { h1, slug, meta_title, meta_description, og_image_alt, article_type, body_markdown, word_count, faq_schema, lsi_keywords_used } = parsed
     if (!h1 || !slug || !body_markdown)
       return NextResponse.json({ error: 'Campos obrigatórios ausentes: h1, slug, body_markdown' }, { status: 500 })
