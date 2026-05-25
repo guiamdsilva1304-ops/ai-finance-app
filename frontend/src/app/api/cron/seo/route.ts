@@ -11,29 +11,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const SYSTEM_PROMPT_V2 = `Você é o redator SEO da iMoney (SaaS de finanças pessoais para brasileiros 20–35 anos).
-
-PRODUTO: iMoney une metas de vida + gestão financeira + assessor IA. Preço: R$29,90/mês.
-PERSONA: Marina, 26 anos, SP, R$4k/mês, quer organizar finanças mas odeia planilha.
-TOM: próximo, encorajador, exemplos com R$, use "você". Nunca frio ou paternalista.
-VOCABULÁRIO OK: sonho, meta, conquista, jornada. PROIBIDO: erro, falhou, culpa, jargão técnico.
-
-PESQUISA: fornecida na mensagem do usuário. Use keyword_principal, coverage_gaps, financial_data, lsi_keywords. Não invente dados financeiros.
-
-ARTIGO (450–500 palavras, markdown):
-- H1 com keyword
-- Intro: gancho emocional + o que vai aprender (2 linhas)
-- 3 H2s — 1º H2 responde intenção em até 50 palavras (featured snippet)
-- Após 2º H2: mid-CTA. Ex: No iMoney, você define essa meta grátis. [Começar](/login)
-- 1 lista numerada (4 itens)
-- Conclusão: 2 bullets + CTA final
-- 3 FAQs curtas (20 palavras cada)
-
-PROIBIDO: blocos de codigo no output, emoji em H1/H2/meta_title, "No mundo de hoje...", ativo especifico, crypto, day-trade, promessa de retorno.
-
-CRITICO: retorne APENAS o JSON minificado abaixo, sem texto antes/depois, sem indentacao, sem quebras de linha entre chaves:
-{"h1":"","slug":"","meta_title":"","meta_description":"","og_image_alt":"","article_type":"","body_markdown":"","word_count":0,"faq_schema":[{"question":"","answer":""}],"lsi_keywords_used":[]}`
-
 interface ArticleJSON {
   h1: string
   slug: string
@@ -41,11 +18,10 @@ interface ArticleJSON {
   meta_description: string
   og_image_alt: string
   article_type: string
-  body_markdown: string
   word_count: number
-  internal_links?: Array<{ anchor: string; slug: string }>
   faq_schema: Array<{ question: string; answer: string }>
   lsi_keywords_used: string[]
+  internal_links?: Array<{ anchor: string; slug: string }>
 }
 
 interface ResearchData {
@@ -70,15 +46,11 @@ function isAuthorized(req: NextRequest): boolean {
   return searchParams.get('secret') === cronSecret
 }
 
-function parseJsonFromText(text: string): string {
+function extractJson(text: string): string {
   const cleaned = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim()
   const start = cleaned.indexOf('{')
   if (start === -1) return ''
-
-  let depth = 0
-  let inString = false
-  let escaped = false
-
+  let depth = 0, inString = false, escaped = false
   for (let i = start; i < cleaned.length; i++) {
     const ch = cleaned[i]
     if (escaped) { escaped = false; continue }
@@ -97,17 +69,11 @@ function parseJsonFromText(text: string): string {
   return ''
 }
 
-function extractFinalJson(content: Anthropic.Messages.ContentBlock[]): string {
-  const texts = content
+function extractText(content: Anthropic.Messages.ContentBlock[]): string {
+  return content
     .filter((b): b is Anthropic.Messages.TextBlock => b.type === 'text')
     .map(b => b.text)
-
-  for (let i = texts.length - 1; i >= 0; i--) {
-    const result = parseJsonFromText(texts[i])
-    if (result) return result
-  }
-
-  return parseJsonFromText(texts.join('\n'))
+    .join('')
 }
 
 async function validateInternalLinks(
@@ -120,8 +86,6 @@ async function validateInternalLinks(
     .in('slug', links.map(l => l.slug))
     .eq('published', true)
   const valid = new Set((data ?? []).map((r: { slug: string }) => r.slug))
-  const removed = links.filter(l => !valid.has(l.slug)).map(l => l.slug)
-  if (removed.length) console.log('[SEO v2] Links removidos (slug inexistente):', removed.join(', '))
   return links.filter(l => valid.has(l.slug))
 }
 
@@ -140,10 +104,7 @@ async function fetchResearch(): Promise<ResearchData | null> {
   if (todayData?.raw_data) {
     try {
       const parsed = JSON.parse(todayData.raw_data as string) as ResearchData
-      if (parsed.keyword_principal) {
-        console.log('[SEO v2] Pesquisa de hoje encontrada:', parsed.keyword_principal)
-        return parsed
-      }
+      if (parsed.keyword_principal) return parsed
     } catch { /* ignora */ }
   }
 
@@ -157,14 +118,10 @@ async function fetchResearch(): Promise<ResearchData | null> {
   for (const row of latestData ?? []) {
     try {
       const parsed = JSON.parse(row.raw_data as string) as ResearchData
-      if (parsed.keyword_principal) {
-        console.log('[SEO v2] Usando pesquisa mais recente (fallback):', parsed.keyword_principal)
-        return parsed
-      }
+      if (parsed.keyword_principal) return parsed
     } catch { continue }
   }
 
-  console.warn('[SEO v2] Nenhuma pesquisa encontrada — artigo sem contexto de pesquisa')
   return null
 }
 
@@ -174,7 +131,6 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const dryRun = searchParams.get('dry_run') === 'true'
-  if (dryRun) console.log('[SEO v2] Modo dry_run — não insere no banco')
 
   try {
     // ── Guarda 1: já publicou hoje? ──────────────────────────────────────────
@@ -190,97 +146,106 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ msg: 'Artigo já publicado hoje', count })
     }
 
-    // ── Busca pesquisa ───────────────────────────────────────────────────────
+    // ── Pesquisa ─────────────────────────────────────────────────────────────
     const research = await fetchResearch()
 
     // ── Guarda 2: keyword já usada nos últimos 7 dias? ───────────────────────
     if (!dryRun && research?.keyword_principal) {
       const seteDiasAtras = new Date()
       seteDiasAtras.setDate(seteDiasAtras.getDate() - 7)
-
       const { count: kwCount } = await supabase
         .from('blog_posts')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', seteDiasAtras.toISOString())
         .eq('keyword_principal', research.keyword_principal)
-
-      if ((kwCount ?? 0) >= 1) {
-        console.warn('[SEO v2] Keyword já usada nos últimos 7 dias:', research.keyword_principal)
-        return NextResponse.json({
-          msg: 'Keyword já publicada recentemente — nenhum artigo gerado',
-          keyword: research.keyword_principal,
-          skipped: true,
-        })
-      }
+      if ((kwCount ?? 0) >= 1)
+        return NextResponse.json({ msg: 'Keyword já publicada recentemente', keyword: research.keyword_principal, skipped: true })
     }
 
-    // ── Geração ──────────────────────────────────────────────────────────────
-    const dayNames = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado']
-    const today = dayNames[new Date().getDay()]
     const dateStr = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    console.log(`[SEO v2] Gerando artigo — dia: ${today} | keyword: ${research?.keyword_principal ?? 'sem pesquisa'}`)
-
     const researchContext = research
-      ? `\nPESQUISA: keyword="${research.keyword_principal}" | tipo=${research.article_type ?? today} | intent=${research.intent ?? 'informacional'} | gaps=${JSON.stringify(research.coverage_gaps ?? [])} | diferencial="${research.our_differentiation ?? ''}" | lsi=${JSON.stringify(research.lsi_keywords ?? [])} | dados=${JSON.stringify(research.financial_data ?? {})}`
-      : `\nSem pesquisa prévia. Use tema relevante para jovens brasileiros. Dados: SELIC 14,75%, IPCA 2026 ~5,5%, salário mínimo R$1.518.`
+      ? `keyword="${research.keyword_principal}" | tipo=${research.article_type ?? 'informacional'} | intent=${research.intent ?? 'informacional'} | gaps=${JSON.stringify(research.coverage_gaps ?? [])} | diferencial="${research.our_differentiation ?? ''}" | lsi=${JSON.stringify(research.lsi_keywords ?? [])} | dados=${JSON.stringify(research.financial_data ?? {})}`
+      : `Sem pesquisa. Use tema relevante para jovens brasileiros. Dados: SELIC 14,75%, IPCA ~5,5%, salário mínimo R$1.518.`
 
-    const response = await anthropic.messages.create({
+    // ── CHAMADA 1: apenas metadados + estrutura (sem body) ───────────────────
+    console.log('[SEO v2] Chamada 1: metadados...')
+    const resp1 = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2500,
-      system: SYSTEM_PROMPT_V2,
+      max_tokens: 1024,
+      system: `Você é o estrategista SEO da iMoney (SaaS finanças pessoais, Brasil, 20–35 anos).
+PRODUTO: iMoney une metas de vida + gestão financeira + assessor IA. Preço R$29,90/mês.
+PERSONA: Marina, 26 anos, SP, R$4k/mês.
+TOM: próximo, encorajador, use "você". PROIBIDO: crypto, day-trade, promessa de retorno.
+
+Retorne APENAS este JSON minificado, sem texto antes/depois, sem indentação:
+{"h1":"","slug":"","meta_title":"","meta_description":"","og_image_alt":"","article_type":"","faq_schema":[{"question":"","answer":""}],"lsi_keywords_used":[]}
+
+Regras:
+- slug: kebab-case, sem data, max 6 palavras
+- meta_description: 140–160 chars, inclui keyword
+- faq_schema: 3 perguntas, respostas max 20 palavras cada
+- lsi_keywords_used: 5 termos relacionados`,
       messages: [{
         role: 'user',
-        content: `Hoje é ${dateStr} (${today}). Escreva o artigo de hoje seguindo as instruções.${researchContext}`,
+        content: `Hoje é ${dateStr}. Pesquisa: ${researchContext}`,
       }],
     })
 
-    if (response.stop_reason === 'max_tokens') {
-      console.error('[SEO v2] Resposta truncada por max_tokens')
-      return NextResponse.json({ error: 'max_tokens atingido — artigo truncado antes de fechar o JSON' }, { status: 500 })
+    const text1 = extractText(resp1.content)
+    const rawMeta = extractJson(text1)
+    if (!rawMeta) {
+      console.error('[SEO v2] Chamada 1 falhou. Preview:', text1.slice(0, 300))
+      return NextResponse.json({ error: 'Metadados não extraídos', preview: text1.slice(0, 300) }, { status: 500 })
     }
 
-    const rawJson = extractFinalJson(response.content)
-    if (!rawJson) {
-      const preview = response.content
-        .filter((b): b is Anthropic.Messages.TextBlock => b.type === 'text')
-        .map(b => b.text).join('').slice(0, 500)
-      console.error('[SEO v2] JSON não extraído. stop_reason:', response.stop_reason, '| Preview:', preview)
-      return NextResponse.json({ error: 'JSON não extraído', stop_reason: response.stop_reason, preview }, { status: 500 })
-    }
+    const meta = JSON.parse(rawMeta) as ArticleJSON
+    console.log('[SEO v2] Metadados OK:', meta.h1)
 
-    let parsed: ArticleJSON
-    try {
-      parsed = JSON.parse(rawJson) as ArticleJSON
-    } catch (e) {
-      console.error('[SEO v2] JSON inválido:', e)
-      return NextResponse.json({ error: 'JSON inválido', raw_preview: rawJson.slice(0, 300) }, { status: 500 })
-    }
+    // ── CHAMADA 2: apenas o body_markdown ────────────────────────────────────
+    console.log('[SEO v2] Chamada 2: body...')
+    const resp2 = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      system: `Você é o redator SEO da iMoney (SaaS finanças pessoais, Brasil, 20–35 anos).
+PRODUTO: iMoney une metas de vida + gestão financeira + assessor IA. Preço R$29,90/mês.
+PERSONA: Marina, 26 anos, SP, R$4k/mês, quer organizar finanças mas odeia planilha.
+TOM: próximo, encorajador, exemplos com R$, use "você". Nunca frio ou paternalista.
+VOCABULÁRIO OK: sonho, meta, conquista, jornada. PROIBIDO: erro, falhou, culpa, jargão técnico, crypto, day-trade, promessa de retorno.
 
-    console.log('[SEO v2] JSON OK:', {
-      article_type: parsed.article_type,
-      word_count: parsed.word_count,
-      faq_count: parsed.faq_schema?.length,
+Escreva o artigo em markdown (300–350 palavras):
+- H1 fornecido abaixo (não repita, comece pelo parágrafo de intro)
+- Intro: gancho emocional + o que vai aprender (2 linhas)
+- 3 H2s — 1º H2 responde a intenção em até 50 palavras (featured snippet)
+- Após 2º H2: mid-CTA. Ex: No iMoney, você define essa meta grátis. [Começar](/login)
+- 1 lista numerada (4 itens)
+- Conclusão: 2 bullets + CTA final. Ex: [Começar grátis no iMoney](/login)
+
+Retorne APENAS o markdown puro, sem blocos de código, sem JSON, sem emoji em títulos.`,
+      messages: [{
+        role: 'user',
+        content: `H1: ${meta.h1}\nPesquisa: ${researchContext}`,
+      }],
     })
 
-    const validatedLinks = await validateInternalLinks(parsed.internal_links ?? [])
+    const body_markdown = extractText(resp2.content).trim()
+    if (!body_markdown || body_markdown.length < 200) {
+      console.error('[SEO v2] Chamada 2 falhou. Preview:', body_markdown.slice(0, 200))
+      return NextResponse.json({ error: 'Body não gerado', preview: body_markdown.slice(0, 200) }, { status: 500 })
+    }
+    console.log('[SEO v2] Body OK:', body_markdown.length, 'chars')
+
+    const validatedLinks = await validateInternalLinks(meta.internal_links ?? [])
 
     if (dryRun) {
-      return NextResponse.json({
-        ok: true,
-        dry_run: true,
-        research_used: research?.keyword_principal ?? null,
-        validated_links: validatedLinks,
-        parsed,
-      })
+      return NextResponse.json({ ok: true, dry_run: true, meta, body_preview: body_markdown.slice(0, 300) })
     }
 
     // ── Inserção no banco ────────────────────────────────────────────────────
-    const { h1, slug, meta_title, meta_description, og_image_alt, article_type, body_markdown, word_count, faq_schema, lsi_keywords_used } = parsed
-    if (!h1 || !slug || !body_markdown)
-      return NextResponse.json({ error: 'Campos obrigatórios ausentes: h1, slug, body_markdown' }, { status: 500 })
+    if (!meta.h1 || !meta.slug || !body_markdown)
+      return NextResponse.json({ error: 'Campos obrigatórios ausentes' }, { status: 500 })
 
-    const slugFinal = `${slug}-${new Date().toISOString().slice(0, 10)}`
-    const palavras = word_count || body_markdown.split(/\s+/).length
+    const slugFinal = `${meta.slug}-${new Date().toISOString().slice(0, 10)}`
+    const palavras = body_markdown.split(/\s+/).length
     const reading_time_min = Math.max(1, Math.ceil(palavras / 200))
     const excerpt = (
       body_markdown
@@ -295,24 +260,24 @@ export async function GET(req: NextRequest) {
       .trim() + '...'
 
     const { error: dbError } = await supabase.from('blog_posts').insert({
-      title: h1,
+      title: meta.h1,
       slug: slugFinal,
       excerpt,
       content: body_markdown,
-      meta_title: meta_title ?? h1,
-      meta_description: meta_description ?? '',
-      seo_title: meta_title ?? h1,
-      seo_description: meta_description ?? '',
-      og_image_alt: og_image_alt ?? '',
-      faq_schema: faq_schema ?? [],
+      meta_title: meta.meta_title ?? meta.h1,
+      meta_description: meta.meta_description ?? '',
+      seo_title: meta.meta_title ?? meta.h1,
+      seo_description: meta.meta_description ?? '',
+      og_image_alt: meta.og_image_alt ?? '',
+      faq_schema: meta.faq_schema ?? [],
       internal_links: validatedLinks,
       keyword_principal: research?.keyword_principal ?? '',
-      article_type: article_type ?? research?.article_type ?? '',
+      article_type: meta.article_type ?? research?.article_type ?? '',
       word_count: palavras,
-      agent_version: 'v2.0',
+      agent_version: 'v2.1',
       author: 'Gui da iMoney',
       category: 'educacao-financeira',
-      tags: lsi_keywords_used?.slice(0, 5) ?? [],
+      tags: meta.lsi_keywords_used?.slice(0, 5) ?? [],
       reading_time_min,
       published: true,
       published_at: new Date().toISOString(),
@@ -329,12 +294,11 @@ export async function GET(req: NextRequest) {
     console.log('[SEO v2] Publicado:', slugFinal, '| palavras:', palavras)
     return NextResponse.json({
       sucesso: true,
-      titulo: h1,
+      titulo: meta.h1,
       slug: slugFinal,
       palavras,
-      article_type: article_type ?? research?.article_type,
+      article_type: meta.article_type,
       keyword: research?.keyword_principal ?? null,
-      research_used: research?.keyword_principal ?? null,
     })
 
   } catch (error) {
