@@ -5,7 +5,6 @@ export interface Transaction {
   source?: "manual"; created_at: string;
   importado_via?: string;
 }
-}
 export type Categoria = "Moradia"|"Alimentação"|"Transporte"|"Saúde"|"Educação"|"Lazer"|"Vestuário"|"Outros";
 export const CATEGORIAS: Categoria[] = ["Moradia","Alimentação","Transporte","Saúde","Educação","Lazer","Vestuário","Outros"];
 export interface Meta {
