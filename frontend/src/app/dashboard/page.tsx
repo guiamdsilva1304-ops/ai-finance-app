@@ -1,458 +1,349 @@
 "use client";
+
 import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { MetricCard, MetricCardSkeleton } from "@/components/ui/MetricCard";
-import { formatBRL, getScoreColor, getScoreLabel } from "@/lib/utils";
-import { RefreshCw } from "lucide-react";
-import { GoalCard, Icon } from "@/components/imoney/primitives";
-import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-} from "recharts";
-import MonthlySummaryCard from "@/components/MonthlySummaryCard";
+import { formatBRL, formatDate } from "@/lib/utils";
+import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Search, Tag, Download, Upload, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { CATEGORIAS, type Categoria, type Transaction } from "@/types";
+import Link from "next/link";
+import ImportarExtrato from "@/components/ImportarExtrato";
 
-const CATEGORY_COLORS = [
-  "#16a34a","#22c55e","#4ade80","#86efac",
-  "#f59e0b","#fb923c","#6366f1","#a855f7",
-];
+const CAT_COLORS: Record<string, string> = {
+  Moradia:"bg-blue-100 text-blue-700", Alimentação:"bg-orange-100 text-orange-700",
+  Transporte:"bg-yellow-100 text-yellow-700", Saúde:"bg-red-100 text-red-700",
+  Educação:"bg-purple-100 text-purple-700", Lazer:"bg-pink-100 text-pink-700",
+  Vestuário:"bg-indigo-100 text-indigo-700", Outros:"bg-gray-100 text-gray-600",
+};
 
-function scoreNivelColor(score: number) {
-  if (score <= 30) return "#ef4444";
-  if (score <= 50) return "#f97316";
-  if (score <= 70) return "#eab308";
-  if (score <= 85) return "#22c55e";
-  return "#00C853";
-}
-
-function scoreNivelLabel(score: number) {
-  if (score <= 30) return "Crítico";
-  if (score <= 50) return "Atenção";
-  if (score <= 70) return "Estável";
-  if (score <= 85) return "Saudável";
-  return "Excelente";
-}
-
-function fmtInt(n: number): string {
-  return Math.round(n).toLocaleString('pt-BR');
-}
-
-function metaEmoji(nome: string): string {
-  const n = nome.toLowerCase();
-  if (n.includes('reserva') || n.includes('emergên') || n.includes('emergenc')) return '🏦';
-  if (n.includes('viagem') || n.includes('férias') || n.includes('ferias')) return '✈️';
-  if (n.includes('carro') || n.includes('auto')) return '🚗';
-  if (n.includes('casa') || n.includes('apto')) return '🏡';
-  if (n.includes('casamento') || n.includes('noivado')) return '💍';
-  if (n.includes('estud') || n.includes('curso')) return '📚';
-  if (n.includes('div') || n.includes('empréstimo')) return '💳';
-  return '🎯';
-}
-
-function brlNum(n: number) {
-  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-interface ScoreProfile {
-  score_saude: number | null;
-  diagnostico_json: { score_imoney?: { titulo?: string } } | null;
-}
-
-interface Meta {
-  id: string; nome: string;
-  valor_alvo: number; valor_atual: number;
-  prazo_meses: number; concluida: boolean; principal?: boolean;
-}
-
-interface EcoData {
-  selic_anual: number; selic_meta: number;
-  ipca_mensal: number; ipca_anual: number;
-  ultima_atualizacao: string;
-}
-
-interface DashData {
-  renda: number; gastos: number;
-  sobra: number; score: number; perfil: string;
-  gastosCat: Record<string, number>;
-}
-
-export default function DashboardPage() {
-  const [eco, setEco] = useState<EcoData | null>(null);
-  const [dash, setDash] = useState<DashData | null>(null);
+export default function TransacoesPage() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mainMeta, setMainMeta] = useState<Meta | null>(null);
-  const [allMetas, setAllMetas] = useState<Meta[]>([]);
-  const [userName, setUserName] = useState("");
-  const [isPro, setIsPro] = useState(false);
-  const [scoreProfile, setScoreProfile] = useState<ScoreProfile | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filterTipo, setFilterTipo] = useState<"todos"|"gasto"|"receita">("todos");
+  const [filterCat, setFilterCat] = useState<string>("todas");
+  const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [categorizando, setCategorizando] = useState(false);
+  const [plan, setPlan] = useState<string>("free");
+  const [exportando, setExportando] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+  const [desc, setDesc] = useState("");
+  const [valor, setValor] = useState("");
+  const [tipo, setTipo] = useState<"gasto"|"receita">("gasto");
+  const [cat, setCat] = useState<Categoria>("Outros");
+  const [dataT, setDataT] = useState(new Date().toISOString().split("T")[0]);
+  const [formError, setFormError] = useState("");
+
   const supabase = createSupabaseBrowser();
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
-    const [metasRes, profileRes] = await Promise.all([
-      supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).order("created_at", { ascending: false }),
-      supabase.from("user_profiles").select("plan,full_name").eq("user_id", session.user.id).single(),
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const [{ data }, { data: perfil }] = await Promise.all([
+      supabase.from("transactions").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(500),
+      supabase.from("user_profiles").select("plan").eq("id", user.id).single(),
     ]);
-    const metas: Meta[] = metasRes.data ?? [];
-    setAllMetas(metas);
-    const principal = metas.find(m => m.principal) ?? metas[0] ?? null;
-    setMainMeta(principal);
-
-    if (profileRes.data) {
-      setIsPro(profileRes.data.plan === "pro");
-      if (profileRes.data.full_name) setUserName(profileRes.data.full_name.split(" ")[0]);
-    }
-
-    const { data: sp } = await supabase
-      .from("user_profiles")
-      .select("score_saude, diagnostico_json")
-      .eq("user_id", session.user.id)
-      .maybeSingle();
-    setScoreProfile(sp ?? null);
-
-    const [ecoRes, summaryRes] = await Promise.allSettled([
-      fetch("/api/rates/eco"),
-      fetch("/api/dashboard/summary", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      }),
-    ]);
-
-    if (ecoRes.status === "fulfilled" && ecoRes.value.ok)
-      setEco(await ecoRes.value.json());
-
-    if (summaryRes.status === "fulfilled" && summaryRes.value.ok) {
-      const s = await summaryRes.value.json();
-      const savingsRate = s.renda > 0 ? (s.sobra / s.renda) * 100 : 0;
-      const score = Math.min(100, Math.max(0, Math.round(50 + savingsRate * 0.8)));
-      setDash({
-        renda: s.renda,
-        gastos: s.gastos,
-        sobra: s.sobra,
-        gastosCat: s.gastosCat,
-        score,
-        perfil: getScoreLabel(score),
-      });
-    }
-
+    setTransactions(data ?? []);
+    if (perfil?.plan) setPlan(perfil.plan);
     setLoading(false);
   }, [supabase]);
 
+  async function exportarCSV() {
+    if (plan !== "premium") { setShowPremiumModal(true); return; }
+    setExportando(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/export/transactions", {
+        headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const now = new Date();
+      a.download = `imoney-transacoes-${String(now.getMonth() + 1).padStart(2, "0")}-${now.getFullYear()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Erro ao exportar: " + e);
+    } finally {
+      setExportando(false);
+    }
+  }
+
   useEffect(() => { load(); }, [load]);
 
-  const pieData = dash
-    ? Object.entries(dash.gastosCat)
-        .filter(([, v]) => v > 0)
-        .map(([name, value]) => ({ name, value }))
-    : [];
+  async function autoCategorizar() {
+    if (!desc || !valor) return;
+    setCategorizando(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: mem } = await supabase.from("user_memory").select("last_renda").eq("user_id", user!.id).single();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL ?? "http://localhost:8000"}/api/categorizar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ descricao: desc, valor: parseFloat(valor), renda: mem?.last_renda ?? 3000 }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        if (d.categoria && CATEGORIAS.includes(d.categoria)) setCat(d.categoria);
+      }
+    } catch { /* ignore */ }
+    setCategorizando(false);
+  }
 
-  const projecaoData = dash && eco
-    ? Array.from({ length: 13 }, (_, i) => ({
-        mes: i === 0 ? "Hoje" : `M${i}`,
-        valor: Math.round(dash.sobra * i * Math.pow(1 + eco.selic_anual / 100 / 12, i)),
-        semJuros: Math.round(dash.sobra * i),
-      }))
-    : [];
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError("");
+    if (!desc.trim()) { setFormError("Informe a descrição."); return; }
+    const v = parseFloat(valor);
+    if (isNaN(v) || v <= 0) { setFormError("Valor inválido."); return; }
+    if (v > 10_000_000) { setFormError("Valor muito alto."); return; }
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("transactions").insert({
+      user_id: user!.id,
+      descricao: desc.trim().slice(0, 200),
+      valor: v, categoria: cat, tipo, date: dataT, source: "manual",
+    });
+    setDesc(""); setValor(""); setTipo("gasto"); setCat("Outros");
+    setDataT(new Date().toISOString().split("T")[0]);
+    setShowForm(false);
+    setSaving(false);
+    load();
+  }
 
-  const jurosReais = eco
-    ? (((1 + eco.selic_anual / 100) / (1 + eco.ipca_anual / 100) - 1) * 100).toFixed(2)
-    : "—";
+  async function remove(id: string) {
+    if (!confirm("Excluir transação?")) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("transactions").delete().eq("id", id).eq("user_id", user!.id);
+    load();
+  }
 
-  const totalAtual = allMetas.reduce((s, m) => s + m.valor_atual, 0);
-  const totalAlvo = allMetas.reduce((s, m) => s + m.valor_alvo, 0);
-  const totalPct = totalAlvo > 0 ? Math.min(100, Math.round((totalAtual / totalAlvo) * 100)) : 0;
-  const greetingMsg = !loading && allMetas.length === 0 ? "Crie sua primeira meta 🎯" : !loading && dash && dash.sobra < 0 ? "Atenção às suas finanças" : "Você tá no caminho";
+  const filtered = transactions.filter(t => {
+    if (filterTipo !== "todos" && t.tipo !== filterTipo) return false;
+    if (filterCat !== "todas" && t.categoria !== filterCat) return false;
+    if (search && !t.descricao.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const totalGastos = filtered.filter(t => t.tipo === "gasto").reduce((s, t) => s + t.valor, 0);
+  const totalReceitas = filtered.filter(t => t.tipo === "receita").reduce((s, t) => s + t.valor, 0);
 
   return (
-    <>
-    {/* ── Mobile dashboard ───────────────────────────── */}
-    <div className="md:hidden" style={{ minHeight: "100vh", background: "#f7fdf9", paddingBottom: 100 }}>
-      {/* Greeting */}
-      <div style={{ padding: "20px 20px 0", fontFamily: "Nunito, sans-serif" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 900, color: "#0d2414", margin: "0 0 2px" }}>
-          {userName ? `Oi, ${userName}! 🌺` : "Olá! 🌺"}
-        </h1>
-        <p style={{ fontSize: 13, color: "#6b9e80", margin: "0 0 20px" }}>{greetingMsg}</p>
-
-        {/* Hero card */}
-        {allMetas.length > 0 ? (
-          <div style={{ background: "#0a3d28", borderRadius: 22, padding: "20px 22px 22px", marginBottom: 14 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 10px" }}>
-              TOTAL GUARDADO · TODAS AS METAS
-            </p>
-            <p style={{ fontSize: 36, fontWeight: 900, color: "#fff", margin: "0 0 8px", fontFamily: "Nunito, sans-serif", lineHeight: 1 }}>
-              R$ {fmtInt(totalAtual)}<span style={{ fontSize: 18 }}>,00</span>
-            </p>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "0 0 14px" }}>
-              {totalPct}% de R$ {fmtInt(totalAlvo)}
-            </p>
-            <div style={{ background: "rgba(255,255,255,0.15)", height: 8, borderRadius: 999, overflow: "hidden" }}>
-              <div style={{ background: "#00C853", height: "100%", borderRadius: 999, width: `${totalPct}%`, transition: "width 1s ease" }} />
-            </div>
-          </div>
-        ) : !loading && (
-          <a href="/dashboard/metas?add=true" style={{ display: "block", textDecoration: "none", background: "linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)", borderRadius: 22, padding: "22px", marginBottom: 14 }}>
-            <p style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "0 0 4px" }}>🎯 Defina sua primeira meta</p>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", margin: 0 }}>Diga qual é o seu sonho →</p>
-          </a>
-        )}
-
-        {/* Assessor card */}
-        <a href="/dashboard/assessor" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", marginBottom: 24, border: "1.5px solid #e4f5e9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#00C853", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>🧭</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 13, fontWeight: 800, color: "#0d2414", margin: "0 0 2px", fontFamily: "Nunito, sans-serif" }}>Gui · seu Assessor IA</p>
-            <p style={{ fontSize: 12, color: "#6b9e80", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              Faça uma pergunta sobre suas finanças...
-            </p>
-          </div>
-          <span style={{ color: "#1D9E75", fontSize: 18 }}>›</span>
-        </a>
-
-        {/* Metas section */}
-        {allMetas.length > 0 && (
-          <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <p style={{ fontSize: 16, fontWeight: 800, color: "#0d2414", margin: 0, fontFamily: "Nunito, sans-serif" }}>Suas metas</p>
-              <a href="/dashboard/metas" style={{ fontSize: 13, fontWeight: 700, color: "#1D9E75", textDecoration: "none" }}>Ver todas →</a>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {allMetas.slice(0, 2).map(meta => {
-                const pct = meta.valor_alvo > 0 ? Math.min(100, Math.round((meta.valor_atual / meta.valor_alvo) * 100)) : 0;
-                const emoji = (() => {
-                  const n = meta.nome.toLowerCase();
-                  if (n.includes("reserva") || n.includes("emergên")) return "🏦";
-                  if (n.includes("viagem") || n.includes("férias") || n.includes("europa")) return "✈️";
-                  if (n.includes("carro") || n.includes("auto")) return "🚗";
-                  if (n.includes("casa") || n.includes("apto")) return "🏡";
-                  if (n.includes("casamento")) return "💍";
-                  if (n.includes("estud") || n.includes("curso")) return "📚";
-                  return "🎯";
-                })();
-                return (
-                  <a key={meta.id} href={`/dashboard/metas/${meta.id}`} style={{ textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", border: "1.5px solid #e4f5e9", display: "block" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ fontSize: 22 }}>{emoji}</span>
-                        <div>
-                          <p style={{ fontSize: 13, fontWeight: 800, color: "#0d2414", margin: 0, fontFamily: "Nunito, sans-serif" }}>{meta.nome}</p>
-                          <p style={{ fontSize: 12, color: "#6b9e80", margin: 0 }}>R$ {fmtInt(meta.valor_atual)} de {fmtInt(meta.valor_alvo)}</p>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 14, fontWeight: 900, color: "#1D9E75" }}>{pct}%</span>
-                    </div>
-                    <div style={{ background: "#e8f5e9", height: 6, borderRadius: 999, overflow: "hidden" }}>
-                      <div style={{ background: "linear-gradient(90deg, #1D9E75, #00C853)", height: "100%", borderRadius: 999, width: `${pct}%` }} />
-                    </div>
-                    <p style={{ fontSize: 11, color: "#6b9e80", margin: "6px 0 0" }}>
-                      R$ {fmtInt((meta.valor_alvo - meta.valor_atual) / Math.max(1, meta.prazo_meses))}/mês · {meta.prazo_meses} meses
-                    </p>
-                  </a>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {/* Score card on mobile */}
-        {!loading && scoreProfile?.diagnostico_json?.score_imoney && (
-          <a href="/dashboard/score" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", marginTop: 14, border: "1.5px solid #e4f5e9" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <span style={{ fontSize: 20, fontWeight: 900, color: "#16a34a", fontFamily: "Nunito, sans-serif" }}>{scoreProfile.score_saude ?? 0}</span>
-            </div>
-            <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Score iMoney</p>
-              <p style={{ fontSize: 14, fontWeight: 800, color: "#0d2414", margin: "2px 0 0", fontFamily: "Nunito, sans-serif" }}>Ver diagnóstico →</p>
-            </div>
-          </a>
-        )}
-      </div>
-    </div>
-
-    {/* ── Desktop dashboard ─────────────────────────── */}
-    <div className="hidden md:block p-5 lg:p-8 max-w-7xl mx-auto">
+    <div className="p-5 lg:p-8 max-w-4xl mx-auto">
+      {/* Header */}
       <div className="flex items-center justify-between mb-7">
         <div>
-          <h1 className="text-2xl font-black text-[#0d2414] font-[Nunito]">Dashboard</h1>
-          <p className="text-sm text-[#6b9e80] mt-0.5">Visão geral das suas finanças</p>
+          <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
+            📝 Transações
+          </h1>
+          <p className="text-sm text-[#6b9e80] mt-0.5">Registre e acompanhe seus gastos e receitas</p>
         </div>
-        <button onClick={load} className="btn-ghost p-2.5 rounded-xl" title="Atualizar">
-          <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-        </button>
-      </div>
-
-      {/* Score iMoney card */}
-      {!loading && (
-        scoreProfile?.diagnostico_json?.score_imoney ? (
-          <a href="/dashboard/score" style={{ display: "block", textDecoration: "none", marginBottom: 20 }}>
-            <div style={{ background: "#fff", border: "1.5px solid #e4f5e9", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: "pointer", transition: "box-shadow 0.2s", boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontSize: 22, fontWeight: 900, color: scoreNivelColor(scoreProfile.score_saude ?? 0), fontFamily: "Nunito, sans-serif" }}>{scoreProfile.score_saude ?? 0}</span>
-                </div>
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Score iMoney</p>
-                  <p style={{ fontSize: 14, fontWeight: 800, color: "#0d2414", margin: "2px 0 0", fontFamily: "Nunito, sans-serif" }}>
-                    {scoreNivelLabel(scoreProfile.score_saude ?? 0)}
-                    {scoreProfile.diagnostico_json?.score_imoney?.titulo && (
-                      <span style={{ fontWeight: 600, color: "#6b9e80" }}> · {scoreProfile.diagnostico_json.score_imoney.titulo}</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-              <span style={{ fontSize: 18, color: "#16a34a" }}>→</span>
-            </div>
-          </a>
-        ) : (
-          <a href="/dashboard/diagnostico" style={{ display: "block", textDecoration: "none", marginBottom: 20 }}>
-            <div style={{ background: "linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)", borderRadius: 16, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: "pointer" }}>
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", margin: "0 0 3px" }}>🎯 Descubra seu Score iMoney</p>
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", margin: 0, fontWeight: 600 }}>Diagnóstico financeiro gratuito em 5 perguntas</p>
-              </div>
-              <div style={{ background: "#fff", borderRadius: 10, padding: "8px 14px", flexShrink: 0 }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: "#1D9E75" }}>Calcular →</span>
-              </div>
-            </div>
-          </a>
-        )
-      )}
-
-      {/* Eco indicators */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-6">
-        {[
-          { label: "SELIC Efetiva", value: eco ? `${eco.selic_anual}% a.a.` : "…", color: "#16a34a" },
-          { label: "Meta SELIC", value: eco ? `${eco.selic_meta}% a.a.` : "…", color: "#15803d" },
-          { label: "IPCA Mensal", value: eco ? `${eco.ipca_mensal}%` : "…", color: "#0d2414" },
-          { label: "IPCA 12m", value: eco ? `${eco.ipca_anual}%` : "…", color: "#0d2414" },
-          { label: "Juro Real", value: eco ? `${jurosReais}% a.a.` : "…", color: Number(jurosReais) > 6 ? "#16a34a" : "#f59e0b" },
-        ].map(({ label, value, color }, i) => (
-          <div key={label}
-            className="bg-white border border-[#e4f5e9] rounded-xl px-3 py-2.5 animate-fade-up opacity-0"
-            style={{ animationDelay: `${i * 60}ms` }}>
-            <p className="text-[10px] font-bold text-[#8db89d] uppercase tracking-wider mb-1">{label}</p>
-            <p className="text-sm font-black leading-none" style={{ color, fontFamily: "Nunito, sans-serif" }}>{value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Main KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {loading ? (
-          [0,1,2,3].map(i => <MetricCardSkeleton key={i} />)
-        ) : (
-          <>
-            <MetricCard label="Renda do Mês" value={formatBRL(dash?.renda ?? 0)}
-              icon={<Icon name="wallet" size={16} color="#1D9E75" />} animDelay={0} />
-            <MetricCard label="Gastos do Mês"
-              value={formatBRL(dash?.gastos ?? 0)}
-              sub={dash?.renda ? `${((dash.gastos/dash.renda)*100).toFixed(1)}% da renda` : ""}
-              trend={dash && dash.gastos > dash.renda * 0.8 ? "down" : "neutral"}
-              icon={<Icon name="trending-up" size={16} color="#1D9E75" />} animDelay={60} />
-            <MetricCard label="Sobra do Mês"
-              value={formatBRL(Math.abs(dash?.sobra ?? 0))}
-              sub={dash && dash.sobra >= 0 ? "disponível para investir" : "DÉFICIT"}
-              trend={dash && dash.sobra > 0 ? "up" : "down"}
-              icon={<Icon name="piggy-bank" size={16} color="#1D9E75" />} animDelay={120} />
-            <MetricCard label="SELIC" value={eco ? `${eco.selic_anual}% a.a.` : "—"}
-              sub={eco ? `Meta: ${eco.selic_meta}% | IPCA: ${eco.ipca_anual}%` : ""}
-              icon={<Icon name="pie" size={16} color="#1D9E75" />} animDelay={180} />
-          </>
-        )}
-      </div>
-
-      {mainMeta && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#8db89d', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Meta Principal</p>
-            <a href="/dashboard/metas" style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', textDecoration: 'none' }}>Ver todas →</a>
-          </div>
-          <GoalCard
-            title={mainMeta.nome}
-            emoji={metaEmoji(mainMeta.nome)}
-            current={fmtInt(mainMeta.valor_atual)}
-            target={fmtInt(mainMeta.valor_alvo)}
-            pct={Math.min(100, mainMeta.valor_alvo > 0 ? Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100) : 0)}
-            statusLeft={(() => {
-              const pct = mainMeta.valor_alvo > 0 ? Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100) : 0;
-              const m = mainMeta.prazo_meses;
-              if (pct < 5) return `${pct}% · começando`;
-              if (m >= 24) return `${pct}% · ${Math.round(m / 12)} anos restantes`;
-              return `${pct}% · faltam ${m} meses`;
-            })()}
-            statusRight={`R$ ${fmtInt((mainMeta.valor_alvo - mainMeta.valor_atual) / mainMeta.prazo_meses)}/mês`}
-            tone="white"
-          />
+        <div className="flex gap-2">
+          <button onClick={load} className="btn-ghost p-2.5"><RefreshCw size={16} className={loading ? "animate-spin" : ""}/></button>
+          <button onClick={exportarCSV} disabled={exportando} className="btn-ghost p-2.5" title="Exportar CSV (Premium)">
+            <Download size={16} className={exportando ? "animate-pulse" : ""}/>
+          </button>
+          <button
+            onClick={() => { setShowImport(!showImport); setShowForm(false); }}
+            className={cn("btn-ghost p-2.5", showImport && "bg-[#E8F5E9] text-[#00C853]")}
+            title="Importar extrato"
+          >
+            <Upload size={16}/>
+          </button>
+          <button onClick={() => { setShowForm(!showForm); setShowImport(false); }} className="btn-primary">
+            <Plus size={16}/> Nova
+          </button>
         </div>
-      )}
-
-      {/* Resumo Mensal */}
-      <div className="mb-6">
-        <MonthlySummaryCard isPro={isPro} />
       </div>
 
-      {/* Charts */}
-      {dash && pieData.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-          <div className="card">
-            <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
-              Gastos por Categoria
+      {/* Painel de importação */}
+      {showImport && (
+        <div className="card mb-5 border-[#bbf7d0] bg-[#f8fdf9]">
+          <div className="flex items-center justify-between mb-4">
+            <p className="font-bold text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
+              📂 Importar Extrato Bancário
             </p>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={90}
-                  paddingAngle={3} dataKey="value">
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v: number) => formatBRL(v)} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {pieData.map((d, i) => (
-                <span key={d.name} className="flex items-center gap-1 text-xs text-[#6b9e80]">
-                  <span className="w-2 h-2 rounded-full inline-block"
-                    style={{ background: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }}/>
-                  {d.name}
-                </span>
-              ))}
-            </div>
+            <button onClick={() => setShowImport(false)} className="text-gray-400 hover:text-gray-600">
+              <X size={16}/>
+            </button>
           </div>
-
-          {projecaoData.length > 0 && dash.sobra > 0 && (
-            <div className="card">
-              <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
-                Projeção de Poupança (12 meses)
-              </p>
-              <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={projecaoData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e4f5e9"/>
-                  <XAxis dataKey="mes" tick={{ fontSize: 10 }}/>
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`}/>
-                  <Tooltip formatter={(v: number) => formatBRL(v)}/>
-                  <Area type="monotone" dataKey="valor" stroke="#16a34a" fill="#f0fdf4"
-                    name="Com juros (SELIC)"/>
-                  <Area type="monotone" dataKey="semJuros" stroke="#86efac" fill="#dcfce7"
-                    name="Sem juros"/>
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+          <ImportarExtrato onSucesso={() => { setShowImport(false); load(); }} />
         </div>
       )}
 
-      {!loading && (!dash || (dash.renda === 0 && dash.gastos === 0)) && (
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="card animate-fade-up opacity-0 anim-1">
+          <p className="metric-label mb-1">Gastos (filtrado)</p>
+          <p className="metric-val text-red-500">{formatBRL(totalGastos)}</p>
+        </div>
+        <div className="card animate-fade-up opacity-0 anim-2">
+          <p className="metric-label mb-1">Receitas (filtrado)</p>
+          <p className="metric-val text-[#16a34a]">{formatBRL(totalReceitas)}</p>
+        </div>
+      </div>
+
+      {/* Add form */}
+      {showForm && (
+        <form onSubmit={save} className="card mb-5 animate-fade-up opacity-0 border-[#bbf7d0] bg-[#f8fdf9]">
+          <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>➕ Nova transação</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div className="sm:col-span-2">
+              <label className="label">Descrição</label>
+              <div className="flex gap-2">
+                <input value={desc} onChange={e => setDesc(e.target.value)}
+                  placeholder="Ex: Mercado, salário, Netflix..."
+                  className="input flex-1" maxLength={200}/>
+                <button type="button" onClick={autoCategorizar} disabled={!desc || !valor || categorizando}
+                  className="btn-secondary px-3 text-xs shrink-0">
+                  {categorizando ? <RefreshCw size={14} className="animate-spin"/> : <Tag size={14}/>}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="label">Valor (R$)</label>
+              <input type="number" value={valor} onChange={e => setValor(e.target.value)}
+                placeholder="0,00" min="0.01" step="0.01" className="input"/>
+            </div>
+            <div>
+              <label className="label">Data</label>
+              <input type="date" value={dataT} onChange={e => setDataT(e.target.value)} className="input"/>
+            </div>
+            <div>
+              <label className="label">Tipo</label>
+              <div className="flex gap-2">
+                {(["gasto","receita"] as const).map(t => (
+                  <button key={t} type="button" onClick={() => setTipo(t)}
+                    className={cn("flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all",
+                      tipo === t
+                        ? t === "gasto" ? "bg-red-50 border-red-300 text-red-700" : "bg-[#f0fdf4] border-[#86efac] text-[#15803d]"
+                        : "bg-white border-[#e4f5e9] text-[#8db89d] hover:bg-[#f8fdf9]"
+                    )} style={{ fontFamily: "Nunito, sans-serif" }}>
+                    {t === "gasto" ? "📤 Gasto" : "📥 Receita"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="label">Categoria</label>
+              <select value={cat} onChange={e => setCat(e.target.value as Categoria)} className="input">
+                {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          {formError && <p className="text-xs text-red-500 mb-3">⚠ {formError}</p>}
+          <div className="flex gap-2">
+            <button type="submit" disabled={saving} className="btn-primary flex-1">
+              {saving ? "Salvando..." : "💾 Salvar"}
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-4">Cancelar</button>
+          </div>
+        </form>
+      )}
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <div className="relative flex-1 min-w-48">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8db89d]"/>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar..." className="input pl-9 py-2 text-xs h-9"/>
+        </div>
+        <select value={filterTipo} onChange={e => setFilterTipo(e.target.value as typeof filterTipo)}
+          className="input py-2 text-xs h-9 w-auto">
+          <option value="todos">Todos</option>
+          <option value="gasto">Gastos</option>
+          <option value="receita">Receitas</option>
+        </select>
+        <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+          className="input py-2 text-xs h-9 w-auto">
+          <option value="todas">Todas categorias</option>
+          {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+        </select>
+      </div>
+
+      {/* List */}
+      {loading ? (
+        <div className="space-y-2">
+          {[0,1,2,3].map(i => <div key={i} className="card h-16 shimmer"/>)}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="card text-center py-12 bg-[#f8fdf9]">
-          <p className="text-3xl mb-2">📊</p>
-          <p className="font-bold text-[#0d2414]">Nenhuma transação este mês</p>
-          <p className="text-sm text-[#6b9e80] mt-1">
-            Registre suas receitas e gastos em <strong>Transações</strong> para ver o dashboard.
-          </p>
+          <p className="text-3xl mb-2">📋</p>
+          <p className="font-bold text-[#0d2414]">Nenhuma transação encontrada</p>
+          <p className="text-sm text-[#6b9e80] mt-1">Clique em "+ Nova" para registrar.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((t, i) => (
+            <div key={t.id}
+              className="card card-hover py-3 px-4 flex items-center gap-3 animate-fade-up opacity-0"
+              style={{ animationDelay: `${i * 30}ms` }}>
+              <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                t.tipo === "gasto" ? "bg-red-50" : "bg-[#f0fdf4]")}>
+                {t.tipo === "gasto"
+                  ? <TrendingDown size={15} className="text-red-500"/>
+                  : <TrendingUp size={15} className="text-[#16a34a]"/>}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-[#0d2414] truncate">{t.descricao}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className={cn("badge text-[10px] px-1.5 py-0.5", CAT_COLORS[t.categoria] ?? "badge-green")}>
+                    {t.categoria}
+                  </span>
+                  <span className="text-[11px] text-[#8db89d]">{formatDate(t.date)}</span>
+                  {t.importado_via && t.importado_via !== "manual" && (
+                    <span className="badge bg-purple-50 text-purple-600 text-[10px] px-1.5 py-0.5">📂 Importado</span>
+                  )}
+                </div>
+              </div>
+              <p className={cn("font-black text-sm shrink-0", t.tipo === "gasto" ? "text-red-500" : "text-[#16a34a]")}
+                style={{ fontFamily: "Nunito, sans-serif" }}>
+                {t.tipo === "gasto" ? "-" : "+"}{formatBRL(t.valor)}
+              </p>
+              <button onClick={() => remove(t.id)}
+                className="p-1.5 rounded-lg hover:bg-red-50 text-[#8db89d] hover:text-red-500 transition-colors shrink-0">
+                <Trash2 size={13}/>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="text-xs text-center text-[#8db89d] mt-4">
+        {filtered.length} transaç{filtered.length === 1 ? "ão" : "ões"} · máx. 500 por usuário
+      </p>
+
+      {/* Modal Premium */}
+      {showPremiumModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+          onClick={() => setShowPremiumModal(false)}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", maxWidth: 380, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>⭐</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a1a", marginBottom: 8, fontFamily: "Nunito, sans-serif" }}>
+              Exportação CSV é Premium
+            </div>
+            <p style={{ fontSize: 14, color: "#666", lineHeight: 1.6, marginBottom: 24 }}>
+              Com o plano Premium você exporta todas as suas transações em CSV para usar em planilhas, contadores ou onde precisar.
+            </p>
+            <Link href="/dashboard/premium"
+              style={{ display: "block", background: "linear-gradient(135deg, #78350f 0%, #F59E0B 100%)", color: "#fff", padding: "14px 0", borderRadius: 12, textDecoration: "none", fontWeight: 800, fontSize: 15, marginBottom: 12, fontFamily: "Nunito, sans-serif" }}>
+              Ver plano Premium — R$59,90/mês
+            </Link>
+            <button onClick={() => setShowPremiumModal(false)}
+              style={{ background: "none", border: "none", color: "#aaa", fontSize: 13, cursor: "pointer" }}>
+              Agora não
+            </button>
+          </div>
         </div>
       )}
     </div>
-    </>
   );
 }
