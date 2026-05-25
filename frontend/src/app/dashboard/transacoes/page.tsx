@@ -30,7 +30,6 @@ export default function TransacoesPage() {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
 
-  // Form state
   const [desc, setDesc] = useState("");
   const [valor, setValor] = useState("");
   const [tipo, setTipo] = useState<"gasto"|"receita">("gasto");
@@ -141,184 +140,185 @@ export default function TransacoesPage() {
   const totalReceitas = filtered.filter(t => t.tipo === "receita").reduce((s, t) => s + t.valor, 0);
 
   return (
-    <div className="p-5 lg:p-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-7">
-        <div>
-          <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
-            📝 Transações
-          </h1>
-          <p className="text-sm text-[#6b9e80] mt-0.5">Registre e acompanhe seus gastos e receitas</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={load} className="btn-ghost p-2.5"><RefreshCw size={16} className={loading ? "animate-spin" : ""}/></button>
-          <button onClick={exportarCSV} disabled={exportando} className="btn-ghost p-2.5" title="Exportar CSV (Premium)">
-            <Download size={16} className={exportando ? "animate-pulse" : ""}/>
-          </button>
-          <button onClick={() => setShowImportModal(true)} className="btn-ghost p-2.5" title="Importar extrato">
-            📂
-          </button>
-          <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-            <Plus size={16}/> Nova
-          </button>
-        </div>
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
-        <div className="card animate-fade-up opacity-0 anim-1">
-          <p className="metric-label mb-1">Gastos (filtrado)</p>
-          <p className="metric-val text-red-500">{formatBRL(totalGastos)}</p>
-        </div>
-        <div className="card animate-fade-up opacity-0 anim-2">
-          <p className="metric-label mb-1">Receitas (filtrado)</p>
-          <p className="metric-val text-[#16a34a]">{formatBRL(totalReceitas)}</p>
-        </div>
-      </div>
-
-      {/* Add form */}
-      {showForm && (
-        <form onSubmit={save} className="card mb-5 animate-fade-up opacity-0 border-[#bbf7d0] bg-[#f8fdf9]">
-          <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
-            ➕ Nova transação
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-            <div className="sm:col-span-2">
-              <label className="label">Descrição</label>
-              <div className="flex gap-2">
-                <input value={desc} onChange={e => setDesc(e.target.value)}
-                  placeholder="Ex: Mercado, salário, Netflix..."
-                  className="input flex-1" maxLength={200}/>
-                <button type="button" onClick={autoCategorizar} disabled={!desc || !valor || categorizando}
-                  className="btn-secondary px-3 text-xs shrink-0" title="Auto-categorizar com IA">
-                  {categorizando ? <RefreshCw size={14} className="animate-spin"/> : <Tag size={14}/>}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="label">Valor (R$)</label>
-              <input type="number" value={valor} onChange={e => setValor(e.target.value)}
-                placeholder="0,00" min="0.01" step="0.01" className="input"/>
-            </div>
-            <div>
-              <label className="label">Data</label>
-              <input type="date" value={dataT} onChange={e => setDataT(e.target.value)} className="input"/>
-            </div>
-            <div>
-              <label className="label">Tipo</label>
-              <div className="flex gap-2">
-                {(["gasto","receita"] as const).map(t => (
-                  <button key={t} type="button" onClick={() => setTipo(t)}
-                    className={cn("flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all",
-                      tipo === t
-                        ? t === "gasto"
-                          ? "bg-red-50 border-red-300 text-red-700"
-                          : "bg-[#f0fdf4] border-[#86efac] text-[#15803d]"
-                        : "bg-white border-[#e4f5e9] text-[#8db89d] hover:bg-[#f8fdf9]"
-                    )} style={{ fontFamily: "Nunito, sans-serif" }}>
-                    {t === "gasto" ? "📤 Gasto" : "📥 Receita"}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="label">Categoria</label>
-              <select value={cat} onChange={e => setCat(e.target.value as Categoria)}
-                className="input">
-                {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
-              </select>
-            </div>
+    <>
+      <div className="p-5 lg:p-8 max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-7">
+          <div>
+            <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
+              📝 Transações
+            </h1>
+            <p className="text-sm text-[#6b9e80] mt-0.5">Registre e acompanhe seus gastos e receitas</p>
           </div>
-          {formError && <p className="text-xs text-red-500 mb-3">⚠ {formError}</p>}
           <div className="flex gap-2">
-            <button type="submit" disabled={saving} className="btn-primary flex-1">
-              {saving ? "Salvando..." : "💾 Salvar"}
+            <button onClick={load} className="btn-ghost p-2.5"><RefreshCw size={16} className={loading ? "animate-spin" : ""}/></button>
+            <button onClick={exportarCSV} disabled={exportando} className="btn-ghost p-2.5" title="Exportar CSV (Premium)">
+              <Download size={16} className={exportando ? "animate-pulse" : ""}/>
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-4">Cancelar</button>
+            <button onClick={() => setShowImportModal(true)} className="btn-ghost p-2.5" title="Importar extrato">
+              📂
+            </button>
+            <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+              <Plus size={16}/> Nova
+            </button>
           </div>
-        </form>
-      )}
+        </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <div className="relative flex-1 min-w-48">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8db89d]"/>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar..." className="input pl-9 py-2 text-xs h-9"/>
+        {/* Summary cards */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="card animate-fade-up opacity-0 anim-1">
+            <p className="metric-label mb-1">Gastos (filtrado)</p>
+            <p className="metric-val text-red-500">{formatBRL(totalGastos)}</p>
+          </div>
+          <div className="card animate-fade-up opacity-0 anim-2">
+            <p className="metric-label mb-1">Receitas (filtrado)</p>
+            <p className="metric-val text-[#16a34a]">{formatBRL(totalReceitas)}</p>
+          </div>
         </div>
-        <select value={filterTipo} onChange={e => setFilterTipo(e.target.value as typeof filterTipo)}
-          className="input py-2 text-xs h-9 w-auto">
-          <option value="todos">Todos</option>
-          <option value="gasto">Gastos</option>
-          <option value="receita">Receitas</option>
-        </select>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-          className="input py-2 text-xs h-9 w-auto">
-          <option value="todas">Todas categorias</option>
-          {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
-        </select>
-      </div>
 
-      {/* List */}
-      {loading ? (
-        <div className="space-y-2">
-          {[0,1,2,3].map(i => <div key={i} className="card h-16 shimmer"/>)}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="card text-center py-12 bg-[#f8fdf9]">
-          <p className="text-3xl mb-2">📋</p>
-          <p className="font-bold text-[#0d2414]">Nenhuma transação encontrada</p>
-          <p className="text-sm text-[#6b9e80] mt-1">Clique em "+ Nova" para registrar.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((t, i) => (
-            <div key={t.id}
-              className="card card-hover py-3 px-4 flex items-center gap-3 animate-fade-up opacity-0"
-              style={{ animationDelay: `${i * 30}ms` }}>
-              <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                t.tipo === "gasto" ? "bg-red-50" : "bg-[#f0fdf4]")}>
-                {t.tipo === "gasto"
-                  ? <TrendingDown size={15} className="text-red-500"/>
-                  : <TrendingUp size={15} className="text-[#16a34a]"/>}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-[#0d2414] truncate">{t.descricao}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className={cn("badge text-[10px] px-1.5 py-0.5", CAT_COLORS[t.categoria] ?? "badge-green")}>
-                    {t.categoria}
-                  </span>
-                  <span className="text-[11px] text-[#8db89d]">{formatDate(t.date)}</span>
-                  {t.importado_via && t.importado_via !== "manual" && (
-                    <span className="badge bg-purple-50 text-purple-600 text-[10px] px-1.5 py-0.5">📂 Importado</span>
-                  )}
+        {/* Add form */}
+        {showForm && (
+          <form onSubmit={save} className="card mb-5 animate-fade-up opacity-0 border-[#bbf7d0] bg-[#f8fdf9]">
+            <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
+              ➕ Nova transação
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div className="sm:col-span-2">
+                <label className="label">Descrição</label>
+                <div className="flex gap-2">
+                  <input value={desc} onChange={e => setDesc(e.target.value)}
+                    placeholder="Ex: Mercado, salário, Netflix..."
+                    className="input flex-1" maxLength={200}/>
+                  <button type="button" onClick={autoCategorizar} disabled={!desc || !valor || categorizando}
+                    className="btn-secondary px-3 text-xs shrink-0" title="Auto-categorizar com IA">
+                    {categorizando ? <RefreshCw size={14} className="animate-spin"/> : <Tag size={14}/>}
+                  </button>
                 </div>
               </div>
-              <p className={cn("font-black text-sm shrink-0", t.tipo === "gasto" ? "text-red-500" : "text-[#16a34a]")}
-                style={{ fontFamily: "Nunito, sans-serif" }}>
-                {t.tipo === "gasto" ? "-" : "+"}{formatBRL(t.valor)}
-              </p>
-              <button onClick={() => remove(t.id)}
-                className="p-1.5 rounded-lg hover:bg-red-50 text-[#8db89d] hover:text-red-500 transition-colors shrink-0">
-                <Trash2 size={13}/>
-              </button>
+              <div>
+                <label className="label">Valor (R$)</label>
+                <input type="number" value={valor} onChange={e => setValor(e.target.value)}
+                  placeholder="0,00" min="0.01" step="0.01" className="input"/>
+              </div>
+              <div>
+                <label className="label">Data</label>
+                <input type="date" value={dataT} onChange={e => setDataT(e.target.value)} className="input"/>
+              </div>
+              <div>
+                <label className="label">Tipo</label>
+                <div className="flex gap-2">
+                  {(["gasto","receita"] as const).map(t => (
+                    <button key={t} type="button" onClick={() => setTipo(t)}
+                      className={cn("flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all",
+                        tipo === t
+                          ? t === "gasto"
+                            ? "bg-red-50 border-red-300 text-red-700"
+                            : "bg-[#f0fdf4] border-[#86efac] text-[#15803d]"
+                          : "bg-white border-[#e4f5e9] text-[#8db89d] hover:bg-[#f8fdf9]"
+                      )} style={{ fontFamily: "Nunito, sans-serif" }}>
+                      {t === "gasto" ? "📤 Gasto" : "📥 Receita"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="label">Categoria</label>
+                <select value={cat} onChange={e => setCat(e.target.value as Categoria)} className="input">
+                  {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
             </div>
-          ))}
+            {formError && <p className="text-xs text-red-500 mb-3">⚠ {formError}</p>}
+            <div className="flex gap-2">
+              <button type="submit" disabled={saving} className="btn-primary flex-1">
+                {saving ? "Salvando..." : "💾 Salvar"}
+              </button>
+              <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-4">Cancelar</button>
+            </div>
+          </form>
+        )}
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <div className="relative flex-1 min-w-48">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8db89d]"/>
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar..." className="input pl-9 py-2 text-xs h-9"/>
+          </div>
+          <select value={filterTipo} onChange={e => setFilterTipo(e.target.value as typeof filterTipo)}
+            className="input py-2 text-xs h-9 w-auto">
+            <option value="todos">Todos</option>
+            <option value="gasto">Gastos</option>
+            <option value="receita">Receitas</option>
+          </select>
+          <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+            className="input py-2 text-xs h-9 w-auto">
+            <option value="todas">Todas categorias</option>
+            {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+          </select>
         </div>
-      )}
 
-      <p className="text-xs text-center text-[#8db89d] mt-4">
-        {filtered.length} transaç{filtered.length === 1 ? "ão" : "ões"} · máx. 500 por usuário
-      </p>
+        {/* List */}
+        {loading ? (
+          <div className="space-y-2">
+            {[0,1,2,3].map(i => <div key={i} className="card h-16 shimmer"/>)}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="card text-center py-12 bg-[#f8fdf9]">
+            <p className="text-3xl mb-2">📋</p>
+            <p className="font-bold text-[#0d2414]">Nenhuma transação encontrada</p>
+            <p className="text-sm text-[#6b9e80] mt-1">Clique em "+ Nova" para registrar.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((t, i) => (
+              <div key={t.id}
+                className="card card-hover py-3 px-4 flex items-center gap-3 animate-fade-up opacity-0"
+                style={{ animationDelay: `${i * 30}ms` }}>
+                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                  t.tipo === "gasto" ? "bg-red-50" : "bg-[#f0fdf4]")}>
+                  {t.tipo === "gasto"
+                    ? <TrendingDown size={15} className="text-red-500"/>
+                    : <TrendingUp size={15} className="text-[#16a34a]"/>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-[#0d2414] truncate">{t.descricao}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={cn("badge text-[10px] px-1.5 py-0.5", CAT_COLORS[t.categoria] ?? "badge-green")}>
+                      {t.categoria}
+                    </span>
+                    <span className="text-[11px] text-[#8db89d]">{formatDate(t.date)}</span>
+                    {t.importado_via && t.importado_via !== "manual" && (
+                      <span className="badge bg-purple-50 text-purple-600 text-[10px] px-1.5 py-0.5">📂 Importado</span>
+                    )}
+                  </div>
+                </div>
+                <p className={cn("font-black text-sm shrink-0", t.tipo === "gasto" ? "text-red-500" : "text-[#16a34a]")}
+                  style={{ fontFamily: "Nunito, sans-serif" }}>
+                  {t.tipo === "gasto" ? "-" : "+"}{formatBRL(t.valor)}
+                </p>
+                <button onClick={() => remove(t.id)}
+                  className="p-1.5 rounded-lg hover:bg-red-50 text-[#8db89d] hover:text-red-500 transition-colors shrink-0">
+                  <Trash2 size={13}/>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {/* Modal Importar Extrato */}
+        <p className="text-xs text-center text-[#8db89d] mt-4">
+          {filtered.length} transaç{filtered.length === 1 ? "ão" : "ões"} · máx. 500 por usuário
+        </p>
+      </div>
+
+      {/* Modal Importar Extrato — fora do div principal para evitar conflito de layout */}
       {showImportModal && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+          style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
           onClick={() => setShowImportModal(false)}
         >
           <div
-            style={{ background: "#fff", borderRadius: 20, padding: "28px 24px", maxWidth: 480, width: "100%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
+            style={{ background: "#fff", borderRadius: 20, padding: "28px 24px", maxWidth: 480, width: "100%", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", position: "relative", zIndex: 10000 }}
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
@@ -332,12 +332,16 @@ export default function TransacoesPage() {
         </div>
       )}
 
-      {/* Modal Premium */}
+      {/* Modal Premium — fora do div principal */}
       {showPremiumModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
-          onClick={() => setShowPremiumModal(false)}>
-          <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", maxWidth: 380, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
-            onClick={e => e.stopPropagation()}>
+        <div
+          style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+          onClick={() => setShowPremiumModal(false)}
+        >
+          <div
+            style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", maxWidth: 380, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", position: "relative", zIndex: 10000 }}
+            onClick={e => e.stopPropagation()}
+          >
             <div style={{ fontSize: 40, marginBottom: 12 }}>⭐</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a1a", marginBottom: 8, fontFamily: "Nunito, sans-serif" }}>
               Exportação CSV é Premium
@@ -356,6 +360,6 @@ export default function TransacoesPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
