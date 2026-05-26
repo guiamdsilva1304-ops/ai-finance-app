@@ -15,30 +15,42 @@ const LIMITE_PRO = 10
 async function verificarLimite(userId: string): Promise<{ permitido: boolean; usadas: number; limite: number; plano: string }> {
   const { data: perfil } = await supabase
     .from('user_profiles')
-    .select('plan')
+    .select('plan, daily_messages_count, daily_messages_date')
     .eq('id', userId)
     .single()
 
   const plano = perfil?.plan ?? 'free'
 
-  // Premium: ilimitado, sem contar mensagens
   if (plano === 'premium') return { permitido: true, usadas: 0, limite: 0, plano }
 
   const limite = plano === 'pro' ? LIMITE_PRO : LIMITE_FREE
 
-  // Conta mensagens do usuário hoje (free e pro)
-  const hoje = new Date()
-  hoje.setHours(0, 0, 0, 0)
+  const hoje = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+  const dataUltimo = perfil?.daily_messages_date ?? null
+  const usadas = dataUltimo === hoje ? (perfil?.daily_messages_count ?? 0) : 0
 
-  const { count } = await supabase
-    .from('chat_history')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('role', 'user')
-    .gte('created_at', hoje.toISOString())
-
-  const usadas = count ?? 0
   return { permitido: usadas < limite, usadas, limite, plano }
+}
+
+async function incrementarContador(userId: string): Promise<void> {
+  const hoje = new Date().toISOString().split('T')[0]
+
+  const { data: perfil } = await supabase
+    .from('user_profiles')
+    .select('daily_messages_count, daily_messages_date')
+    .eq('id', userId)
+    .single()
+
+  const dataUltimo = perfil?.daily_messages_date ?? null
+  const countAtual = dataUltimo === hoje ? (perfil?.daily_messages_count ?? 0) : 0
+
+  await supabase
+    .from('user_profiles')
+    .update({
+      daily_messages_count: countAtual + 1,
+      daily_messages_date: hoje,
+    })
+    .eq('id', userId)
 }
 
 async function callAnthropicWithRetry(client: any, params: any, maxRetries = 3) {
@@ -190,14 +202,17 @@ Regras do plano:
 
     const reply = response.content[0].type === "text" ? response.content[0].text : "";
 
-    // Salva no histórico
+    // Salva histórico e incrementa contador em paralelo
     const ultimaMensagem = messages[messages.length - 1]
-    if (ultimaMensagem?.role === 'user') {
-      await supabase.from('chat_history').insert([
-        { user_id: user.id, role: 'user', content: ultimaMensagem.content, created_at: new Date().toISOString() },
-        { user_id: user.id, role: 'assistant', content: reply, created_at: new Date().toISOString() },
-      ])
-    }
+    await Promise.allSettled([
+      ultimaMensagem?.role === 'user'
+        ? supabase.from('chat_history').insert([
+            { user_id: user.id, role: 'user', content: ultimaMensagem.content, created_at: new Date().toISOString() },
+            { user_id: user.id, role: 'assistant', content: reply, created_at: new Date().toISOString() },
+          ])
+        : Promise.resolve(),
+      plano !== 'premium' ? incrementarContador(user.id) : Promise.resolve(),
+    ])
 
     return NextResponse.json({
       reply,
