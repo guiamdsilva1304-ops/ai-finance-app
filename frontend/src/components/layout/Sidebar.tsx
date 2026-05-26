@@ -21,13 +21,13 @@ const NAV_ITEMS: { href: string; icon: IconName; label: string }[] = [
 ];
 
 const MOBILE_NAV_LEFT: { href: string; icon: IconName; label: string }[] = [
-  { href: "/dashboard",         icon: 'home',   label: "Início" },
-  { href: "/dashboard/metas",   icon: 'target', label: "Metas" },
+  { href: "/dashboard",            icon: 'home',     label: "Início" },
+  { href: "/dashboard/transacoes", icon: 'wallet',   label: "Transações" },
 ];
 
 const MOBILE_NAV_RIGHT: { href: string; icon: IconName; label: string }[] = [
-  { href: "/dashboard/investimentos", icon: 'trending-up', label: "Investir" },
-  { href: "/dashboard/perfil",        icon: 'user',        label: "Você" },
+  { href: "/dashboard/assessor", icon: 'sparkles', label: "Assessor" },
+  { href: "/dashboard/perfil",   icon: 'user',     label: "Você" },
 ];
 
 interface SidebarProps {
@@ -142,9 +142,10 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
         </button>
       </aside>
 
-      {/* Mobile bottom navigation with FAB */}
+      {/* Mobile bottom navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e4f5e9] flex items-end justify-around px-2"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 72 }}>
+
         {MOBILE_NAV_LEFT.map(({ href, icon, label }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
@@ -158,7 +159,7 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
           );
         })}
 
-        {/* FAB */}
+        {/* FAB — Adicionar meta */}
         <Link href="/dashboard/metas?add=true"
           style={{ width: 54, height: 54, borderRadius: '50%', background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, boxShadow: '0 4px 18px rgba(29,158,117,0.45)', flexShrink: 0 }}>
           <span style={{ color: '#fff', fontSize: 30, fontWeight: 300, lineHeight: 1, marginTop: -2 }}>+</span>
