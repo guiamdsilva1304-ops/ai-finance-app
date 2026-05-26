@@ -75,6 +75,7 @@ export default function OnboardingPage() {
   async function salvarPerfil(userId: string) {
     await supabase.from("user_profiles").upsert({
       id: userId,
+      user_id: userId, // garante consistência com o campo usado no restante do app
       nome,
       ocupacao,
       renda_mensal: parseFloat(renda) || 0,
@@ -231,7 +232,6 @@ export default function OnboardingPage() {
           <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>🩻 Sua Radiografia Financeira</span>
         </div>
 
-        {/* Profile card */}
         <div className="r-fade" style={{ animationDelay: "0.1s", width: "100%", maxWidth: 440, background: "#fff", borderRadius: 24, padding: "32px 28px 24px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", marginBottom: 16 }}>
           <div style={{ textAlign: "center", marginBottom: 24 }}>
             <div style={{ fontSize: 68, lineHeight: 1, marginBottom: 14 }}>{diagnostico.perfil_emoji}</div>
@@ -258,7 +258,6 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* Priorities */}
         <div className="r-fade" style={{ animationDelay: "0.2s", width: "100%", maxWidth: 440, marginBottom: 16 }}>
           <p style={{ fontSize: 12, fontWeight: 800, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, textAlign: "center" }}>
             📌 Prioridades para os próximos 30 dias
@@ -281,42 +280,24 @@ export default function OnboardingPage() {
           ))}
         </div>
 
-        {/* Motivational quote */}
         <div className="r-fade" style={{ animationDelay: "0.3s", width: "100%", maxWidth: 440, background: "rgba(255,255,255,0.08)", borderRadius: 16, padding: "20px 24px", marginBottom: 24, textAlign: "center", border: "1px solid rgba(255,255,255,0.15)" }}>
           <p style={{ fontSize: 15, color: "#d1fae5", fontStyle: "italic", margin: 0, lineHeight: 1.7, fontWeight: 600 }}>
             &ldquo;{diagnostico.frase_motivacional}&rdquo;
           </p>
         </div>
 
-        {/* Buttons */}
         <div className="r-fade" style={{ animationDelay: "0.4s", width: "100%", maxWidth: 440, display: "flex", flexDirection: "column", gap: 12 }}>
           <button onClick={compartilharPerfil} style={{
-            padding: "16px 0",
-            borderRadius: 14,
-            border: "2px solid rgba(255,255,255,0.35)",
-            background: "rgba(255,255,255,0.12)",
-            color: "#fff",
-            fontSize: 15,
-            fontWeight: 800,
-            cursor: "pointer",
-            fontFamily: "'Nunito',sans-serif",
-            backdropFilter: "blur(10px)",
-            transition: "all 0.2s",
+            padding: "16px 0", borderRadius: 14, border: "2px solid rgba(255,255,255,0.35)",
+            background: "rgba(255,255,255,0.12)", color: "#fff", fontSize: 15, fontWeight: 800,
+            cursor: "pointer", fontFamily: "'Nunito',sans-serif", backdropFilter: "blur(10px)", transition: "all 0.2s",
           }}>
             {compartilhado ? "✅ Copiado! Compartilhe nas suas redes" : "📤 Compartilhar meu perfil"}
           </button>
           <button onClick={irParaDashboard} style={{
-            padding: "16px 0",
-            borderRadius: 14,
-            border: "none",
-            background: "#fff",
-            color: "#0a3d28",
-            fontSize: 15,
-            fontWeight: 800,
-            cursor: "pointer",
-            fontFamily: "'Nunito',sans-serif",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
-            transition: "all 0.2s",
+            padding: "16px 0", borderRadius: 14, border: "none", background: "#fff",
+            color: "#0a3d28", fontSize: 15, fontWeight: 800, cursor: "pointer",
+            fontFamily: "'Nunito',sans-serif", boxShadow: "0 4px 24px rgba(0,0,0,0.2)", transition: "all 0.2s",
           }}>
             Ir para o Dashboard →
           </button>
@@ -357,7 +338,6 @@ export default function OnboardingPage() {
             <p style={{ fontSize: 14, color: "#888", margin: 0, lineHeight: 1.6 }}>{stepAtual.subtitulo}</p>
           </div>
 
-          {/* Step 1 — Perfil */}
           {step === 1 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
@@ -381,7 +361,6 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 2 — Renda */}
           {step === 2 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
@@ -404,7 +383,6 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 3 — Meta */}
           {step === 3 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -444,7 +422,6 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 4 — Radiografia */}
           {step === 4 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
               {PERGUNTAS.map(p => (
@@ -456,18 +433,12 @@ export default function OnboardingPage() {
                     {p.opcoes.map(opcao => (
                       <button key={opcao} onClick={() => setRespostas(prev => ({ ...prev, [p.id]: opcao }))}
                         style={{
-                          padding: "12px 10px",
-                          borderRadius: 12,
+                          padding: "12px 10px", borderRadius: 12,
                           border: `2px solid ${respostas[p.id] === opcao ? "#1D9E75" : "#e8ede8"}`,
                           background: respostas[p.id] === opcao ? "#E1F5EE" : "#fff",
                           color: respostas[p.id] === opcao ? "#085041" : "#444",
-                          fontSize: 13,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          fontFamily: "'Nunito',sans-serif",
-                          textAlign: "left",
-                          lineHeight: 1.4,
-                          transition: "all 0.15s",
+                          fontSize: 13, fontWeight: 700, cursor: "pointer",
+                          fontFamily: "'Nunito',sans-serif", textAlign: "left", lineHeight: 1.4, transition: "all 0.15s",
                         }}>
                         {opcao}
                       </button>
