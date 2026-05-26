@@ -27,7 +27,6 @@ async function enviarEmail(to: string, subject: string, html: string) {
   await resend.emails.send({ from: FROM, to, subject, html })
 }
 
-// Campanha 1: Quase lá — usou 8+ msgs hoje (free)
 async function campanhaQuaseLa(users: { id: string; email: string; nome: string }[]) {
   let enviados = 0
   const hoje = new Date(); hoje.setHours(0,0,0,0)
@@ -76,7 +75,6 @@ async function campanhaQuaseLa(users: { id: string; email: string; nome: string 
   return enviados
 }
 
-// Campanha 2: Power user — 10+ transações (free)
 async function campanhaPowerUser(users: { id: string; email: string; nome: string }[]) {
   let enviados = 0
 
@@ -120,7 +118,6 @@ async function campanhaPowerUser(users: { id: string; email: string; nome: strin
   return enviados
 }
 
-// Campanha 3: Meta ambiciosa — meta > R$ 10k (free)
 async function campanhaMetaAmbiciosa(users: { id: string; email: string; nome: string }[]) {
   let enviados = 0
 
@@ -165,7 +162,6 @@ async function campanhaMetaAmbiciosa(users: { id: string; email: string; nome: s
   return enviados
 }
 
-// Campanha 4: Abandono — cadastrou mas nunca registrou nada (após 3 dias)
 async function campanhaAbandono(users: { id: string; email: string; nome: string; created_at: string }[]) {
   let enviados = 0
 
@@ -212,15 +208,14 @@ async function campanhaAbandono(users: { id: string; email: string; nome: string
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (secret !== process.env.imoneycronsecret2026)
+    ?? new URL(req.url).searchParams.get('secret')
+  if (secret !== process.env.CRON_SECRET)
     return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
 
   try {
-    // Busca usuários free
     const { data: { users } } = await supabase.auth.admin.listUsers()
     if (!users?.length) return NextResponse.json({ enviados: 0 })
 
-    // Filtra só free
     const userIds = users.map(u => u.id)
     const { data: perfis } = await supabase
       .from('user_profiles')
