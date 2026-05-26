@@ -110,10 +110,11 @@ export default function MetasPage() {
       const params = new URLSearchParams(window.location.search);
       if (params.get("add") === "true") {
         setShowOnboarding(true);
-        setOnboardingStep(1);
+        // Se já tem nome salvo, pula direto pro step 2
+        setOnboardingStep(onboardingName ? 2 : 1);
       }
     }
-  }, []);
+  }, [onboardingName]);
 
   const load = useCallback(async () => {
     setLoading(true);
