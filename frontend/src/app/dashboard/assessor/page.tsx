@@ -28,8 +28,8 @@ interface PlanData {
 
 interface Message {
   role: "user" | "assistant";
-  content: string;      // texto limpo (sem o bloco ```plano)
-  plan?: PlanData;      // presente quando a resposta inclui um plano
+  content: string;
+  plan?: PlanData;
 }
 
 // ─── Parser de plano ─────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ function PlanCards({ plan }: { plan: PlanData }) {
         padding: '14px 18px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       }}>
-        <div>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>
             Plano para conquistar
           </div>
@@ -115,6 +115,7 @@ function PlanCards({ plan }: { plan: PlanData }) {
                   border: 'none', cursor: 'pointer',
                   padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
                   textAlign: 'left', transition: 'background .15s',
+                  overflow: 'hidden',
                 }}
               >
                 {/* Número */}
@@ -142,7 +143,10 @@ function PlanCards({ plan }: { plan: PlanData }) {
                   <div style={{
                     fontSize: 10, fontWeight: 700, color: cor.text,
                     background: cor.bg, border: `1px solid ${cor.border}33`,
-                    padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap', flexShrink: 0,
+                    padding: '3px 8px', borderRadius: 20,
+                    whiteSpace: 'nowrap', flexShrink: 1,
+                    overflow: 'hidden', textOverflow: 'ellipsis',
+                    maxWidth: '45%',
                   }}>
                     {fase.meta_parcial}
                   </div>
@@ -191,7 +195,7 @@ function PlanCards({ plan }: { plan: PlanData }) {
                       display: 'flex', alignItems: 'center', gap: 10,
                     }}>
                       <span style={{ fontSize: 18 }}>🎯</span>
-                      <div>
+                      <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 9, fontWeight: 700, color: cor.text, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 1 }}>Marco da fase</div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: cor.text }}>{fase.meta_parcial}</div>
                       </div>
@@ -309,7 +313,6 @@ export default function AssessorPage() {
         conversation_id: conversationId,
       });
 
-      // Para o histórico enviado à API, reconstruímos com o bloco plano original se existir
       const messagesParaApi = updated.map(m => ({
         role: m.role,
         content: m.plan ? `${m.content}\n\n\`\`\`plano\n${JSON.stringify(m.plan)}\n\`\`\`` : m.content,
