@@ -293,7 +293,7 @@ export function PricingTable() {
               {[
                 'Dashboard completo',
                 'Metas ilimitadas',
-                'Assessor IA · 3 msgs/dia',
+                'Assessor IA · 15 msgs/dia',
                 'Transações manuais',
                 'Taxas SELIC e IPCA',
               ].map(t => (
@@ -326,7 +326,7 @@ export function PricingTable() {
             <ul style={{ listStyle: 'none', padding: 0, margin: '20px 0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
                 'Tudo do Gratuito',
-                'Assessor IA · 10 msgs/dia',
+                'Assessor IA · 50 msgs/dia',
                 'Controle de investimentos',
                 'Análises avançadas de gastos',
                 'Relatórios mensais automáticos',
