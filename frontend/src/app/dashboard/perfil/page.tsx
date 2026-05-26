@@ -172,8 +172,8 @@ export default function PerfilPage() {
             <User size={22}/>
           </div>
           <div>
-            <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider">Email</p>
-            <p className="font-bold text-[#0d2414]">{email}</p>
+            <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider">Como te chamar</p>
+            <p className="font-bold text-[#0d2414]">{nome || email}</p>
           </div>
         </div>
         <div>
