@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/imoney/primitives";
 
-// Brazilian states and cities data
 const ESTADOS: Record<string, string> = {
   AC:"Acre",AL:"Alagoas",AP:"Amapá",AM:"Amazonas",BA:"Bahia",CE:"Ceará",
   DF:"Distrito Federal",ES:"Espírito Santo",GO:"Goiás",MA:"Maranhão",
@@ -83,6 +82,13 @@ export default function PerfilPage() {
   const [estado, setEstado] = useState("");
   const [cidade, setCidade] = useState("");
 
+  // Modais de ação crítica
+  const [showCancelPlan, setShowCancelPlan] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionMsg, setActionMsg] = useState("");
+
   const supabase = createSupabaseBrowser();
 
   useEffect(() => {
@@ -145,6 +151,35 @@ export default function PerfilPage() {
     setProfile({ ...profile, ...upsertData } as Profile);
   }
 
+  async function cancelPlan() {
+    setActionLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("user_profiles").update({
+      plan: "free",
+      plan_expires_at: null,
+      is_pro: false,
+    }).eq("user_id", user!.id);
+    setPlan("free");
+    setActionLoading(false);
+    setShowCancelPlan(false);
+    setActionMsg("Plano cancelado. Você voltou para o plano gratuito.");
+    setTimeout(() => setActionMsg(""), 5000);
+  }
+
+  async function deleteAccount() {
+    if (deleteConfirm !== email) return;
+    setActionLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    // Apaga dados do usuário
+    await supabase.from("transactions").delete().eq("user_id", user.id);
+    await supabase.from("metas").delete().eq("user_id", user.id);
+    await supabase.from("chat_history").delete().eq("user_id", user.id);
+    await supabase.from("user_profiles").delete().eq("user_id", user.id);
+    await supabase.auth.signOut();
+    window.location.href = "/?conta=excluida";
+  }
+
   const cidades = estado ? (CIDADES[estado] ?? []) : [];
 
   if (loading) return (
@@ -155,6 +190,62 @@ export default function PerfilPage() {
 
   return (
     <div className="p-5 lg:p-8 max-w-2xl mx-auto">
+
+      {/* Modal cancelar plano */}
+      {showCancelPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="text-2xl mb-3">😢</div>
+            <h3 className="font-black text-[#0d2414] text-lg mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Cancelar plano?</h3>
+            <p className="text-sm text-[#6b9e80] mb-5 leading-relaxed">
+              Você voltará ao plano gratuito com limite de 3 mensagens/dia no Assessor. Seus dados continuam salvos.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowCancelPlan(false)}
+                className="flex-1 py-3 rounded-xl border border-[#e4f5e9] text-sm font-bold text-[#6b9e80]">
+                Manter plano
+              </button>
+              <button onClick={cancelPlan} disabled={actionLoading}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-white"
+                style={{ background: '#ef4444' }}>
+                {actionLoading ? "Cancelando..." : "Confirmar cancelamento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal excluir conta */}
+      {showDeleteAccount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="text-2xl mb-3">⚠️</div>
+            <h3 className="font-black text-[#0d2414] text-lg mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Excluir conta permanentemente?</h3>
+            <p className="text-sm text-[#6b9e80] mb-4 leading-relaxed">
+              Todos os seus dados serão apagados — transações, metas, histórico e perfil. Essa ação <strong>não pode ser desfeita</strong>.
+            </p>
+            <p className="text-xs font-bold text-[#6b9e80] mb-2">Digite seu email para confirmar:</p>
+            <input
+              value={deleteConfirm}
+              onChange={e => setDeleteConfirm(e.target.value)}
+              placeholder={email}
+              className="input mb-4 text-sm"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => { setShowDeleteAccount(false); setDeleteConfirm(""); }}
+                className="flex-1 py-3 rounded-xl border border-[#e4f5e9] text-sm font-bold text-[#6b9e80]">
+                Cancelar
+              </button>
+              <button onClick={deleteAccount} disabled={deleteConfirm !== email || actionLoading}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-40"
+                style={{ background: '#ef4444' }}>
+                {actionLoading ? "Excluindo..." : "Excluir conta"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-7">
         <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
@@ -165,21 +256,27 @@ export default function PerfilPage() {
         </p>
       </div>
 
+      {actionMsg && (
+        <div className="mb-5 bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl px-4 py-3 text-sm text-[#15803d] font-medium">
+          ✅ {actionMsg}
+        </div>
+      )}
+
       {/* Email + plano */}
       <div className="card mb-5 flex items-center justify-between gap-3 animate-fade-up opacity-0 anim-1">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#16a34a] to-[#22c55e] flex items-center justify-center text-white">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#16a34a] to-[#22c55e] flex items-center justify-center text-white flex-shrink-0">
             <User size={22}/>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider">Como te chamar</p>
-            <p className="font-bold text-[#0d2414]">{nome || email}</p>
+            <p className="font-bold text-[#0d2414] truncate">{nome || email}</p>
           </div>
         </div>
-        <div>
+        <div className="flex-shrink-0">
           {plan === 'free' && (
             <Link href="/dashboard/pro" className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex items-center gap-1" style={{ background: '#1D9E75' }}>
-              ✦ Fazer upgrade
+              ✦ Upgrade
             </Link>
           )}
           {plan === 'pro' && (
@@ -309,11 +406,44 @@ export default function PerfilPage() {
         </div>
       )}
 
+      {/* Segurança */}
       <div className="mt-5">
         <p className="font-bold text-[#0d2414] mb-3" style={{ fontFamily: "Nunito, sans-serif" }}>
           🔐 Segurança
         </p>
         <TwoFactorSetup />
+      </div>
+
+      {/* Zona de perigo */}
+      <div className="mt-8 border border-red-100 rounded-2xl p-5 bg-red-50">
+        <p className="text-sm font-black text-red-600 mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
+          ⚠️ Zona de perigo
+        </p>
+        <div className="flex flex-col gap-3">
+          {plan !== 'free' && (
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-[#0d2414]">Cancelar plano</p>
+                <p className="text-xs text-[#8db89d]">Volta para o plano gratuito. Dados mantidos.</p>
+              </div>
+              <button onClick={() => setShowCancelPlan(true)}
+                className="text-xs font-bold px-4 py-2 rounded-lg border border-red-200 text-red-500 bg-white flex-shrink-0 hover:bg-red-50 transition-colors">
+                Cancelar plano
+              </button>
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-[#0d2414]">Excluir conta</p>
+              <p className="text-xs text-[#8db89d]">Remove todos os dados permanentemente.</p>
+            </div>
+            <button onClick={() => setShowDeleteAccount(true)}
+              className="text-xs font-bold px-4 py-2 rounded-lg text-white flex-shrink-0 transition-colors"
+              style={{ background: '#ef4444' }}>
+              Excluir conta
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
