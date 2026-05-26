@@ -233,6 +233,7 @@ export default function AssessorPage() {
   const [loading, setLoading] = useState(false);
   const [limiteAtingido, setLimiteAtingido] = useState(false);
   const [infoLimite, setInfoLimite] = useState<{usadas:number;limite:number;plano:string}|null>(null);
+  const [planoUsuario, setPlanoUsuario] = useState<string>("free");
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = createSupabaseBrowser();
@@ -253,6 +254,8 @@ export default function AssessorPage() {
           return { role: m.role as "user" | "assistant", content: text, plan: plan ?? undefined }
         }))
       }
+      const { data: perfilData } = await supabase.from("user_profiles").select("plan").eq("user_id", user.id).single();
+      if (perfilData?.plan) setPlanoUsuario(perfilData.plan);
       setHistoryLoaded(true);
     }
     load();
@@ -363,6 +366,9 @@ export default function AssessorPage() {
         conversation_id: messages[0]?.content?.slice(0,8) || "new",
       });
 
+      if (data.usadas !== undefined) {
+        setInfoLimite({ usadas: data.usadas, limite: data.limite ?? 3, plano: data.plano ?? planoUsuario })
+      }
       const { text: replyText, plan } = parsePlan(data.reply)
       const assistantMsg: Message = { role: "assistant", content: replyText, plan: plan ?? undefined }
       setMessages(prev => [...prev, assistantMsg]);
@@ -522,9 +528,15 @@ export default function AssessorPage() {
             <Icon name="send" size={16} color="#fff" />
           </button>
         </form>
-        <p style={{ fontSize: 11, textAlign: 'center', color: '#8db89d', marginTop: 6 }}>
-          Histórico salvo entre sessões · máx. 30 msgs/hora
-        </p>
+        {!limiteAtingido && (
+          <p style={{ fontSize: 11, textAlign: 'center', color: '#8db89d', marginTop: 6 }}>
+            {planoUsuario === 'free'
+              ? `${infoLimite ? infoLimite.usadas : 0} de 3 mensagens usadas hoje`
+              : planoUsuario === 'pro'
+              ? '✦ Assessor ilimitado · Plano Pro'
+              : '✦ Assessor ilimitado · Plano Premium'}
+          </p>
+        )}
       </div>
 
       <style>{`
