@@ -9,11 +9,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const LIMITE_FREE = 3  // mensagens por dia
-const LIMITE_PRO = 10  // mensagens por dia
+const LIMITE_FREE = 3
+const LIMITE_PRO = 10
 
 async function verificarLimite(userId: string): Promise<{ permitido: boolean; usadas: number; limite: number; plano: string }> {
-  // Busca plano do usuário
   const { data: perfil } = await supabase
     .from('user_profiles')
     .select('plan')
@@ -22,13 +21,12 @@ async function verificarLimite(userId: string): Promise<{ permitido: boolean; us
 
   const plano = perfil?.plan ?? 'free'
 
+  // Premium: ilimitado, sem contar mensagens
   if (plano === 'premium') return { permitido: true, usadas: 0, limite: 0, plano }
 
   const limite = plano === 'pro' ? LIMITE_PRO : LIMITE_FREE
 
-  if (plano === 'pro') return { permitido: true, usadas: 0, limite, plano }
-
-  // Conta mensagens do usuário hoje
+  // Conta mensagens do usuário hoje (free e pro)
   const hoje = new Date()
   hoje.setHours(0, 0, 0, 0)
 
@@ -42,9 +40,6 @@ async function verificarLimite(userId: string): Promise<{ permitido: boolean; us
   const usadas = count ?? 0
   return { permitido: usadas < limite, usadas, limite, plano }
 }
-
-
-
 
 async function callAnthropicWithRetry(client: any, params: any, maxRetries = 3) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -63,16 +58,15 @@ async function callAnthropicWithRetry(client: any, params: any, maxRetries = 3) 
     }
   }
 }
+
 export async function POST(req: NextRequest) {
   try {
     const auth = req.headers.get("authorization");
     const token = auth?.replace("Bearer ", "") ?? "";
 
-    // Verifica usuário via Supabase
     const { data: { user } } = await supabase.auth.getUser(token)
     if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 })
 
-    // Verifica limite e busca diagnóstico em paralelo
     const [limiteResult, diagnosticoResult] = await Promise.allSettled([
       verificarLimite(user.id),
       supabase.from('user_profiles').select('perfil_financeiro, score_saude, diagnostico_json').eq('id', user.id).maybeSingle(),
@@ -112,7 +106,7 @@ DADOS DO USUÁRIO:
 - Sobra mensal: R$ ${Number(context?.sobra ?? 0).toFixed(2)}
 - Gastos por categoria: ${JSON.stringify(context?.gastosCat ?? {})}
 - Metas: ${JSON.stringify(context?.metas ?? [])}
-- Plano: ${plano === 'pro' ? 'Pro ✨' : 'Gratuito'}
+- Plano: ${plano === 'pro' ? 'Pro ✨' : plano === 'premium' ? 'Premium ⭐' : 'Gratuito'}
 - Ocupação: ${context?.ocupacao ?? 'não informada'}
 ${context?.ocupacao === 'mei' || context?.ocupacao === 'autonomo' ? `
 PERFIL MEI/AUTÔNOMO — adapte todos os conselhos para renda variável:
@@ -207,7 +201,7 @@ Regras do plano:
 
     return NextResponse.json({
       reply,
-      usadas: usadas + 1,
+      usadas: plano === 'premium' ? 0 : usadas + 1,
       limite,
       plano,
     })
