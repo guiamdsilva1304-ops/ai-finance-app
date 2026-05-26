@@ -530,11 +530,9 @@ export default function AssessorPage() {
         </form>
         {!limiteAtingido && (
           <p style={{ fontSize: 11, textAlign: 'center', color: '#8db89d', marginTop: 6 }}>
-            {planoUsuario === 'free'
-              ? `${infoLimite ? infoLimite.usadas : 0} de 3 mensagens usadas hoje`
-              : planoUsuario === 'pro'
-              ? '✦ Assessor ilimitado · Plano Pro'
-              : '✦ Assessor ilimitado · Plano Premium'}
+            {planoUsuario === 'premium'
+              ? '✦ Assessor ilimitado · Plano Premium'
+              : `${infoLimite ? infoLimite.usadas : 0} de ${planoUsuario === 'pro' ? 10 : 3} mensagens usadas hoje`}
           </p>
         )}
       </div>
