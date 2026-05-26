@@ -5,6 +5,8 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 import { CheckCircle2, User } from "lucide-react";
 import TwoFactorSetup from "@/components/TwoFactorSetup";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { Icon, type IconName } from "@/components/imoney/primitives";
 
 // Brazilian states and cities data
 const ESTADOS: Record<string, string> = {
@@ -52,6 +54,13 @@ const OCUPACOES = [
   "Estudante","Desempregado","Outro",
 ];
 
+const EXPLORAR_LINKS: { href: string; icon: IconName; label: string; desc: string; color: string }[] = [
+  { href: "/dashboard/metas",         icon: "target",      label: "Metas",           desc: "Acompanhe seus sonhos",        color: "#1D9E75" },
+  { href: "/dashboard/investimentos", icon: "trending-up", label: "Investimentos",   desc: "Sua carteira em um lugar",     color: "#378ADD" },
+  { href: "/dashboard/renda",         icon: "pie",         label: "Renda Variável",  desc: "Ações, FIIs e impostos",       color: "#7F77DD" },
+  { href: "/dashboard/openfinance",   icon: "compass",     label: "Open Finance",    desc: "Conecte seus bancos",          color: "#EF9F27" },
+];
+
 interface Profile {
   estado?: string; cidade?: string; ocupacao?: string;
   idade?: number; filhos?: number;
@@ -64,9 +73,9 @@ export default function PerfilPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
+  const [plan, setPlan] = useState("free");
 
-  // Form
-const [nome, setNome] = useState("");
+  const [nome, setNome] = useState("");
   const [dataNascimento, setDataNascimento] = useState("");
   const [idade, setIdade] = useState("");
   const [filhos, setFilhos] = useState("0");
@@ -85,26 +94,25 @@ const [nome, setNome] = useState("");
         .select("*").eq("user_id", user.id).single();
       if (data) {
         setProfile(data);
-setNome(data.nome ?? "");
+        setNome(data.nome ?? "");
         setDataNascimento(data.data_nascimento ?? "");
         setIdade(data.idade?.toString() ?? "");
         setFilhos(data.filhos?.toString() ?? "0");
         setOcupacao(data.ocupacao ?? OCUPACOES[0]);
         setEstado(data.estado ?? "");
         setCidade(data.cidade ?? "");
+        setPlan(data.plan ?? "free");
       }
       setLoading(false);
     }
     load();
   }, [supabase]);
 
-  // Reset cidade when estado changes
   useEffect(() => { setCidade(""); }, [estado]);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setError(""); setSaved(false);
-    // Calcula idade pela data de nascimento se disponivel
     let idadeCalculada = parseInt(idade);
     if (dataNascimento) {
       const nasc = new Date(dataNascimento);
@@ -157,19 +165,59 @@ setNome(data.nome ?? "");
         </p>
       </div>
 
-      {/* Email card */}
-      <div className="card mb-5 flex items-center gap-3 animate-fade-up opacity-0 anim-1">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#16a34a] to-[#22c55e] flex items-center justify-center text-white">
-          <User size={22}/>
+      {/* Email + plano */}
+      <div className="card mb-5 flex items-center justify-between gap-3 animate-fade-up opacity-0 anim-1">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#16a34a] to-[#22c55e] flex items-center justify-center text-white">
+            <User size={22}/>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider">Email</p>
+            <p className="font-bold text-[#0d2414]">{email}</p>
+          </div>
         </div>
         <div>
-          <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider">Email</p>
-          <p className="font-bold text-[#0d2414]">{email}</p>
+          {plan === 'free' && (
+            <Link href="/dashboard/pro" className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex items-center gap-1" style={{ background: '#1D9E75' }}>
+              ✦ Fazer upgrade
+            </Link>
+          )}
+          {plan === 'pro' && (
+            <span className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1" style={{ background: '#E1F5EE', color: '#085041' }}>
+              ✦ Pro
+            </span>
+          )}
+          {plan === 'premium' && (
+            <span className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1" style={{ background: '#FEF3C7', color: '#92400E' }}>
+              ⭐ Premium
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Explorar — só mobile */}
+      <div className="md:hidden mb-5 animate-fade-up opacity-0 anim-2">
+        <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider mb-3">Explorar</p>
+        <div className="grid grid-cols-2 gap-3">
+          {EXPLORAR_LINKS.map(({ href, icon, label, desc, color }) => (
+            <Link key={href} href={href}
+              className="flex items-center gap-3 bg-white rounded-2xl p-4 border border-[#e4f5e9] active:scale-95 transition-transform"
+              style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: `${color}18` }}>
+                <Icon name={icon} size={18} color={color} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-[#0d2414] leading-tight">{label}</p>
+                <p className="text-[10px] text-[#8db89d] leading-tight mt-0.5">{desc}</p>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
 
       {/* Profile form */}
-      <form onSubmit={save} className="card animate-fade-up opacity-0 anim-2">
+      <form onSubmit={save} className="card animate-fade-up opacity-0 anim-3">
         <p className="font-bold text-[#0d2414] mb-5" style={{ fontFamily: "Nunito, sans-serif" }}>
           📋 Informações Pessoais
         </p>
@@ -238,7 +286,7 @@ setNome(data.nome ?? "");
 
       {/* Current profile display */}
       {(profile.estado || profile.ocupacao) && (
-        <div className="card mt-5 animate-fade-up opacity-0 anim-3 bg-[#f8fdf9]">
+        <div className="card mt-5 animate-fade-up opacity-0 anim-4 bg-[#f8fdf9]">
           <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider mb-3">Perfil atual</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
@@ -260,6 +308,7 @@ setNome(data.nome ?? "");
           )}
         </div>
       )}
+
       <div className="mt-5">
         <p className="font-bold text-[#0d2414] mb-3" style={{ fontFamily: "Nunito, sans-serif" }}>
           🔐 Segurança
@@ -269,4 +318,3 @@ setNome(data.nome ?? "");
     </div>
   );
 }
-
