@@ -122,11 +122,11 @@ export default function MetasPage() {
     const [metasRes, memRes, profileRes] = await Promise.all([
       supabase.from("metas").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("user_memory").select("last_renda,last_gastos").eq("user_id", user.id).single(),
-      supabase.from("user_profiles").select("full_name").eq("user_id", user.id).single(),
+      supabase.from("user_profiles").select("nome").eq("user_id", user.id).single(),
     ]);
     setMetas(metasRes.data ?? []);
     if (memRes.data) setSobra((memRes.data.last_renda ?? 0) - (memRes.data.last_gastos ?? 0));
-    if (profileRes.data?.full_name) setOnboardingName(profileRes.data.full_name.split(" ")[0]);
+    if (profileRes.data?.nome) setOnboardingName(profileRes.data.nome.split(" ")[0]);
     setLoading(false);
   }, [supabase]);
 
@@ -162,6 +162,10 @@ export default function MetasPage() {
     const nomeMeta = selectedCategory || onboardingName || "Minha meta";
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
+    // Salva o nome no perfil do usuário
+    if (onboardingName.trim()) {
+      await supabase.from("user_profiles").update({ nome: onboardingName.trim() }).eq("user_id", user!.id);
+    }
     const { data: inserted } = await supabase.from("metas").insert({
       user_id: user!.id, nome: nomeMeta.trim().slice(0, 100),
       valor_alvo: alvo, valor_atual: 0,
@@ -391,13 +395,11 @@ export default function MetasPage() {
           <button onClick={load} style={{ background: "none", border: `1.5px solid ${C.divider}`, borderRadius: 12, padding: "8px 10px", cursor: "pointer", color: C.ink3 }}>
             <RefreshCw size={16} style={loading ? { animation: "spin 1s linear infinite" } : {}} />
           </button>
-          {/* Desktop only: show classic form toggle */}
           {!isMobile && (
             <button onClick={() => setShowForm(!showForm)} style={{ background: C.green500, color: C.green900, border: "none", borderRadius: 12, padding: "8px 18px", fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: "pointer" }}>
               + Nova meta
             </button>
           )}
-          {/* Mobile only: open onboarding */}
           {isMobile && (
             <button onClick={() => { setShowOnboarding(true); setOnboardingStep(1); }} style={{ background: C.green500, color: C.green900, border: "none", borderRadius: 12, padding: "8px 18px", fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: "pointer" }}>
               + Nova
@@ -489,7 +491,6 @@ export default function MetasPage() {
                     tone={tone(meta)}
                   />
                 </div>
-                {/* Action buttons: desktop only */}
                 {!isMobile && (
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 4px 0" }}>
                     <div style={{ display: "flex", gap: 2 }}>
