@@ -8,14 +8,32 @@ export async function middleware(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
   const { pathname } = req.nextUrl
 
+  // Rotas públicas
   const publicRoutes = ['/', '/login', '/privacidade', '/termos', '/blog', '/mfa']
   if (publicRoutes.some((r) => pathname === r || pathname.startsWith('/blog/'))) return res
+
+  // Não autenticado → login
   if (!session) return NextResponse.redirect(new URL('/login', req.url))
 
+  // MFA
   const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
   if (mfaData?.nextLevel === 'aal2' && mfaData?.currentLevel !== 'aal2' && pathname !== '/mfa') {
     return NextResponse.redirect(new URL('/mfa', req.url))
   }
+
+  // Proteção do /admin — só is_admin = true
+  if (pathname.startsWith('/admin')) {
+    const { data: perfil } = await supabase
+      .from('user_profiles')
+      .select('is_admin')
+      .eq('id', session.user.id)
+      .single()
+
+    if (!perfil?.is_admin) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+  }
+
   return res
 }
 
