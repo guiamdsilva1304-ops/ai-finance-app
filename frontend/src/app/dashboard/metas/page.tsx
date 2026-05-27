@@ -6,6 +6,7 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 import { RefreshCw, Trash2, CheckCircle2, Star } from "lucide-react";
 import { GoalCard } from "@/components/imoney/primitives";
 import { C, FONT } from "@/components/imoney/tokens";
+import { MetaCompletion, MilestoneToast, useMilestoneDetector } from "@/components/imoney/celebration";
 import type { Meta } from "@/types";
 
 type MetaExt = Meta & { principal?: boolean };
@@ -76,14 +77,12 @@ export default function MetasPage() {
   const [sobra, setSobra] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Desktop form
   const [nome, setNome] = useState("");
   const [valorAlvo, setValorAlvo] = useState("");
   const [valorAtual, setValorAtual] = useState("");
   const [prazo, setPrazo] = useState("12");
   const [formError, setFormError] = useState("");
 
-  // Mobile onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState<1 | 2 | 3>(1);
   const [onboardingName, setOnboardingName] = useState("");
@@ -91,12 +90,11 @@ export default function MetasPage() {
   const [onboardingValor, setOnboardingValor] = useState("");
   const [onboardingPrazo, setOnboardingPrazo] = useState("12");
 
-  // Completion celebration
   const [completedMeta, setCompletedMeta] = useState<MetaExt | null>(null);
+  const { milestone, checkMilestone, clearMilestone } = useMilestoneDetector();
 
   const supabase = createSupabaseBrowser();
 
-  // Mobile detection
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -104,13 +102,11 @@ export default function MetasPage() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Detect ?add=true
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (params.get("add") === "true") {
         setShowOnboarding(true);
-        // Se já tem nome salvo, pula direto pro step 2
         setOnboardingStep(onboardingName ? 2 : 1);
       }
     }
@@ -163,7 +159,6 @@ export default function MetasPage() {
     const nomeMeta = selectedCategory || onboardingName || "Minha meta";
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    // Salva o nome no perfil do usuário
     if (onboardingName.trim()) {
       await supabase.from("user_profiles").update({ nome: onboardingName.trim() }).eq("user_id", user!.id);
     }
@@ -210,7 +205,10 @@ export default function MetasPage() {
 
   async function updateValorAtual(meta: MetaExt, novoValor: number) {
     const { data: { user } } = await supabase.auth.getUser();
+    const pctAntes = meta.valor_alvo > 0 ? Math.round((meta.valor_atual / meta.valor_alvo) * 100) : 0;
+    const pctDepois = meta.valor_alvo > 0 ? Math.round((novoValor / meta.valor_alvo) * 100) : 0;
     await supabase.from("metas").update({ valor_atual: novoValor }).eq("id", meta.id).eq("user_id", user!.id);
+    checkMilestone(meta.id, meta.nome, pctAntes, pctDepois);
     load();
   }
 
@@ -237,30 +235,24 @@ export default function MetasPage() {
 
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: "28px 20px 80px", fontFamily: FONT }}>
-      {/* Completion celebration overlay */}
       {completedMeta && (
-        <div style={{ position: "fixed", inset: 0, background: "#0a3d28", zIndex: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32 }}>
-          <div style={{ fontSize: 80, marginBottom: 16 }}>🎉</div>
-          <p style={{ fontSize: 13, fontWeight: 700, color: "#f9a825", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 14 }}>PARABÉNS!</p>
-          <p style={{ fontSize: 30, fontWeight: 900, color: "#fff", textAlign: "center", marginBottom: 14, lineHeight: 1.2, fontFamily: FONT }}>Você realizou sua meta.</p>
-          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.65)", textAlign: "center", marginBottom: 48, maxWidth: 280 }}>
-            {completedMeta.nome}: R$ {completedMeta.valor_alvo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} guardados. Qual é o próximo sonho?
-          </p>
-          <button onClick={() => { setCompletedMeta(null); setShowOnboarding(true); setOnboardingStep(1); }}
-            style={{ background: "#1D9E75", color: "#fff", border: "none", borderRadius: 16, padding: "16px 0", fontWeight: 800, fontSize: 15, fontFamily: FONT, cursor: "pointer", marginBottom: 12, width: "100%", maxWidth: 320 }}>
-            ✨ Criar nova meta
-          </button>
-          <button onClick={() => setCompletedMeta(null)}
-            style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.65)", border: "none", borderRadius: 16, padding: "14px 0", fontWeight: 700, fontSize: 14, fontFamily: FONT, cursor: "pointer", width: "100%", maxWidth: 320 }}>
-            Ver minhas metas
-          </button>
-        </div>
+        <MetaCompletion
+          metaNome={completedMeta.nome}
+          metaValor={completedMeta.valor_alvo}
+          onNovaMeta={() => { setCompletedMeta(null); setShowOnboarding(true); setOnboardingStep(1); }}
+          onFechar={() => setCompletedMeta(null)}
+        />
+      )}
+      {milestone && (
+        <MilestoneToast
+          pct={milestone.pct}
+          metaNome={milestone.nome}
+          onClose={clearMilestone}
+        />
       )}
 
-      {/* Mobile onboarding overlay */}
       {showOnboarding && (
         <div style={{ position: "fixed", inset: 0, background: "#fff", zIndex: 100, overflowY: "auto", fontFamily: FONT }}>
-          {/* Step 1: Name */}
           {onboardingStep === 1 && (
             <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", padding: "48px 28px 40px" }}>
               <div style={{ flex: 1 }}>
@@ -276,28 +268,19 @@ export default function MetasPage() {
                 <label style={{ fontSize: 13, fontWeight: 700, color: C.ink2, display: "block", marginBottom: 8 }}>
                   Como você gostaria de ser chamado(a)?
                 </label>
-                <input
-                  value={onboardingName}
-                  onChange={e => setOnboardingName(e.target.value)}
-                  placeholder="Seu nome"
-                  autoFocus
-                  style={{ width: "100%", border: `1.5px solid ${C.divider}`, borderRadius: 14, padding: "14px 16px", fontSize: 16, fontFamily: FONT, outline: "none", boxSizing: "border-box", color: C.green900 }}
-                />
+                <input value={onboardingName} onChange={e => setOnboardingName(e.target.value)} placeholder="Seu nome" autoFocus
+                  style={{ width: "100%", border: `1.5px solid ${C.divider}`, borderRadius: 14, padding: "14px 16px", fontSize: 16, fontFamily: FONT, outline: "none", boxSizing: "border-box", color: C.green900 }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <button onClick={() => setOnboardingStep(2)}
-                  style={{ background: C.green500, color: C.green900, border: "none", borderRadius: 16, padding: "17px 0", fontWeight: 900, fontSize: 16, fontFamily: FONT, cursor: "pointer" }}>
+                <button onClick={() => setOnboardingStep(2)} style={{ background: C.green500, color: C.green900, border: "none", borderRadius: 16, padding: "17px 0", fontWeight: 900, fontSize: 16, fontFamily: FONT, cursor: "pointer" }}>
                   Próximo passo →
                 </button>
-                <button onClick={() => { setShowOnboarding(false); window.history.replaceState({}, "", "/dashboard/metas"); }}
-                  style={{ background: "none", color: C.ink3, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}>
+                <button onClick={() => { setShowOnboarding(false); window.history.replaceState({}, "", "/dashboard/metas"); }} style={{ background: "none", color: C.ink3, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}>
                   Cancelar
                 </button>
               </div>
             </div>
           )}
-
-          {/* Step 2: Category */}
           {onboardingStep === 2 && (
             <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", padding: "48px 28px 40px" }}>
               <button onClick={() => setOnboardingStep(1)} style={{ background: "none", border: "none", color: C.ink3, fontSize: 20, cursor: "pointer", marginBottom: 28, textAlign: "left", fontFamily: FONT, padding: 0 }}>←</button>
@@ -305,9 +288,7 @@ export default function MetasPage() {
                 <h1 style={{ fontSize: 26, fontWeight: 900, color: C.green900, margin: "0 0 8px", fontFamily: FONT }}>
                   Oi, {onboardingName || "você"}! Qual é o seu sonho?
                 </h1>
-                <p style={{ fontSize: 13, color: C.ink3, margin: "0 0 28px" }}>
-                  Não precisa ser o único — vamos começar pelo principal.
-                </p>
+                <p style={{ fontSize: 13, color: C.ink3, margin: "0 0 28px" }}>Não precisa ser o único — vamos começar pelo principal.</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   {CATEGORIES.map(({ label, emoji }) => (
                     <button key={label} onClick={() => setSelectedCategory(label)}
@@ -326,45 +307,24 @@ export default function MetasPage() {
               </div>
             </div>
           )}
-
-          {/* Step 3: Value */}
           {onboardingStep === 3 && (
             <form onSubmit={saveOnboarding} style={{ minHeight: "100vh", display: "flex", flexDirection: "column", padding: "48px 28px 40px" }}>
               <button type="button" onClick={() => setOnboardingStep(2)} style={{ background: "none", border: "none", color: C.ink3, fontSize: 20, cursor: "pointer", marginBottom: 28, textAlign: "left", fontFamily: FONT, padding: 0 }}>←</button>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
-                <h1 style={{ fontSize: 26, fontWeight: 900, color: C.green900, margin: "0 0 8px", fontFamily: FONT }}>
-                  Sua meta — vamos calcular?
-                </h1>
-                <p style={{ fontSize: 13, color: C.ink3, margin: "0 0 32px" }}>
-                  Quanto você precisa, a gente diz quanto guardar por mês.
-                </p>
-
+                <h1 style={{ fontSize: 26, fontWeight: 900, color: C.green900, margin: "0 0 8px", fontFamily: FONT }}>Sua meta — vamos calcular?</h1>
+                <p style={{ fontSize: 13, color: C.ink3, margin: "0 0 32px" }}>Quanto você precisa, a gente diz quanto guardar por mês.</p>
                 <label style={{ fontSize: 13, fontWeight: 700, color: C.ink2, display: "block", marginBottom: 8 }}>Valor da meta</label>
                 <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${C.divider}`, borderRadius: 14, overflow: "hidden", marginBottom: 20 }}>
                   <span style={{ padding: "14px 16px", fontSize: 16, fontWeight: 700, color: C.ink3, background: "#f9fdf9", borderRight: `1px solid ${C.divider}`, fontFamily: FONT }}>R$</span>
-                  <input
-                    type="number"
-                    value={onboardingValor}
-                    onChange={e => setOnboardingValor(e.target.value)}
-                    placeholder="10.000,00"
-                    min="1" step="0.01"
-                    autoFocus
-                    style={{ flex: 1, border: "none", outline: "none", padding: "14px 16px", fontSize: 20, fontWeight: 700, fontFamily: FONT, color: C.green900, background: "#fff" }}
-                  />
+                  <input type="number" value={onboardingValor} onChange={e => setOnboardingValor(e.target.value)} placeholder="10.000,00" min="1" step="0.01" autoFocus
+                    style={{ flex: 1, border: "none", outline: "none", padding: "14px 16px", fontSize: 20, fontWeight: 700, fontFamily: FONT, color: C.green900, background: "#fff" }} />
                 </div>
-
                 <label style={{ fontSize: 13, fontWeight: 700, color: C.ink2, display: "block", marginBottom: 8 }}>Em quanto tempo? (meses)</label>
-                <input
-                  type="number"
-                  value={onboardingPrazo}
-                  onChange={e => setOnboardingPrazo(e.target.value)}
-                  min="1" max="600"
-                  style={{ width: "100%", border: `1.5px solid ${C.divider}`, borderRadius: 14, padding: "14px 16px", fontSize: 16, fontFamily: FONT, outline: "none", boxSizing: "border-box", color: C.green900, marginBottom: 20 }}
-                />
-
+                <input type="number" value={onboardingPrazo} onChange={e => setOnboardingPrazo(e.target.value)} min="1" max="600"
+                  style={{ width: "100%", border: `1.5px solid ${C.divider}`, borderRadius: 14, padding: "14px 16px", fontSize: 16, fontFamily: FONT, outline: "none", boxSizing: "border-box", color: C.green900, marginBottom: 20 }} />
                 {onbAporte !== null && !isNaN(onbAporte) && onbAporte > 0 && (
-                  <div style={{ background: "#f0fdf4", border: `1.5px solid #bbf7d0`, borderRadius: 14, padding: "14px 16px" }}>
+                  <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 14, padding: "14px 16px" }}>
                     <p style={{ fontSize: 11, fontWeight: 700, color: C.green500, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 6px" }}>SUGESTÃO DA IMONEY</p>
                     <p style={{ fontSize: 14, color: C.green900, margin: 0, fontWeight: 600, fontFamily: FONT }}>
                       Guardando R$ {fmtInt(onbAporte)}/mês, em {onboardingPrazo} meses você chega lá 🎯
@@ -372,7 +332,6 @@ export default function MetasPage() {
                   </div>
                 )}
               </div>
-
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 28 }}>
                 <button type="submit" disabled={saving || !onboardingValor}
                   style={{ background: onboardingValor ? C.green900 : "#e8f5e9", color: onboardingValor ? "#fff" : C.ink3, border: "none", borderRadius: 16, padding: "17px 0", fontWeight: 900, fontSize: 16, fontFamily: FONT, cursor: onboardingValor && !saving ? "pointer" : "not-allowed" }}>
@@ -384,7 +343,6 @@ export default function MetasPage() {
         </div>
       )}
 
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 900, color: C.green900, margin: 0 }}>🎯 Metas Financeiras</h1>
@@ -409,30 +367,25 @@ export default function MetasPage() {
         </div>
       </div>
 
-      {/* Desktop form */}
       {showForm && !isMobile && (
         <form onSubmit={save} style={{ background: C.green50, borderRadius: 20, padding: 24, marginBottom: 28, border: `1.5px solid ${C.green100}` }}>
           <p style={{ fontSize: 15, fontWeight: 800, color: C.green900, marginBottom: 20, marginTop: 0 }}>➕ Nova meta</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div className="sm:col-span-2">
               <label className="label">Nome da meta</label>
-              <input value={nome} onChange={e => setNome(e.target.value)}
-                placeholder="Ex: Reserva de emergência, Viagem Europa..." className="input" maxLength={100} />
+              <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Reserva de emergência, Viagem Europa..." className="input" maxLength={100} />
             </div>
             <div>
               <label className="label">Valor alvo (R$)</label>
-              <input type="number" value={valorAlvo} onChange={e => setValorAlvo(e.target.value)}
-                placeholder="10000" min="1" step="0.01" className="input" />
+              <input type="number" value={valorAlvo} onChange={e => setValorAlvo(e.target.value)} placeholder="10000" min="1" step="0.01" className="input" />
             </div>
             <div>
               <label className="label">Já tenho (R$)</label>
-              <input type="number" value={valorAtual} onChange={e => setValorAtual(e.target.value)}
-                placeholder="0" min="0" step="0.01" className="input" />
+              <input type="number" value={valorAtual} onChange={e => setValorAtual(e.target.value)} placeholder="0" min="0" step="0.01" className="input" />
             </div>
             <div>
               <label className="label">Prazo (meses)</label>
-              <input type="number" value={prazo} onChange={e => setPrazo(e.target.value)}
-                min="1" max="600" className="input" />
+              <input type="number" value={prazo} onChange={e => setPrazo(e.target.value)} min="1" max="600" className="input" />
             </div>
             {aporteEstimado !== null && !isNaN(aporteEstimado) && aporteEstimado > 0 && (
               <div style={{ background: "#fff", border: `1.5px solid ${C.green100}`, borderRadius: 12, padding: "12px 16px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -453,7 +406,6 @@ export default function MetasPage() {
         </form>
       )}
 
-      {/* Grid de metas */}
       {loading ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
           {[0, 1, 2, 3].map(i => (
@@ -477,10 +429,7 @@ export default function MetasPage() {
             const pct = meta.valor_alvo > 0 ? Math.min(100, Math.round((meta.valor_atual / meta.valor_alvo) * 100)) : 0;
             return (
               <div key={meta.id}>
-                <div
-                  onClick={() => isMobile && router.push(`/dashboard/metas/${meta.id}`)}
-                  style={{ cursor: isMobile ? "pointer" : "default" }}
-                >
+                <div onClick={() => isMobile && router.push(`/dashboard/metas/${meta.id}`)} style={{ cursor: isMobile ? "pointer" : "default" }}>
                   <GoalCard
                     title={meta.concluida ? `🎉 ${meta.nome}` : meta.nome}
                     emoji={meta.concluida ? "✨" : metaEmoji(meta.nome)}
