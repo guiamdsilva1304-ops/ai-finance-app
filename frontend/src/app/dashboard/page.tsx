@@ -204,11 +204,13 @@ export default function DashboardPage() {
       const name = profileRes.data.full_name || profileRes.data.nome || "";
       if (name) {
         setUserName(name.split(" ")[0]);
-      } else {
-        const email = session.user.email || "";
-        const emailName = email.split("@")[0].replace(/[._-]/g, " ").split(" ")[0];
-        if (emailName) setUserName(emailName.charAt(0).toUpperCase() + emailName.slice(1));
       }
+    }
+    // fallback sempre: se ainda não tem nome, usa email
+    if (!profileRes.data?.full_name && !profileRes.data?.nome) {
+      const email = session.user.email || "";
+      const emailName = email.split("@")[0].replace(/[._\-0-9]/g, " ").trim().split(" ").filter(Boolean)[0] || "";
+      if (emailName) setUserName(emailName.charAt(0).toUpperCase() + emailName.slice(1).toLowerCase());
     }
 
     const { data: sp } = await supabase
