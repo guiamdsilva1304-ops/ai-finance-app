@@ -3,7 +3,7 @@ import { amplitude } from "@/app/amplitude";
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { Trash2 } from "lucide-react";
+import { Trash2, X, ChevronRight, User, Target, TrendingUp, MapPin, Briefcase, Heart, Brain } from "lucide-react";
 import { Icon } from "@/components/imoney/primitives";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -30,6 +30,14 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   plan?: PlanData;
+}
+
+interface UserContext {
+  renda: number;
+  gastos: number;
+  metas: Array<{ nome: string; valor_alvo: number; valor_atual: number; prazo?: string }>;
+  perfil: Record<string, unknown>;
+  mem: Record<string, unknown>;
 }
 
 // ─── Parser de plano ─────────────────────────────────────────────────────────
@@ -64,7 +72,6 @@ function PlanCards({ plan }: { plan: PlanData }) {
 
   return (
     <div style={{ marginTop: 4, width: '100%' }}>
-      {/* Header */}
       <div style={{
         background: 'linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)',
         borderRadius: '16px 16px 0 0',
@@ -88,7 +95,6 @@ function PlanCards({ plan }: { plan: PlanData }) {
         </div>
       </div>
 
-      {/* Barra de progresso das fases */}
       <div style={{ background: '#0a3d28', padding: '8px 18px', display: 'flex', gap: 4 }}>
         {plan.fases.map((_, i) => {
           const cor = FASE_CORES[i % FASE_CORES.length]
@@ -99,7 +105,6 @@ function PlanCards({ plan }: { plan: PlanData }) {
         })}
       </div>
 
-      {/* Fases */}
       <div style={{ background: '#f8fdf9', borderRadius: '0 0 16px 16px', overflow: 'hidden', border: '1px solid #e4f5e9', borderTop: 'none' }}>
         {plan.fases.map((fase, i) => {
           const cor = FASE_CORES[i % FASE_CORES.length]
@@ -107,7 +112,6 @@ function PlanCards({ plan }: { plan: PlanData }) {
 
           return (
             <div key={i} style={{ borderBottom: i < plan.fases.length - 1 ? '1px solid #e4f5e9' : 'none' }}>
-              {/* Cabeçalho da fase — clicável */}
               <button
                 onClick={() => setExpandido(aberta ? null : i)}
                 style={{
@@ -115,10 +119,8 @@ function PlanCards({ plan }: { plan: PlanData }) {
                   border: 'none', cursor: 'pointer',
                   padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
                   textAlign: 'left', transition: 'background .15s',
-                  overflow: 'hidden',
                 }}
               >
-                {/* Número */}
                 <div style={{
                   width: 34, height: 34, borderRadius: '50%',
                   background: aberta ? cor.badge : '#e4f5e9',
@@ -129,7 +131,6 @@ function PlanCards({ plan }: { plan: PlanData }) {
                 }}>
                   {fase.numero}
                 </div>
-
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: aberta ? cor.text : '#1a3a1a', lineHeight: 1.2, marginBottom: 2 }}>
                     {fase.titulo}
@@ -138,7 +139,6 @@ function PlanCards({ plan }: { plan: PlanData }) {
                     {fase.duracao}
                   </div>
                 </div>
-
                 {fase.meta_parcial && !aberta && (
                   <div style={{
                     fontSize: 10, fontWeight: 700, color: cor.text,
@@ -151,19 +151,14 @@ function PlanCards({ plan }: { plan: PlanData }) {
                     {fase.meta_parcial}
                   </div>
                 )}
-
                 <div style={{ color: '#aaa', fontSize: 12, flexShrink: 0 }}>{aberta ? '▲' : '▼'}</div>
               </button>
 
-              {/* Conteúdo expandido */}
               {aberta && (
                 <div style={{ padding: '0 18px 18px 18px' }}>
-                  {/* Descrição */}
                   <p style={{ fontSize: 13, color: '#4a6860', lineHeight: 1.65, margin: '0 0 14px 0' }}>
                     {fase.descricao}
                   </p>
-
-                  {/* Ações */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {fase.acoes.map((acao, ai) => (
                       <div key={ai} style={{
@@ -185,8 +180,6 @@ function PlanCards({ plan }: { plan: PlanData }) {
                       </div>
                     ))}
                   </div>
-
-                  {/* Marco da fase */}
                   {fase.meta_parcial && (
                     <div style={{
                       marginTop: 14, background: cor.bg,
@@ -208,7 +201,6 @@ function PlanCards({ plan }: { plan: PlanData }) {
         })}
       </div>
 
-      {/* Footer */}
       <div style={{ textAlign: 'center', padding: '10px 0 2px', fontSize: 11, color: '#8db89d' }}>
         Toque em cada fase para ver os detalhes
       </div>
@@ -216,14 +208,274 @@ function PlanCards({ plan }: { plan: PlanData }) {
   )
 }
 
-// ─── Quick actions ────────────────────────────────────────────────────────────
+// ─── Conversation starters contextuais ───────────────────────────────────────
 
-const QUICK_ACTIONS = [
-  { label: "📊 Onde investir minha sobra?", prompt: "Analise minha situação financeira e me diga onde devo investir minha sobra mensal considerando a SELIC atual e meu perfil." },
-  { label: "✂️ Como cortar gastos?", prompt: "Analise meus gastos por categoria e me diga onde posso reduzir de forma inteligente." },
-  { label: "🎯 Como alcançar minhas metas?", prompt: "Com base no meu perfil e situação atual, me faz um plano detalhado para alcançar minha principal meta." },
-  { label: "🛡️ Reserva de emergência", prompt: "Como devo montar minha reserva de emergência? Quanto preciso guardar e onde?" },
-];
+function buildContextualStarters(ctx: UserContext | null): Array<{ label: string; prompt: string }> {
+  const starters: Array<{ label: string; prompt: string }> = []
+
+  if (!ctx) {
+    return [
+      { label: "📊 Onde investir minha sobra?", prompt: "Analise minha situação financeira e me diga onde devo investir minha sobra mensal considerando a SELIC atual e meu perfil." },
+      { label: "🎯 Como alcançar minhas metas?", prompt: "Com base no meu perfil e situação atual, me faz um plano detalhado para alcançar minha principal meta." },
+      { label: "✂️ Como cortar gastos?", prompt: "Analise meus gastos por categoria e me diga onde posso reduzir de forma inteligente." },
+      { label: "🛡️ Reserva de emergência", prompt: "Como devo montar minha reserva de emergência? Quanto preciso guardar e onde?" },
+    ]
+  }
+
+  const sobra = ctx.renda - ctx.gastos
+  const metaPrincipal = ctx.metas?.[0]
+
+  // Starter baseado na sobra
+  if (sobra > 0) {
+    starters.push({
+      label: `💰 Investir R$${Math.round(sobra).toLocaleString('pt-BR')}/mês`,
+      prompt: `Tenho uma sobra de R$${Math.round(sobra).toLocaleString('pt-BR')} por mês. Considerando a SELIC atual e meu perfil, qual é a melhor forma de investir esse valor?`,
+    })
+  } else if (sobra < 0) {
+    starters.push({
+      label: "🚨 Estou no vermelho, e agora?",
+      prompt: `Meus gastos estão R$${Math.abs(Math.round(sobra)).toLocaleString('pt-BR')} acima da minha renda. Me ajuda com um plano de ação para equilibrar minhas finanças.`,
+    })
+  }
+
+  // Starter baseado na meta principal
+  if (metaPrincipal) {
+    const pct = metaPrincipal.valor_alvo > 0
+      ? Math.round((metaPrincipal.valor_atual / metaPrincipal.valor_alvo) * 100)
+      : 0
+    const falta = metaPrincipal.valor_alvo - metaPrincipal.valor_atual
+    starters.push({
+      label: `🎯 ${metaPrincipal.nome} (${pct}%)`,
+      prompt: `Já acumulei ${pct}% da minha meta "${metaPrincipal.nome}". Ainda faltam R$${Math.round(falta).toLocaleString('pt-BR')}. Como posso acelerar para chegar lá mais rápido?`,
+    })
+  }
+
+  // Starter de reserva de emergência (sempre útil)
+  const reservaIdeal = ctx.renda * 6
+  starters.push({
+    label: "🛡️ Quanto guardar de reserva?",
+    prompt: `Com minha renda atual, quanto preciso ter de reserva de emergência? Onde é melhor guardar esse dinheiro?`,
+  })
+
+  // Starter de corte de gastos se renda > 0
+  if (ctx.renda > 0) {
+    starters.push({
+      label: "✂️ Onde posso cortar gastos?",
+      prompt: "Analisa meus gastos por categoria e me mostra onde posso economizar de forma inteligente sem prejudicar minha qualidade de vida.",
+    })
+  }
+
+  return starters.slice(0, 4)
+}
+
+// ─── Sidebar de memória ───────────────────────────────────────────────────────
+
+function MemorySidebar({
+  open,
+  onClose,
+  perfil,
+  mem,
+  metas,
+}: {
+  open: boolean
+  onClose: () => void
+  perfil: Record<string, unknown>
+  mem: Record<string, unknown>
+  metas: Array<{ nome: string; valor_alvo: number; valor_atual: number }>
+}) {
+  const nome = (perfil.full_name as string) || (perfil.nome as string) || "Você"
+  const primeiroNome = nome.split(" ")[0]
+
+  const items: Array<{ icon: React.ReactNode; label: string; value: string }> = []
+
+  if (perfil.ocupacao) items.push({ icon: <Briefcase size={13}/>, label: "Profissão", value: perfil.ocupacao as string })
+  if (perfil.cidade) items.push({ icon: <MapPin size={13}/>, label: "Cidade", value: `${perfil.cidade}${perfil.estado ? `, ${perfil.estado}` : ''}` })
+  if (perfil.idade) items.push({ icon: <User size={13}/>, label: "Idade", value: `${perfil.idade} anos` })
+  if (perfil.filhos !== undefined && perfil.filhos !== null) items.push({ icon: <Heart size={13}/>, label: "Filhos", value: String(perfil.filhos) })
+
+  // Dados da memória do Assessor
+  if (mem.sonho_principal) items.push({ icon: <span style={{ fontSize: 13 }}>✨</span>, label: "Sonho principal", value: mem.sonho_principal as string })
+  if (mem.perfil_risco) items.push({ icon: <TrendingUp size={13}/>, label: "Perfil de risco", value: mem.perfil_risco as string })
+  if (mem.objetivo_financeiro) items.push({ icon: <Target size={13}/>, label: "Objetivo", value: mem.objetivo_financeiro as string })
+  if (mem.ultima_preocupacao) items.push({ icon: <Brain size={13}/>, label: "Última preocupação", value: mem.ultima_preocupacao as string })
+
+  return (
+    <>
+      {/* Overlay */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)',
+          zIndex: 40, opacity: open ? 1 : 0,
+          pointerEvents: open ? 'auto' : 'none',
+          transition: 'opacity 0.25s',
+        }}
+      />
+
+      {/* Drawer */}
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0,
+        width: 320, background: '#fff',
+        zIndex: 50, boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
+        transform: open ? 'translateX(0)' : 'translateX(100%)',
+        transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
+        display: 'flex', flexDirection: 'column',
+        overflowY: 'auto',
+      }}>
+        {/* Header do drawer */}
+        <div style={{
+          padding: '20px 20px 16px',
+          borderBottom: '1px solid #e4f5e9',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'linear-gradient(135deg, #0a3d28, #1D9E75)',
+        }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 4 }}>
+              Memória do Assessor
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>
+              O que eu sei sobre {primeiroNome}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'rgba(255,255,255,0.15)', border: 'none',
+            width: 32, height: 32, borderRadius: '50%',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff',
+          }}>
+            <X size={16}/>
+          </button>
+        </div>
+
+        {/* Conteúdo */}
+        <div style={{ flex: 1, padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Perfil */}
+          {items.length > 0 && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#8db89d', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+                Perfil
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {items.map((item, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', background: '#f8fdf9',
+                    borderRadius: 10, border: '1px solid #e4f5e9',
+                  }}>
+                    <div style={{ color: '#1D9E75', flexShrink: 0 }}>{item.icon}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 10, color: '#8db89d', fontWeight: 600, marginBottom: 1 }}>{item.label}</div>
+                      <div style={{ fontSize: 13, color: '#1a3a1a', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.value}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Metas */}
+          {metas.length > 0 && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#8db89d', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+                Suas metas ({metas.length})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {metas.slice(0, 4).map((meta, i) => {
+                  const pct = meta.valor_alvo > 0
+                    ? Math.min(100, Math.round((meta.valor_atual / meta.valor_alvo) * 100))
+                    : 0
+                  return (
+                    <div key={i} style={{
+                      padding: '10px 12px', background: '#f8fdf9',
+                      borderRadius: 10, border: '1px solid #e4f5e9',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <div style={{ fontSize: 13, color: '#1a3a1a', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, marginRight: 8 }}>
+                          {meta.nome}
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: '#1D9E75', flexShrink: 0 }}>{pct}%</div>
+                      </div>
+                      <div style={{ height: 4, background: '#e4f5e9', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', width: `${pct}%`,
+                          background: 'linear-gradient(90deg, #1D9E75, #00C853)',
+                          borderRadius: 2, transition: 'width 0.4s',
+                        }}/>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                        <div style={{ fontSize: 10, color: '#8db89d' }}>
+                          R${meta.valor_atual.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#8db89d' }}>
+                          R${meta.valor_alvo.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Aviso de privacidade */}
+          <div style={{
+            padding: '12px 14px', background: '#f0fdf4',
+            borderRadius: 10, border: '1px solid #bbf7d0',
+            marginTop: 'auto',
+          }}>
+            <div style={{ fontSize: 11, color: '#166534', lineHeight: 1.5 }}>
+              🔒 Essas informações ficam salvas de forma segura e só são usadas para personalizar as respostas do seu Assessor.
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ─── Contador de mensagens ────────────────────────────────────────────────────
+
+function MessageCounter({
+  usadas,
+  limite,
+  plano,
+}: {
+  usadas: number
+  limite: number
+  plano: string
+}) {
+  if (plano === 'premium') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#00C853' }}/>
+        <span style={{ fontSize: 11, color: '#1D9E75', fontWeight: 700 }}>Ilimitado · Premium</span>
+      </div>
+    )
+  }
+
+  const restantes = Math.max(0, limite - usadas)
+  const pct = Math.min(100, (usadas / limite) * 100)
+  const cor = pct >= 100 ? '#FF4C4C' : pct >= 70 ? '#FF9F00' : '#1D9E75'
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Mini barra */}
+      <div style={{ width: 48, height: 4, background: '#e4f5e9', borderRadius: 2, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', width: `${pct}%`,
+          background: cor, borderRadius: 2,
+          transition: 'width 0.3s, background 0.3s',
+        }}/>
+      </div>
+      <span style={{ fontSize: 11, color: pct >= 100 ? '#FF4C4C' : '#8db89d', fontWeight: 700, whiteSpace: 'nowrap' }}>
+        {restantes > 0
+          ? `${restantes} de ${limite} restantes`
+          : `Limite atingido`}
+      </span>
+    </div>
+  )
+}
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
@@ -235,6 +487,8 @@ export default function AssessorPage() {
   const [infoLimite, setInfoLimite] = useState<{usadas:number;limite:number;plano:string}|null>(null);
   const [planoUsuario, setPlanoUsuario] = useState<string>("free");
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [userCtx, setUserCtx] = useState<UserContext | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = createSupabaseBrowser();
 
@@ -242,20 +496,42 @@ export default function AssessorPage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase
-        .from("chat_history")
-        .select("role,content")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
-        .limit(50);
-      if (data?.length) {
-        setMessages(data.map(m => {
+
+      const [historyRes, perfilRes, memRes, metasRes, summaryRes] = await Promise.allSettled([
+        supabase.from("chat_history").select("role,content").eq("user_id", user.id).order("created_at", { ascending: true }).limit(50),
+        supabase.from("user_profiles").select("*").eq("user_id", user.id).single(),
+        supabase.from("user_memory").select("*").eq("user_id", user.id).single(),
+        supabase.from("metas").select("nome,valor_alvo,valor_atual,prazo").eq("user_id", user.id),
+        (async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          return fetch("/api/dashboard/summary", { headers: { Authorization: `Bearer ${session?.access_token}` } });
+        })(),
+      ]);
+
+      if (historyRes.status === "fulfilled" && historyRes.value.data?.length) {
+        setMessages(historyRes.value.data.map(m => {
           const { text, plan } = parsePlan(m.content)
           return { role: m.role as "user" | "assistant", content: text, plan: plan ?? undefined }
         }))
       }
-      const { data: perfilData } = await supabase.from("user_profiles").select("plan").eq("user_id", user.id).single();
-      if (perfilData?.plan) setPlanoUsuario(perfilData.plan);
+
+      const perfil = perfilRes.status === "fulfilled" ? perfilRes.value.data ?? {} : {}
+      const mem = memRes.status === "fulfilled" ? memRes.value.data ?? {} : {}
+      const metas = metasRes.status === "fulfilled" ? metasRes.value.data ?? [] : []
+
+      if (perfil.plan) setPlanoUsuario(perfil.plan);
+
+      let renda = 0; let gastos = 0;
+      if (summaryRes.status === "fulfilled") {
+        const resp = summaryRes.value as Response;
+        if (resp.ok) {
+          const s = await resp.json();
+          renda = s.renda ?? 0;
+          gastos = s.gastos ?? 0;
+        }
+      }
+
+      setUserCtx({ renda, gastos, metas, perfil, mem })
       setHistoryLoaded(true);
     }
     load();
@@ -367,7 +643,10 @@ export default function AssessorPage() {
       });
 
       if (data.usadas !== undefined) {
-        setInfoLimite({ usadas: data.usadas, limite: data.limite ?? 3, plano: data.plano ?? planoUsuario })
+        const novoInfo = { usadas: data.usadas, limite: data.limite ?? 3, plano: data.plano ?? planoUsuario }
+        setInfoLimite(novoInfo)
+        // Atualiza ctx para o contador refletir imediatamente
+        setUserCtx(prev => prev ? { ...prev } : prev)
       }
       const { text: replyText, plan } = parsePlan(data.reply)
       const assistantMsg: Message = { role: "assistant", content: replyText, plan: plan ?? undefined }
@@ -388,158 +667,200 @@ export default function AssessorPage() {
     setMessages([]);
   }
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 720, margin: '0 auto', padding: '20px 16px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: '#0d2414', fontFamily: 'Nunito, sans-serif', margin: 0 }}>
-            💬 Assessor
-          </h1>
-        </div>
-        {messages.length > 0 && (
-          <button onClick={clearHistory} style={{ background: 'none', border: '1px solid #e4f5e9', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#8db89d', display: 'flex', alignItems: 'center' }} title="Limpar">
-            <Trash2 size={16}/>
-          </button>
-        )}
-      </div>
+  const contextualStarters = buildContextualStarters(userCtx);
+  const usadas = infoLimite?.usadas ?? 0;
+  const limite = infoLimite?.limite ?? (planoUsuario === 'pro' ? 10 : 3);
 
-      {/* Quick actions */}
-      {messages.length === 0 && historyLoaded && (
-        <div style={{ marginBottom: 16, flexShrink: 0 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: '#8db89d', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, margin: '0 0 10px' }}>Ações rápidas</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {QUICK_ACTIONS.map(({ label, prompt }) => (
-              <button key={label} onClick={() => send(prompt)} style={{
-                padding: '8px 16px', borderRadius: 999,
-                border: '1.5px solid rgba(26,58,26,0.15)',
-                background: '#fff', color: '#1a3a1a',
-                fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                fontFamily: '"Nunito", sans-serif',
-              }}>{label}</button>
-            ))}
-          </div>
-        </div>
+  return (
+    <>
+      {/* Sidebar de memória */}
+      {userCtx && (
+        <MemorySidebar
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          perfil={userCtx.perfil}
+          mem={userCtx.mem}
+          metas={userCtx.metas}
+        />
       )}
 
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 720, margin: '0 auto', padding: '20px 16px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 900, color: '#0d2414', fontFamily: 'Nunito, sans-serif', margin: 0 }}>
+              💬 Assessor
+            </h1>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Botão de memória */}
+            {userCtx && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                style={{
+                  background: '#f0fdf4', border: '1px solid #bbf7d0',
+                  borderRadius: 8, padding: '6px 12px',
+                  cursor: 'pointer', color: '#166534',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontSize: 12, fontWeight: 700,
+                  transition: 'background 0.15s',
+                }}
+                title="O que eu sei sobre você"
+              >
+                <Brain size={14}/>
+                <span style={{ display: 'none' }} className="sm:inline">Memória</span>
+                <ChevronRight size={12}/>
+              </button>
+            )}
+            {messages.length > 0 && (
+              <button onClick={clearHistory} style={{ background: 'none', border: '1px solid #e4f5e9', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#8db89d', display: 'flex', alignItems: 'center' }} title="Limpar">
+                <Trash2 size={16}/>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Conversation starters */}
         {messages.length === 0 && historyLoaded && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', padding: '40px 0' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🤖</div>
-            <p style={{ fontWeight: 700, color: '#0d2414', margin: '0 0 6px', fontSize: 15 }}>Olá! Sou seu assessor financeiro IA.</p>
-            <p style={{ fontSize: 13, color: '#6b9e80', maxWidth: 300, margin: 0, lineHeight: 1.5 }}>
-              Faça uma pergunta ou use as ações rápidas acima para começar.
+          <div style={{ marginBottom: 16, flexShrink: 0 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#8db89d', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>
+              {userCtx ? 'Baseado no seu perfil' : 'Ações rápidas'}
             </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {contextualStarters.map(({ label, prompt }) => (
+                <button key={label} onClick={() => send(prompt)} style={{
+                  padding: '8px 16px', borderRadius: 999,
+                  border: '1.5px solid rgba(26,58,26,0.15)',
+                  background: '#fff', color: '#1a3a1a',
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  fontFamily: '"Nunito", sans-serif',
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}>{label}</button>
+              ))}
+            </div>
           </div>
         )}
 
-        {messages.map((msg, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: msg.role === "user" ? 'flex-end' : 'flex-start', gap: 10 }}>
-            {msg.role === "assistant" && (
+        {/* Messages */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {messages.length === 0 && historyLoaded && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', padding: '40px 0' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🤖</div>
+              <p style={{ fontWeight: 700, color: '#0d2414', margin: '0 0 6px', fontSize: 15 }}>Olá! Sou seu assessor financeiro IA.</p>
+              <p style={{ fontSize: 13, color: '#6b9e80', maxWidth: 300, margin: 0, lineHeight: 1.5 }}>
+                Faça uma pergunta ou use as sugestões acima para começar.
+              </p>
+            </div>
+          )}
+
+          {messages.map((msg, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: msg.role === "user" ? 'flex-end' : 'flex-start', gap: 10 }}>
+              {msg.role === "assistant" && (
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%', background: '#00c853',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 18, flexShrink: 0, marginTop: 2,
+                }}>🧭</div>
+              )}
+              <div style={{ maxWidth: msg.plan ? '100%' : '78%', width: msg.plan ? '100%' : undefined, minWidth: 0 }}>
+                {msg.content && (
+                  <div style={{
+                    borderRadius: msg.role === "user" ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                    padding: '12px 16px', fontSize: 14, lineHeight: 1.55,
+                    background: msg.role === "user" ? '#1a3a1a' : '#e8f5e9',
+                    color: msg.role === "user" ? '#fff' : '#1a3a1a',
+                    fontFamily: '"Nunito", sans-serif',
+                    marginBottom: msg.plan ? 12 : 0,
+                  }}>
+                    {msg.role === "assistant" ? (
+                      <div className="prose prose-sm max-w-none prose-headings:text-[#1a3a1a] prose-headings:font-black prose-p:text-[#1a3a1a] prose-strong:text-[#1a3a1a] prose-li:text-[#1a3a1a] prose-a:text-[#00c853]">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
+                    )}
+                  </div>
+                )}
+                {msg.plan && <PlanCards plan={msg.plan} />}
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 10 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: '50%', background: '#00c853',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 18, flexShrink: 0, marginTop: 2,
               }}>🧭</div>
-            )}
-            <div style={{ maxWidth: msg.plan ? '100%' : '78%', width: msg.plan ? '100%' : undefined, minWidth: 0 }}>
-              {/* Texto da mensagem */}
-              {msg.content && (
-                <div style={{
-                  borderRadius: msg.role === "user" ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                  padding: '12px 16px', fontSize: 14, lineHeight: 1.55,
-                  background: msg.role === "user" ? '#1a3a1a' : '#e8f5e9',
-                  color: msg.role === "user" ? '#fff' : '#1a3a1a',
-                  fontFamily: '"Nunito", sans-serif',
-                  marginBottom: msg.plan ? 12 : 0,
-                }}>
-                  {msg.role === "assistant" ? (
-                    <div className="prose prose-sm max-w-none prose-headings:text-[#1a3a1a] prose-headings:font-black prose-p:text-[#1a3a1a] prose-strong:text-[#1a3a1a] prose-li:text-[#1a3a1a] prose-a:text-[#00c853]">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
-                  )}
-                </div>
-              )}
-
-              {/* Cards do plano */}
-              {msg.plan && <PlanCards plan={msg.plan} />}
-            </div>
-          </div>
-        ))}
-
-        {loading && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 10 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: '50%', background: '#00c853',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, flexShrink: 0, marginTop: 2,
-            }}>🧭</div>
-            <div style={{ background: '#e8f5e9', borderRadius: '18px 18px 18px 4px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              {[0,1,2].map(i => (
-                <span key={i} style={{ background: '#00c853', width: 8, height: 8, borderRadius: '50%', display: 'block', animation: `bounce 1s ${i * 150}ms ease-in-out infinite` }}/>
-              ))}
-            </div>
-          </div>
-        )}
-        <div ref={bottomRef}/>
-      </div>
-
-      {/* Input */}
-      <div style={{ flexShrink: 0, marginTop: 8 }}>
-        {limiteAtingido && infoLimite && (
-          <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0a3d28, #1D9E75)', borderRadius: '16px 16px 0 0', marginBottom: -8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
-                  Limite diário atingido — {infoLimite.usadas}/{infoLimite.limite} mensagens
-                </div>
-                <div style={{ fontSize: 12, color: '#9FE1CB' }}>
-                  Assine o Pro para acesso ilimitado ao Assessor IA
-                </div>
+              <div style={{ background: '#e8f5e9', borderRadius: '18px 18px 18px 4px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                {[0,1,2].map(i => (
+                  <span key={i} style={{ background: '#00c853', width: 8, height: 8, borderRadius: '50%', display: 'block', animation: `bounce 1s ${i * 150}ms ease-in-out infinite` }}/>
+                ))}
               </div>
-              <a href="/dashboard/pro" style={{ background: '#fff', color: '#1D9E75', fontWeight: 800, fontSize: 13, padding: '10px 20px', borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                Assinar Pro
-              </a>
             </div>
-          </div>
-        )}
-        <form onSubmit={(e) => { e.preventDefault(); send(input); }}
-          style={{ display: 'flex', gap: 8, background: '#fff', border: '1px solid #e4f5e9', borderRadius: 20, padding: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }}}
-            placeholder="Digite sua pergunta financeira..."
-            rows={1}
-            style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#0d2414', padding: '6px 8px', maxHeight: 128, fontFamily: 'Nunito, sans-serif' }}
-            disabled={loading}
-          />
-          <button type="submit" disabled={!input.trim() || loading} style={{
-            flexShrink: 0, width: 40, height: 40, borderRadius: '50%',
-            background: '#1a3a1a', border: 0, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            cursor: (!input.trim() || loading) ? 'not-allowed' : 'pointer',
-            opacity: (!input.trim() || loading) ? 0.4 : 1,
-            transition: 'opacity 150ms',
-          }}>
-            <Icon name="send" size={16} color="#fff" />
-          </button>
-        </form>
-        {!limiteAtingido && (
-          <p style={{ fontSize: 11, textAlign: 'center', color: '#8db89d', marginTop: 6 }}>
-            {planoUsuario === 'premium'
-              ? '✦ Assessor ilimitado · Plano Premium'
-              : `${infoLimite ? infoLimite.usadas : 0} de ${planoUsuario === 'pro' ? 10 : 3} mensagens usadas hoje`}
-          </p>
-        )}
-      </div>
+          )}
+          <div ref={bottomRef}/>
+        </div>
 
-      <style>{`
-        @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
-      `}</style>
-    </div>
+        {/* Input area */}
+        <div style={{ flexShrink: 0, marginTop: 8 }}>
+          {limiteAtingido && infoLimite && (
+            <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0a3d28, #1D9E75)', borderRadius: '16px 16px 0 0', marginBottom: -8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+                    Limite diário atingido — {infoLimite.usadas}/{infoLimite.limite} mensagens
+                  </div>
+                  <div style={{ fontSize: 12, color: '#9FE1CB' }}>
+                    Assine o Pro para acesso ilimitado ao Assessor IA
+                  </div>
+                </div>
+                <a href="/dashboard/pro" style={{ background: '#fff', color: '#1D9E75', fontWeight: 800, fontSize: 13, padding: '10px 20px', borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                  Assinar Pro
+                </a>
+              </div>
+            </div>
+          )}
+          <form
+            onSubmit={(e) => { e.preventDefault(); send(input); }}
+            style={{ display: 'flex', gap: 8, background: '#fff', border: '1px solid #e4f5e9', borderRadius: 20, padding: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+          >
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }}}
+              placeholder="Digite sua pergunta financeira..."
+              rows={1}
+              style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#0d2414', padding: '6px 8px', maxHeight: 128, fontFamily: 'Nunito, sans-serif' }}
+              disabled={loading || limiteAtingido}
+            />
+            <button type="submit" disabled={!input.trim() || loading || limiteAtingido} style={{
+              flexShrink: 0, width: 40, height: 40, borderRadius: '50%',
+              background: '#1a3a1a', border: 0, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              cursor: (!input.trim() || loading || limiteAtingido) ? 'not-allowed' : 'pointer',
+              opacity: (!input.trim() || loading || limiteAtingido) ? 0.4 : 1,
+              transition: 'opacity 150ms',
+            }}>
+              <Icon name="send" size={16} color="#fff" />
+            </button>
+          </form>
+
+          {/* Contador sempre visível */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 8 }}>
+            <MessageCounter
+              usadas={usadas}
+              limite={limite}
+              plano={planoUsuario}
+            />
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+        `}</style>
+      </div>
+    </>
   );
 }
