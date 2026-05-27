@@ -9,6 +9,7 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState<string>();
   const [plan, setPlan] = useState<string>('free');
+  const [ocupacao, setOcupacao] = useState<string>();
   const [mounted, setMounted] = useState(false);
   const supabase = createSupabaseBrowser();
 
@@ -19,11 +20,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setEmail(data.user.email ?? undefined);
       const { data: perfil } = await supabase
         .from('user_profiles')
-        .select('plan')
+        .select('plan, ocupacao')
         .eq('id', data.user.id)
         .maybeSingle();
       setPlan(perfil?.plan ?? 'free');
-
+      setOcupacao(perfil?.ocupacao ?? undefined);
       // Dispara email de boas-vindas no primeiro acesso (fire-and-forget)
       supabase.auth.getSession().then(({ data: s }) => {
         if (s.session?.access_token) {
@@ -44,17 +45,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f8fdf9]">
-      {/* Mobile header — scrolls with page, no overlap */}
+      {/* Mobile header */}
       <div className="md:hidden bg-white border-b border-[#e4f5e9] px-4 py-3 flex items-center justify-between">
         <Logo size={100} showText={false} showTagline={false} />
         <div className="flex items-center gap-2">
           {plan === 'free' && (
-            <Link href="/dashboard/pro" className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex items-center gap-1" style={{ background: '#1D9E75' }}>
+            <Link
+              href="/dashboard/pro"
+              className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex items-center gap-1"
+              style={{ background: '#1D9E75' }}
+            >
               <Icon name="sparkles" size={12} color="#fff" /> Pro
             </Link>
           )}
           {plan === 'pro' && (
-            <span className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1" style={{ background: '#E1F5EE', color: '#085041' }}>
+            <span
+              className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
+              style={{ background: '#E1F5EE', color: '#085041' }}
+            >
               <Icon name="sparkles" size={12} color="#085041" /> Pro
             </span>
           )}
@@ -62,7 +70,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       <div className="flex flex-1 min-h-0">
-        <Sidebar email={email} plan={plan} />
+        <Sidebar email={email} plan={plan} ocupacao={ocupacao} />
         <main className="flex-1 min-w-0 pb-24 md:pb-0">{children}</main>
       </div>
     </div>
