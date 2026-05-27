@@ -179,7 +179,7 @@ export default function AuthPage() {
         input:focus, select:focus { outline: none; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.12); }
       `}</style>
 
-      <div style={{ flex: "1", background: "linear-gradient(155deg, #064e2e 0%, #0d7a4e 50%, #1D9E75 100%)", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 56px", position: "relative", overflow: "hidden" }} className="hidden lg:flex">
+     <div style={{ flex: "1", background: "linear-gradient(155deg, #064e2e 0%, #0d7a4e 50%, #1D9E75 100%)", flexDirection: "column", justifyContent: "center", padding: "60px 56px", position: "relative", overflow: "hidden" }} className="hidden lg:flex">
         <div style={{ position: "absolute", top: "-80px", right: "-80px", width: "360px", height: "360px", borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", bottom: "-120px", left: "-60px", width: "480px", height: "480px", borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
         <div className="animate-fade-up" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 56 }}>
