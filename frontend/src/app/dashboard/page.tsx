@@ -33,23 +33,46 @@ function scoreNivelLabel(score: number) {
 }
 
 function fmtInt(n: number): string {
-  return Math.round(n).toLocaleString('pt-BR');
+  return Math.round(n).toLocaleString("pt-BR");
 }
 
 function metaEmoji(nome: string): string {
   const n = nome.toLowerCase();
-  if (n.includes('reserva') || n.includes('emergên') || n.includes('emergenc')) return '🏦';
-  if (n.includes('viagem') || n.includes('férias') || n.includes('ferias')) return '✈️';
-  if (n.includes('carro') || n.includes('auto')) return '🚗';
-  if (n.includes('casa') || n.includes('apto')) return '🏡';
-  if (n.includes('casamento') || n.includes('noivado')) return '💍';
-  if (n.includes('estud') || n.includes('curso')) return '📚';
-  if (n.includes('div') || n.includes('empréstimo')) return '💳';
-  return '🎯';
+  if (n.includes("reserva") || n.includes("emergên") || n.includes("emergenc")) return "🏦";
+  if (n.includes("viagem") || n.includes("férias") || n.includes("ferias")) return "✈️";
+  if (n.includes("carro") || n.includes("auto")) return "🚗";
+  if (n.includes("casa") || n.includes("apto")) return "🏡";
+  if (n.includes("casamento") || n.includes("noivado")) return "💍";
+  if (n.includes("estud") || n.includes("curso")) return "📚";
+  if (n.includes("div") || n.includes("empréstimo")) return "💳";
+  return "🎯";
 }
 
-function brlNum(n: number) {
-  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function gerarInsight(nome: string, dash: DashData | null, meta: Meta | null, hora: number): string {
+  const firstName = nome || "você";
+  if (!dash && !meta) return `O que você quer realizar, ${firstName}? Comece criando uma meta. 🎯`;
+
+  const pct = meta && meta.valor_alvo > 0
+    ? Math.round((meta.valor_atual / meta.valor_alvo) * 100)
+    : null;
+
+  if (dash && dash.sobra < 0)
+    return `Seus gastos estão acima da renda este mês. Quer entender onde cortar? 🔍`;
+
+  if (pct !== null && pct >= 75)
+    return `${firstName}, você está quase lá! ${pct}% da meta "${meta!.nome}" concluída. 🔥`;
+
+  if (pct !== null && pct >= 50)
+    return `Metade do caminho! ${pct}% de "${meta!.nome}" realizado. Continue assim! ⚡`;
+
+  if (dash && dash.sobra > 0 && meta) {
+    const aporte = Math.round((meta.valor_alvo - meta.valor_atual) / Math.max(1, meta.prazo_meses));
+    return `Guardando R$ ${fmtInt(aporte)}/mês você chega em "${meta.nome}" no prazo. Está conseguindo? 💪`;
+  }
+
+  if (hora < 12) return `Bom dia, ${firstName}! Que tal registrar seus gastos de ontem? 📝`;
+  if (hora < 18) return `Como estão suas finanças hoje, ${firstName}? Posso analisar para você. 📊`;
+  return `Boa noite, ${firstName}! Revise seus gastos do dia antes de dormir. 🌙`;
 }
 
 interface ScoreProfile {
@@ -75,6 +98,81 @@ interface DashData {
   gastosCat: Record<string, number>;
 }
 
+function SonhoHero({ meta, loading }: { meta: Meta | null; loading: boolean }) {
+  if (loading) {
+    return (
+      <div style={{ background: "#0a3d28", borderRadius: 22, padding: "20px 22px 22px", marginBottom: 14, height: 140, animation: "pulse 1.5s infinite" }} />
+    );
+  }
+  if (!meta) {
+    return (
+      <a href="/dashboard/metas?add=true" style={{ display: "block", textDecoration: "none", background: "linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)", borderRadius: 22, padding: "22px", marginBottom: 14 }}>
+        <p style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "Nunito, sans-serif" }}>🎯 Defina seu primeiro sonho</p>
+        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", margin: 0 }}>Diga o que você quer realizar →</p>
+      </a>
+    );
+  }
+
+  const pct = meta.valor_alvo > 0 ? Math.min(100, Math.round((meta.valor_atual / meta.valor_alvo) * 100)) : 0;
+  const falta = meta.valor_alvo - meta.valor_atual;
+  const aporte = meta.prazo_meses > 0 ? Math.round(falta / meta.prazo_meses) : 0;
+  const emoji = metaEmoji(meta.nome);
+  const pctColor = pct >= 75 ? "#FFD600" : pct >= 50 ? "#69F0AE" : "#00C853";
+
+  return (
+    <a href={`/dashboard/metas/${meta.id}`} style={{ display: "block", textDecoration: "none", background: "linear-gradient(155deg, #0a3d28 0%, #064e2e 100%)", borderRadius: 22, padding: "20px 22px 22px", marginBottom: 14, border: "1px solid rgba(0,200,83,0.2)" }}>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 28 }}>{emoji}</span>
+          <div>
+            <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 2px" }}>Seu sonho principal</p>
+            <p style={{ fontSize: 15, fontWeight: 900, color: "#fff", margin: 0, fontFamily: "Nunito, sans-serif", lineHeight: 1.2 }}>{meta.nome}</p>
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <p style={{ fontSize: 32, fontWeight: 900, color: pctColor, margin: 0, lineHeight: 1, fontFamily: "Nunito, sans-serif" }}>{pct}%</p>
+          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", margin: "2px 0 0" }}>concluído</p>
+        </div>
+      </div>
+      <div style={{ background: "rgba(255,255,255,0.12)", height: 8, borderRadius: 999, overflow: "hidden", marginBottom: 12 }}>
+        <div style={{ background: `linear-gradient(90deg, #1D9E75, ${pctColor})`, height: "100%", borderRadius: 999, width: `${pct}%`, transition: "width 1s ease" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "0 0 2px" }}>Guardado</p>
+          <p style={{ fontSize: 16, fontWeight: 900, color: "#fff", margin: 0, fontFamily: "Nunito, sans-serif" }}>R$ {fmtInt(meta.valor_atual)}</p>
+        </div>
+        <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.1)" }} />
+        <div style={{ textAlign: "center" }}>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "0 0 2px" }}>Faltam</p>
+          <p style={{ fontSize: 16, fontWeight: 900, color: "#fff", margin: 0, fontFamily: "Nunito, sans-serif" }}>R$ {fmtInt(falta)}</p>
+        </div>
+        <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.1)" }} />
+        <div style={{ textAlign: "right" }}>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "0 0 2px" }}>Por mês</p>
+          <p style={{ fontSize: 16, fontWeight: 900, color: "#A7F3D0", margin: 0, fontFamily: "Nunito, sans-serif" }}>R$ {fmtInt(aporte)}</p>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+function AssessorCard({ insight }: { insight: string }) {
+  return (
+    <a href="/dashboard/assessor" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", marginBottom: 24, border: "1.5px solid #e4f5e9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+      <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #0a3d28, #1D9E75)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0, boxShadow: "0 0 0 3px rgba(0,200,83,0.15)" }}>🧭</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: "#00C853", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 3px" }}>Assessor IA · online</p>
+        <p style={{ fontSize: 13, color: "#0d2414", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600, fontFamily: "Nunito, sans-serif" }}>
+          {insight}
+        </p>
+      </div>
+      <span style={{ color: "#1D9E75", fontSize: 18, flexShrink: 0 }}>›</span>
+    </a>
+  );
+}
+
 export default function DashboardPage() {
   const [eco, setEco] = useState<EcoData | null>(null);
   const [dash, setDash] = useState<DashData | null>(null);
@@ -84,6 +182,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState("");
   const [isPro, setIsPro] = useState(false);
   const [scoreProfile, setScoreProfile] = useState<ScoreProfile | null>(null);
+  const [hora] = useState(() => new Date().getHours());
   const supabase = createSupabaseBrowser();
 
   const load = useCallback(async () => {
@@ -93,7 +192,7 @@ export default function DashboardPage() {
 
     const [metasRes, profileRes] = await Promise.all([
       supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).order("created_at", { ascending: false }),
-      supabase.from("user_profiles").select("plan,full_name").eq("user_id", session.user.id).single(),
+      supabase.from("user_profiles").select("plan,full_name,nome").eq("user_id", session.user.id).single(),
     ]);
     const metas: Meta[] = metasRes.data ?? [];
     setAllMetas(metas);
@@ -102,7 +201,8 @@ export default function DashboardPage() {
 
     if (profileRes.data) {
       setIsPro(profileRes.data.plan === "pro");
-      if (profileRes.data.full_name) setUserName(profileRes.data.full_name.split(" ")[0]);
+      const name = profileRes.data.full_name || profileRes.data.nome || "";
+      if (name) setUserName(name.split(" ")[0]);
     }
 
     const { data: sp } = await supabase
@@ -159,82 +259,61 @@ export default function DashboardPage() {
     ? (((1 + eco.selic_anual / 100) / (1 + eco.ipca_anual / 100) - 1) * 100).toFixed(2)
     : "—";
 
-  const totalAtual = allMetas.reduce((s, m) => s + m.valor_atual, 0);
-  const totalAlvo = allMetas.reduce((s, m) => s + m.valor_alvo, 0);
-  const totalPct = totalAlvo > 0 ? Math.min(100, Math.round((totalAtual / totalAlvo) * 100)) : 0;
-  const greetingMsg = !loading && allMetas.length === 0 ? "Crie sua primeira meta 🎯" : !loading && dash && dash.sobra < 0 ? "Atenção às suas finanças" : "Você tá no caminho";
+  const insight = gerarInsight(userName, dash, mainMeta, hora);
+  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  const saudacaoEmoji = hora < 12 ? "☀️" : hora < 18 ? "🌤️" : "🌙";
 
   return (
     <>
-    {/* ── Mobile dashboard ───────────────────────────── */}
+    {/* ── Mobile ───────────────────────────────────────── */}
     <div className="md:hidden" style={{ minHeight: "100vh", background: "#f7fdf9", paddingBottom: 100 }}>
-      {/* Greeting */}
       <div style={{ padding: "20px 20px 0", fontFamily: "Nunito, sans-serif" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 900, color: "#0d2414", margin: "0 0 2px" }}>
-          {userName ? `Oi, ${userName}! 🌺` : "Olá! 🌺"}
-        </h1>
-        <p style={{ fontSize: 13, color: "#6b9e80", margin: "0 0 20px" }}>{greetingMsg}</p>
+        <div style={{ marginBottom: 20 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 900, color: "#0d2414", margin: "0 0 2px" }}>
+            {userName ? `${saudacao}, ${userName}! ${saudacaoEmoji}` : `${saudacao}! ${saudacaoEmoji}`}
+          </h1>
+          <p style={{ fontSize: 13, color: "#6b9e80", margin: 0 }}>
+            {!loading && dash && dash.sobra < 0
+              ? "⚠️ Gastos acima da renda este mês"
+              : !loading && allMetas.length === 0
+              ? "Crie seu primeiro sonho para começar 🎯"
+              : "Veja como seus sonhos estão evoluindo"}
+          </p>
+        </div>
 
-        {/* Hero card */}
-        {allMetas.length > 0 ? (
-          <div style={{ background: "#0a3d28", borderRadius: 22, padding: "20px 22px 22px", marginBottom: 14 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 10px" }}>
-              TOTAL GUARDADO · TODAS AS METAS
-            </p>
-            <p style={{ fontSize: 36, fontWeight: 900, color: "#fff", margin: "0 0 8px", fontFamily: "Nunito, sans-serif", lineHeight: 1 }}>
-              R$ {fmtInt(totalAtual)}<span style={{ fontSize: 18 }}>,00</span>
-            </p>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "0 0 14px" }}>
-              {totalPct}% de R$ {fmtInt(totalAlvo)}
-            </p>
-            <div style={{ background: "rgba(255,255,255,0.15)", height: 8, borderRadius: 999, overflow: "hidden" }}>
-              <div style={{ background: "#00C853", height: "100%", borderRadius: 999, width: `${totalPct}%`, transition: "width 1s ease" }} />
-            </div>
+        <SonhoHero meta={mainMeta} loading={loading} />
+        <AssessorCard insight={insight} />
+
+        {!loading && dash && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+            {[
+              { label: "Renda", value: `R$ ${fmtInt(dash.renda)}`, color: "#1D9E75", icon: "💰" },
+              { label: "Gastos", value: `R$ ${fmtInt(dash.gastos)}`, color: dash.gastos > dash.renda * 0.8 ? "#ef4444" : "#0d2414", icon: "📤" },
+              { label: "Sobra", value: `R$ ${fmtInt(Math.abs(dash.sobra))}`, color: dash.sobra >= 0 ? "#1D9E75" : "#ef4444", icon: dash.sobra >= 0 ? "✅" : "❌" },
+              { label: "SELIC", value: eco ? `${eco.selic_anual}%` : "—", color: "#0d2414", icon: "📈" },
+            ].map(({ label, value, color, icon }) => (
+              <div key={label} style={{ background: "#fff", borderRadius: 14, padding: "12px 14px", border: "1.5px solid #e4f5e9" }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>{icon} {label}</p>
+                <p style={{ fontSize: 16, fontWeight: 900, color, margin: 0, fontFamily: "Nunito, sans-serif" }}>{value}</p>
+              </div>
+            ))}
           </div>
-        ) : !loading && (
-          <a href="/dashboard/metas?add=true" style={{ display: "block", textDecoration: "none", background: "linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)", borderRadius: 22, padding: "22px", marginBottom: 14 }}>
-            <p style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "0 0 4px" }}>🎯 Defina sua primeira meta</p>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", margin: 0 }}>Diga qual é o seu sonho →</p>
-          </a>
         )}
 
-        {/* Assessor card */}
-        <a href="/dashboard/assessor" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", marginBottom: 24, border: "1.5px solid #e4f5e9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#00C853", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>🧭</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 13, fontWeight: 800, color: "#0d2414", margin: "0 0 2px", fontFamily: "Nunito, sans-serif" }}>Gui · seu Assessor IA</p>
-            <p style={{ fontSize: 12, color: "#6b9e80", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              Faça uma pergunta sobre suas finanças...
-            </p>
-          </div>
-          <span style={{ color: "#1D9E75", fontSize: 18 }}>›</span>
-        </a>
-
-        {/* Metas section */}
-        {allMetas.length > 0 && (
+        {allMetas.length > 1 && (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <p style={{ fontSize: 16, fontWeight: 800, color: "#0d2414", margin: 0, fontFamily: "Nunito, sans-serif" }}>Suas metas</p>
+              <p style={{ fontSize: 16, fontWeight: 800, color: "#0d2414", margin: 0, fontFamily: "Nunito, sans-serif" }}>Outras metas</p>
               <a href="/dashboard/metas" style={{ fontSize: 13, fontWeight: 700, color: "#1D9E75", textDecoration: "none" }}>Ver todas →</a>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {allMetas.slice(0, 2).map(meta => {
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+              {allMetas.slice(1, 3).map(meta => {
                 const pct = meta.valor_alvo > 0 ? Math.min(100, Math.round((meta.valor_atual / meta.valor_alvo) * 100)) : 0;
-                const emoji = (() => {
-                  const n = meta.nome.toLowerCase();
-                  if (n.includes("reserva") || n.includes("emergên")) return "🏦";
-                  if (n.includes("viagem") || n.includes("férias") || n.includes("europa")) return "✈️";
-                  if (n.includes("carro") || n.includes("auto")) return "🚗";
-                  if (n.includes("casa") || n.includes("apto")) return "🏡";
-                  if (n.includes("casamento")) return "💍";
-                  if (n.includes("estud") || n.includes("curso")) return "📚";
-                  return "🎯";
-                })();
                 return (
                   <a key={meta.id} href={`/dashboard/metas/${meta.id}`} style={{ textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", border: "1.5px solid #e4f5e9", display: "block" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ fontSize: 22 }}>{emoji}</span>
+                        <span style={{ fontSize: 22 }}>{metaEmoji(meta.nome)}</span>
                         <div>
                           <p style={{ fontSize: 13, fontWeight: 800, color: "#0d2414", margin: 0, fontFamily: "Nunito, sans-serif" }}>{meta.nome}</p>
                           <p style={{ fontSize: 12, color: "#6b9e80", margin: 0 }}>R$ {fmtInt(meta.valor_atual)} de {fmtInt(meta.valor_alvo)}</p>
@@ -245,9 +324,6 @@ export default function DashboardPage() {
                     <div style={{ background: "#e8f5e9", height: 6, borderRadius: 999, overflow: "hidden" }}>
                       <div style={{ background: "linear-gradient(90deg, #1D9E75, #00C853)", height: "100%", borderRadius: 999, width: `${pct}%` }} />
                     </div>
-                    <p style={{ fontSize: 11, color: "#6b9e80", margin: "6px 0 0" }}>
-                      R$ {fmtInt((meta.valor_alvo - meta.valor_atual) / Math.max(1, meta.prazo_meses))}/mês · {meta.prazo_meses} meses
-                    </p>
                   </a>
                 );
               })}
@@ -255,9 +331,8 @@ export default function DashboardPage() {
           </>
         )}
 
-        {/* Score card on mobile */}
         {!loading && scoreProfile?.diagnostico_json?.score_imoney && (
-          <a href="/dashboard/score" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", marginTop: 14, border: "1.5px solid #e4f5e9" }}>
+          <a href="/dashboard/score" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", marginBottom: 14, border: "1.5px solid #e4f5e9" }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <span style={{ fontSize: 20, fontWeight: 900, color: "#16a34a", fontFamily: "Nunito, sans-serif" }}>{scoreProfile.score_saude ?? 0}</span>
             </div>
@@ -270,23 +345,34 @@ export default function DashboardPage() {
       </div>
     </div>
 
-    {/* ── Desktop dashboard ─────────────────────────── */}
+    {/* ── Desktop ───────────────────────────────────────── */}
     <div className="hidden md:block p-5 lg:p-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-7">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-black text-[#0d2414] font-[Nunito]">Dashboard</h1>
-          <p className="text-sm text-[#6b9e80] mt-0.5">Visão geral das suas finanças</p>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0d2414", margin: "0 0 4px", fontFamily: "Nunito, sans-serif" }}>
+            {userName ? `${saudacao}, ${userName}! ${saudacaoEmoji}` : "Dashboard"}
+          </h1>
+          <p style={{ fontSize: 13, color: "#6b9e80", margin: 0 }}>
+            {!loading && dash && dash.sobra < 0
+              ? "⚠️ Seus gastos estão acima da renda este mês"
+              : "Veja como seus sonhos estão evoluindo"}
+          </p>
         </div>
         <button onClick={load} className="btn-ghost p-2.5 rounded-xl" title="Atualizar">
           <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
 
-      {/* Score iMoney card */}
+      <div style={{ marginBottom: 16 }}>
+        <SonhoHero meta={mainMeta} loading={loading} />
+      </div>
+
+      <AssessorCard insight={insight} />
+
       {!loading && (
         scoreProfile?.diagnostico_json?.score_imoney ? (
           <a href="/dashboard/score" style={{ display: "block", textDecoration: "none", marginBottom: 20 }}>
-            <div style={{ background: "#fff", border: "1.5px solid #e4f5e9", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: "pointer", transition: "box-shadow 0.2s", boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}>
+            <div style={{ background: "#fff", border: "1.5px solid #e4f5e9", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <span style={{ fontSize: 22, fontWeight: 900, color: scoreNivelColor(scoreProfile.score_saude ?? 0), fontFamily: "Nunito, sans-serif" }}>{scoreProfile.score_saude ?? 0}</span>
@@ -306,7 +392,7 @@ export default function DashboardPage() {
           </a>
         ) : (
           <a href="/dashboard/diagnostico" style={{ display: "block", textDecoration: "none", marginBottom: 20 }}>
-            <div style={{ background: "linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)", borderRadius: 16, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: "pointer" }}>
+            <div style={{ background: "linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)", borderRadius: 16, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", margin: "0 0 3px" }}>🎯 Descubra seu Score iMoney</p>
                 <p style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", margin: 0, fontWeight: 600 }}>Diagnóstico financeiro gratuito em 5 perguntas</p>
@@ -319,7 +405,6 @@ export default function DashboardPage() {
         )
       )}
 
-      {/* Eco indicators */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-6">
         {[
           { label: "SELIC Efetiva", value: eco ? `${eco.selic_anual}% a.a.` : "…", color: "#16a34a" },
@@ -337,7 +422,6 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Main KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {loading ? (
           [0,1,2,3].map(i => <MetricCardSkeleton key={i} />)
@@ -362,37 +446,10 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {mainMeta && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#8db89d', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Meta Principal</p>
-            <a href="/dashboard/metas" style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', textDecoration: 'none' }}>Ver todas →</a>
-          </div>
-          <GoalCard
-            title={mainMeta.nome}
-            emoji={metaEmoji(mainMeta.nome)}
-            current={fmtInt(mainMeta.valor_atual)}
-            target={fmtInt(mainMeta.valor_alvo)}
-            pct={Math.min(100, mainMeta.valor_alvo > 0 ? Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100) : 0)}
-            statusLeft={(() => {
-              const pct = mainMeta.valor_alvo > 0 ? Math.round((mainMeta.valor_atual / mainMeta.valor_alvo) * 100) : 0;
-              const m = mainMeta.prazo_meses;
-              if (pct < 5) return `${pct}% · começando`;
-              if (m >= 24) return `${pct}% · ${Math.round(m / 12)} anos restantes`;
-              return `${pct}% · faltam ${m} meses`;
-            })()}
-            statusRight={`R$ ${fmtInt((mainMeta.valor_alvo - mainMeta.valor_atual) / mainMeta.prazo_meses)}/mês`}
-            tone="white"
-          />
-        </div>
-      )}
-
-      {/* Resumo Mensal */}
       <div className="mb-6">
         <MonthlySummaryCard isPro={isPro} />
       </div>
 
-      {/* Charts */}
       {dash && pieData.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
           <div className="card">
