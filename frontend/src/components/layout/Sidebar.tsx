@@ -15,6 +15,7 @@ const RENDA_VARIAVEL_OCUPACOES = [
   'Empresário/Sócio',
   'Autônomo',
   'Freelancer',
+  'Freelancer/Autônomo',
   'MEI',
 ];
 
