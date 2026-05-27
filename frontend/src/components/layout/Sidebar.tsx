@@ -9,20 +9,42 @@ import { Icon, type IconName } from "@/components/imoney/primitives";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
 
-const NAV_ITEMS: { href: string; icon: IconName; label: string }[] = [
-  { href: "/dashboard",               icon: 'home',        label: "Dashboard" },
-  { href: "/dashboard/assessor",      icon: 'sparkles',    label: "Assessor" },
-  { href: "/dashboard/transacoes",    icon: 'wallet',      label: "Transações" },
-  { href: "/dashboard/metas",         icon: 'target',      label: "Metas" },
-  { href: "/dashboard/investimentos", icon: 'trending-up', label: "Investimentos" },
-  { href: "/dashboard/renda",         icon: 'pie',         label: "Renda Variável" },
-  { href: "/dashboard/perfil",        icon: 'user',        label: "Meu Perfil" },
-  { href: "/dashboard/openfinance",   icon: 'compass',     label: "Open Finance" },
+// ─── Perfis que veem Renda Variável ──────────────────────────────────────────
+
+const RENDA_VARIAVEL_OCUPACOES = [
+  'Empresário/Sócio',
+  'Autônomo',
+  'Freelancer',
+  'MEI',
 ];
 
+// ─── Nav builder ─────────────────────────────────────────────────────────────
+
+function buildNavItems(ocupacao?: string): { href: string; icon: IconName; label: string }[] {
+  const base = [
+    { href: "/dashboard",               icon: 'home'        as IconName, label: "Dashboard" },
+    { href: "/dashboard/assessor",      icon: 'sparkles'    as IconName, label: "Assessor" },
+    { href: "/dashboard/transacoes",    icon: 'wallet'      as IconName, label: "Transações" },
+    { href: "/dashboard/metas",         icon: 'target'      as IconName, label: "Metas" },
+    { href: "/dashboard/investimentos", icon: 'trending-up' as IconName, label: "Investimentos" },
+  ];
+
+  const mostraRendaVariavel = ocupacao && RENDA_VARIAVEL_OCUPACOES.some(o =>
+    ocupacao.toLowerCase().includes(o.toLowerCase())
+  );
+
+  if (mostraRendaVariavel) {
+    base.push({ href: "/dashboard/renda", icon: 'pie' as IconName, label: "Renda Variável" });
+  }
+
+  return base;
+}
+
+// ─── Mobile nav ───────────────────────────────────────────────────────────────
+
 const MOBILE_NAV_LEFT: { href: string; icon: IconName; label: string }[] = [
-  { href: "/dashboard",            icon: 'home',     label: "Início" },
-  { href: "/dashboard/transacoes", icon: 'wallet',   label: "Transações" },
+  { href: "/dashboard",            icon: 'home',   label: "Início" },
+  { href: "/dashboard/transacoes", icon: 'wallet', label: "Transações" },
 ];
 
 const MOBILE_NAV_RIGHT: { href: string; icon: IconName; label: string }[] = [
@@ -30,15 +52,22 @@ const MOBILE_NAV_RIGHT: { href: string; icon: IconName; label: string }[] = [
   { href: "/dashboard/perfil",   icon: 'user',     label: "Você" },
 ];
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 interface SidebarProps {
   email?: string;
   plan?: string;
+  ocupacao?: string;
 }
 
-export function Sidebar({ email, plan = 'free' }: SidebarProps) {
+// ─── Componente ───────────────────────────────────────────────────────────────
+
+export function Sidebar({ email, plan = 'free', ocupacao }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const supabase = createSupabaseBrowser();
+
+  const navItems = buildNavItems(ocupacao);
 
   async function logout() {
     await supabase.auth.signOut();
@@ -59,9 +88,9 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
         </div>
       )}
 
-      {/* Nav */}
+      {/* Nav principal */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map(({ href, icon, label }) => {
+        {navItems.map(({ href, icon, label }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link
@@ -81,7 +110,7 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
         })}
       </nav>
 
-      {/* Botão Pro */}
+      {/* Botão Pro / status de plano */}
       {!collapsed && plan === 'free' && (
         <div className="px-3 pb-3">
           <Link
@@ -112,11 +141,51 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
         </div>
       )}
 
-      {/* Bottom */}
+      {/* Bottom — Open Finance, Perfil, Sair */}
       <div className="px-3 pb-5 border-t border-[#e4f5e9] pt-3 space-y-1">
+        {/* Open Finance */}
+        <Link
+          href="/dashboard/openfinance"
+          className={cn(
+            "nav-link",
+            pathname.startsWith("/dashboard/openfinance") && "active",
+            collapsed && "justify-center px-2"
+          )}
+          title={collapsed ? "Open Finance" : undefined}
+        >
+          <Icon
+            name="compass"
+            size={18}
+            color={pathname.startsWith("/dashboard/openfinance") ? '#1D9E75' : '#8db89d'}
+          />
+          {!collapsed && <span>Open Finance</span>}
+        </Link>
+
+        {/* Meu Perfil */}
+        <Link
+          href="/dashboard/perfil"
+          className={cn(
+            "nav-link",
+            pathname.startsWith("/dashboard/perfil") && "active",
+            collapsed && "justify-center px-2"
+          )}
+          title={collapsed ? "Meu Perfil" : undefined}
+        >
+          <Icon
+            name="user"
+            size={18}
+            color={pathname.startsWith("/dashboard/perfil") ? '#1D9E75' : '#8db89d'}
+          />
+          {!collapsed && <span>Meu Perfil</span>}
+        </Link>
+
+        {/* Sair */}
         <button
           onClick={logout}
-          className={cn("nav-link w-full text-left text-red-400 hover:text-red-500 hover:bg-red-50", collapsed && "justify-center px-2")}
+          className={cn(
+            "nav-link w-full text-left text-red-400 hover:text-red-500 hover:bg-red-50",
+            collapsed && "justify-center px-2"
+          )}
           title={collapsed ? "Sair" : undefined}
         >
           <LogOut size={18} className="shrink-0" />
@@ -143,14 +212,19 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
       </aside>
 
       {/* Mobile bottom navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e4f5e9] flex items-end justify-around px-2"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 72 }}>
-
+      <div
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e4f5e9] flex items-end justify-around px-2"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 72 }}
+      >
         {MOBILE_NAV_LEFT.map(({ href, icon, label }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
-            <Link key={href} href={href} className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all"
-              style={{ color: active ? '#1D9E75' : '#aaa' }}>
+            <Link
+              key={href}
+              href={href}
+              className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all"
+              style={{ color: active ? '#1D9E75' : '#aaa' }}
+            >
               <div className={cn("p-1.5 rounded-xl transition-all", active && "bg-[#E1F5EE]")}>
                 <Icon name={icon} size={20} color={active ? '#1D9E75' : '#aaa'} />
               </div>
@@ -160,16 +234,28 @@ export function Sidebar({ email, plan = 'free' }: SidebarProps) {
         })}
 
         {/* FAB — Adicionar meta */}
-        <Link href="/dashboard/metas?add=true"
-          style={{ width: 54, height: 54, borderRadius: '50%', background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, boxShadow: '0 4px 18px rgba(29,158,117,0.45)', flexShrink: 0 }}>
+        <Link
+          href="/dashboard/metas?add=true"
+          style={{
+            width: 54, height: 54, borderRadius: '50%',
+            background: '#1D9E75', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            marginBottom: 14, boxShadow: '0 4px 18px rgba(29,158,117,0.45)',
+            flexShrink: 0,
+          }}
+        >
           <span style={{ color: '#fff', fontSize: 30, fontWeight: 300, lineHeight: 1, marginTop: -2 }}>+</span>
         </Link>
 
         {MOBILE_NAV_RIGHT.map(({ href, icon, label }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
-            <Link key={href} href={href} className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all"
-              style={{ color: active ? '#1D9E75' : '#aaa' }}>
+            <Link
+              key={href}
+              href={href}
+              className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all"
+              style={{ color: active ? '#1D9E75' : '#aaa' }}
+            >
               <div className={cn("p-1.5 rounded-xl transition-all", active && "bg-[#E1F5EE]")}>
                 <Icon name={icon} size={20} color={active ? '#1D9E75' : '#aaa'} />
               </div>
