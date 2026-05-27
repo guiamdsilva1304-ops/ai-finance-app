@@ -50,7 +50,7 @@ function metaEmoji(nome: string): string {
 
 function gerarInsight(nome: string, dash: DashData | null, meta: Meta | null, hora: number): string {
   const firstName = nome || "você";
-  if (!dash && !meta) return `O que você quer realizar, ${firstName}? Comece criando uma meta. 🎯`;
+  if (!dash && !meta) return `Bem-vindo à iMoney, ${firstName}! Crie sua primeira meta e veja seu plano tomar forma. 🌱`;
 
   const pct = meta && meta.valor_alvo > 0
     ? Math.round((meta.valor_atual / meta.valor_alvo) * 100)
@@ -202,7 +202,13 @@ export default function DashboardPage() {
     if (profileRes.data) {
       setIsPro(profileRes.data.plan === "pro");
       const name = profileRes.data.full_name || profileRes.data.nome || "";
-      if (name) setUserName(name.split(" ")[0]);
+      if (name) {
+        setUserName(name.split(" ")[0]);
+      } else {
+        const email = session.user.email || "";
+        const emailName = email.split("@")[0].replace(/[._-]/g, " ").split(" ")[0];
+        if (emailName) setUserName(emailName.charAt(0).toUpperCase() + emailName.slice(1));
+      }
     }
 
     const { data: sp } = await supabase
@@ -350,7 +356,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0d2414", margin: "0 0 4px", fontFamily: "Nunito, sans-serif" }}>
-            {userName ? `${saudacao}, ${userName}! ${saudacaoEmoji}` : "Dashboard"}
+            {`${saudacao}${userName ? `, ${userName}` : ""}! ${saudacaoEmoji}`}
           </h1>
           <p style={{ fontSize: 13, color: "#6b9e80", margin: 0 }}>
             {!loading && dash && dash.sobra < 0
