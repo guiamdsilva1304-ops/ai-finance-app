@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { CATEGORIAS, type Categoria, type Transaction } from "@/types";
 import Link from "next/link";
 import ImportarExtrato from "@/components/ImportarExtrato";
-
+import { StreakToast } from "@/components/imoney/celebration";
 const CAT_COLORS: Record<string, string> = {
   Moradia:"bg-blue-100 text-blue-700", Alimentação:"bg-orange-100 text-orange-700",
   Transporte:"bg-yellow-100 text-yellow-700", Saúde:"bg-red-100 text-red-700",
@@ -30,7 +30,7 @@ export default function TransacoesPage() {
   const [exportando, setExportando] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(false); const [streakToast, setStreakToast] = useState<string | null>(null);
 
   const [desc, setDesc] = useState("");
   const [valor, setValor] = useState("");
@@ -115,10 +115,12 @@ export default function TransacoesPage() {
       descricao: desc.trim().slice(0, 200),
       valor: v, categoria: cat, tipo, date: dataT, source: "manual",
     });
+  const waReceita = tipo === "receita";
     setDesc(""); setValor(""); setTipo("gasto"); setCat("Outros");
     setDataT(new Date().toISOString().split("T")[0]);
     setShowForm(false);
     setSaving(false);
+    if (waReceita) setStreakToast(`R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} registrados! Continue assim 💪`);
     load();
   }
 
