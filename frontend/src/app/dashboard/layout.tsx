@@ -21,7 +21,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const { data: perfil } = await supabase
         .from('user_profiles')
         .select('plan, ocupacao')
-        .eq('id', data.user.id)
+        .eq('user_id', data.user.id)
         .maybeSingle();
       setPlan(perfil?.plan ?? 'free');
       setOcupacao(perfil?.ocupacao ?? undefined);
