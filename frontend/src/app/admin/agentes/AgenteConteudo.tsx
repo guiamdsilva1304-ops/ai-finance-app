@@ -51,17 +51,12 @@ export default function AgenteConteudo() {
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const [erro, setErro] = useState('')
 
-  const adminKey = typeof window !== 'undefined'
-    ? localStorage.getItem('imoney_admin_key') || ''
-    : ''
 
   async function carregar() {
     setLoading(true)
     setErro('')
     try {
-      const res = await fetch('/api/admin/agentes/conteudo', {
-        headers: { 'x-admin-key': adminKey },
-      })
+      const res = await fetch('/api/admin/agentes/conteudo', { credentials: 'include' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setResumo(data.resumo)
@@ -80,7 +75,8 @@ export default function AgenteConteudo() {
     try {
       const res = await fetch('/api/admin/agentes/conteudo', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ acao }),
       })
       const data = await res.json()
