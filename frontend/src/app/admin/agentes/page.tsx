@@ -166,6 +166,7 @@ export default function AgentesPage() {
   const [mensagens, setMensagens] = useState<Record<AgentId, Message[]>>({ seo: [], growth: [] })
   const [memoriaCount, setMemoriaCount] = useState<Record<AgentId, number>>({ seo: 0, growth: 0 })
   const [carregandoMemoria, setCarregandoMemoria] = useState(false)
+  const carregadosRef = useRef<Set<AgentId>>(new Set())
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -173,10 +174,11 @@ export default function AgentesPage() {
   const msgs = mensagens[agenteSelecionado.id]
 
   const carregarHistorico = useCallback(async (agente: Agent) => {
-    if (mensagens[agente.id].length > 0) return
+    if (carregadosRef.current.has(agente.id)) return
+    carregadosRef.current.add(agente.id)
     setCarregandoMemoria(true)
     try {
-      const res = await fetch('/api/admin/agentes?agentId=' + agente.id)
+      const res = await fetch('/api/admin/agentes?agentId=' + agente.id, { credentials: 'include' })
       const data = await res.json()
       const raw: { role: string; content: string }[] = data.messages ?? []
       if (raw.length === 0) return
@@ -187,9 +189,9 @@ export default function AgentesPage() {
       setMensagens(prev => ({ ...prev, [agente.id]: parsed }))
       setMemoriaCount(prev => ({ ...prev, [agente.id]: raw.length }))
     } catch { } finally { setCarregandoMemoria(false) }
-  }, [mensagens])
+  }, [])
 
-  useEffect(() => { carregarHistorico(agenteSelecionado) }, [agenteSelecionado])
+  useEffect(() => { carregarHistorico(agenteSelecionado) }, [agenteSelecionado, carregarHistorico])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
   useEffect(() => {
     const ta = textareaRef.current
@@ -210,6 +212,7 @@ export default function AgentesPage() {
       const res = await fetch('/api/admin/agentes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ messages: historico.map(m => ({ role: m.role, content: m.content })), systemPrompt: agenteSelecionado.systemPrompt, agentId: agenteSelecionado.id }),
       })
       if (!res.ok) throw new Error('Erro na API')
