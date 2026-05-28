@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 
-export async function POST() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://ai-finance-app-ashen.vercel.app";
+export const maxDuration = 300;
 
-  const response = await fetch(`${baseUrl}/api/agents/marketing`, {
+export async function POST() {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://ai-finance-app-ashen.vercel.app";
+
+  const response = await fetch(`${appUrl}/api/agents/marketing`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
