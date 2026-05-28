@@ -9,7 +9,8 @@ export async function POST(req: NextRequest) {
   if (password !== ADMIN_PASSWORD) {
     return NextResponse.json({ error: "Senha incorreta" }, { status: 401 });
   }
-  const res = NextResponse.json({ ok: true });
+  // Retorna o sessionKey para o frontend salvar no localStorage (usado no header x-admin-key)
+  const res = NextResponse.json({ ok: true, sessionKey: SESSION_SECRET });
   res.cookies.set(ADMIN_COOKIE, SESSION_SECRET, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
