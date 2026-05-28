@@ -20,6 +20,7 @@ function LoginForm() {
         body: JSON.stringify({ password }),
       });
       if (!res.ok) { setError("Senha incorreta."); return; }
+      localStorage.setItem('imoney_admin_key', password)
       router.push(from);
     } catch { setError("Erro de conexão."); }
     finally { setLoading(false); }
