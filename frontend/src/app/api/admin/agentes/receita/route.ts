@@ -175,7 +175,9 @@ async function jaRecebeuUpgrade(userId: string): Promise<boolean> {
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('x-admin-key')
-  if (auth !== process.env.ADMIN_SESSION_SECRET) {
+  const sessionCookie = req.cookies.get('imoney_admin_session')?.value
+  const SECRET = process.env.ADMIN_SESSION_SECRET || 'imoneyval1BI'
+  if (auth !== SECRET && sessionCookie !== SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const oportunidades = await mapearOportunidades()
@@ -186,7 +188,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('x-admin-key')
-  if (auth !== process.env.ADMIN_SESSION_SECRET) {
+  const sessionCookie = req.cookies.get('imoney_admin_session')?.value
+  const SECRET = process.env.ADMIN_SESSION_SECRET || 'imoneyval1BI'
+  if (auth !== SECRET && sessionCookie !== SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
