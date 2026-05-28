@@ -160,7 +160,7 @@ async function jaRecebeuRecente(userId: string): Promise<boolean> {
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('x-admin-key')
   const sessionCookie = req.cookies.get('imoney_admin_session')?.value
-  const SECRET = process.env.ADMIN_SESSION_SECRET || 'imoneyval1BI'
+  const SECRET = process.env.ADMIN_SESSION_SECRET || 'imoney-admin-secret-2025'
   if (auth !== SECRET && sessionCookie !== SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -182,7 +182,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('x-admin-key')
   const sessionCookie = req.cookies.get('imoney_admin_session')?.value
-  const SECRET = process.env.ADMIN_SESSION_SECRET || 'imoneyval1BI'
+  const SECRET = process.env.ADMIN_SESSION_SECRET || 'imoney-admin-secret-2025'
   if (auth !== SECRET && sessionCookie !== SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
