@@ -43,17 +43,12 @@ export default function AgenteCS() {
   const [erros, setErros] = useState<Array<{ email: string; erro: string }>>([])
   const [erro, setErro] = useState('')
 
-  const adminKey = typeof window !== 'undefined'
-    ? localStorage.getItem('imoney_admin_key') || ''
-    : ''
 
   async function diagnosticar() {
     setLoading(true)
     setErro('')
     try {
-      const res = await fetch('/api/admin/agentes/cs', {
-        headers: { 'x-admin-key': adminKey },
-      })
+      const res = await fetch('/api/admin/agentes/cs', { credentials: 'include' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setSegmentos(data.detalhes)
@@ -72,7 +67,8 @@ export default function AgenteCS() {
     try {
       const res = await fetch('/api/admin/agentes/cs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ acao }),
       })
       const data = await res.json()
