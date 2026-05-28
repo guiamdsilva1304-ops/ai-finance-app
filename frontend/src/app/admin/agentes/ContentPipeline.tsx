@@ -14,7 +14,7 @@ type Post = {
   tema: string
   plataforma: string
   status: string
-  criado_em: string
+  created_at: string
   conteudo: string
   metadata: any
 }
@@ -23,7 +23,7 @@ export default function ContentPipeline() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'pendente' | 'aprovado' | 'rejeitado'>('pendente')
+  const [filter, setFilter] = useState<'aguardando_aprovacao' | 'aprovado' | 'rejeitado'>('aguardando_aprovacao')
 
   useEffect(() => {
     fetchPosts()
@@ -35,7 +35,7 @@ export default function ContentPipeline() {
       .from('content_pipeline')
       .select('*')
       .eq('status', filter)
-      .order('criado_em', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(20)
     setPosts(data || [])
     setLoading(false)
@@ -61,7 +61,7 @@ export default function ContentPipeline() {
 
       {/* Filtros */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {(['pendente', 'aprovado', 'rejeitado'] as const).map(f => (
+        {(['aguardando_aprovacao', 'aprovado', 'rejeitado'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
             padding: '6px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
             cursor: 'pointer', border: 'none',
@@ -100,11 +100,11 @@ export default function ContentPipeline() {
                   {post.titulo}
                 </div>
                 <div style={{ fontSize: 11, color: C.muted }}>
-                  {post.plataforma} · {new Date(post.criado_em).toLocaleDateString('pt-BR')}
+                  {post.plataforma} · {new Date(post.created_at).toLocaleDateString('pt-BR')}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {filter === 'pendente' && (
+                {filter === 'aguardando_aprovacao' && (
                   <>
                     <button onClick={e => { e.stopPropagation(); updateStatus(post.id, 'aprovado') }} style={{
                       background: C.green, color: '#000', border: 'none',
