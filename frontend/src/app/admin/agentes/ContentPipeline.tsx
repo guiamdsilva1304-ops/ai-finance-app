@@ -1,197 +1,225 @@
 'use client'
+import { useState, useEffect, useCallback } from 'react'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+type StatusFilter = 'aguardando_aprovacao' | 'aprovado' | 'rejeitado'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const STATUS_LABELS: Record<StatusFilter, string> = {
+  aguardando_aprovacao: 'Aguardando aprovação',
+  aprovado: 'Aprovado',
+  rejeitado: 'Rejeitado',
+}
 
-type Post = {
+interface PipelineItem {
   id: string
-  titulo: string
-  tema: string
-  plataforma: string
+  platform: string
+  content_type: string
   status: string
+  tema: string
+  angulo?: string
+  caption?: string
+  hashtags?: string[]
+  cta?: string
+  melhor_horario?: string
+  visual_description?: string
+  slides?: unknown
   created_at: string
-  conteudo: string
-  metadata: any
+  scheduled_for?: string
 }
 
 export default function ContentPipeline() {
-  const [posts, setPosts] = useState<Post[]>([])
-  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<StatusFilter>('aguardando_aprovacao')
+  const [items, setItems] = useState<PipelineItem[]>([])
+  const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'aguardando_aprovacao' | 'aprovado' | 'rejeitado'>('aguardando_aprovacao')
 
-  useEffect(() => {
-    fetchPosts()
+  const fetchItems = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admin/pipeline?status=${filter}`, { credentials: 'include' })
+      const json = await res.json()
+      setItems(json.data ?? [])
+    } catch {
+      setItems([])
+    } finally {
+      setLoading(false)
+    }
   }, [filter])
 
-  async function fetchPosts() {
-    setLoading(true)
-    const { data } = await supabase
-      .from('content_pipeline')
-      .select('*')
-      .eq('status', filter)
-      .order('created_at', { ascending: false })
-      .limit(20)
-    setPosts(data || [])
-    setLoading(false)
-  }
+  useEffect(() => { fetchItems() }, [fetchItems])
 
   async function updateStatus(id: string, status: 'aprovado' | 'rejeitado') {
-    await supabase.from('content_pipeline').update({ status }).eq('id', id)
-    setPosts(prev => prev.filter(p => p.id !== id))
-  }
-
-  function parseConteudo(raw: string) {
-    try { return JSON.parse(raw) } catch { return null }
-  }
-
-  const C = {
-    bg: '#0a0a0a', card: '#111', border: '#1e1e1e',
-    green: '#00C853', darkGreen: '#1a3a1a',
-    text: '#e8e8e8', muted: '#555', s2: '#181818',
+    await fetch('/api/admin/pipeline', {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status }),
+    })
+    fetchItems()
   }
 
   return (
-    <div style={{ fontFamily: "'Segoe UI', sans-serif", color: C.text }}>
-
+    <div>
       {/* Filtros */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {(['aguardando_aprovacao', 'aprovado', 'rejeitado'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
-            padding: '6px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-            cursor: 'pointer', border: 'none',
-            background: filter === f ? C.green : C.s2,
-            color: filter === f ? '#000' : C.muted,
-          }}>
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+        {(Object.keys(STATUS_LABELS) as StatusFilter[]).map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            style={{
+              padding: '8px 18px',
+              borderRadius: 8,
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 14,
+              background: filter === f ? '#00C853' : '#222',
+              color: 'white',
+            }}
+          >
+            {STATUS_LABELS[f]}
           </button>
         ))}
       </div>
 
-      {loading && <p style={{ color: C.muted, fontSize: 13 }}>Carregando...</p>}
-      {!loading && posts.length === 0 && (
-        <p style={{ color: C.muted, fontSize: 13 }}>Nenhum post {filter} no momento.</p>
+      {/* Lista */}
+      {loading && <p style={{ color: '#888' }}>Carregando...</p>}
+      {!loading && items.length === 0 && (
+        <p style={{ color: '#888' }}>Nenhum post com status &quot;{STATUS_LABELS[filter]}&quot; no momento.</p>
       )}
 
-      {posts.map(post => {
-        const data = parseConteudo(post.conteudo)
-        const isOpen = expanded === post.id
-
-        return (
-          <div key={post.id} style={{
-            background: C.card, border: `1px solid ${C.border}`,
-            borderRadius: 12, marginBottom: 12, overflow: 'hidden',
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {items.map(item => (
+          <div key={item.id} style={{
+            background: 'white',
+            border: '1px solid #eee',
+            borderRadius: 12,
+            padding: '16px 20px',
           }}>
             {/* Header */}
-            <div
-              onClick={() => setExpanded(isOpen ? null : post.id)}
-              style={{
-                padding: '14px 18px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              }}
-            >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>
-                  {post.titulo}
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{item.tema}</div>
+                <div style={{ fontSize: 12, color: '#888' }}>
+                  {item.platform} · {item.content_type} · {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                  {item.scheduled_for && <> · 📅 {item.scheduled_for}</>}
                 </div>
-                <div style={{ fontSize: 11, color: C.muted }}>
-                  {post.plataforma} · {new Date(post.created_at).toLocaleDateString('pt-BR')}
-                </div>
+                {item.angulo && <div style={{ fontSize: 13, color: '#555', marginTop: 4, fontStyle: 'italic' }}>"{item.angulo}"</div>}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {filter === 'aguardando_aprovacao' && (
                   <>
-                    <button onClick={e => { e.stopPropagation(); updateStatus(post.id, 'aprovado') }} style={{
-                      background: C.green, color: '#000', border: 'none',
-                      borderRadius: 8, padding: '6px 14px', fontSize: 12,
-                      fontWeight: 700, cursor: 'pointer',
+                    <button onClick={() => updateStatus(item.id, 'aprovado')} style={{
+                      padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      background: '#00C853', color: 'white', fontWeight: 600, fontSize: 13,
                     }}>✓ Aprovar</button>
-                    <button onClick={e => { e.stopPropagation(); updateStatus(post.id, 'rejeitado') }} style={{
-                      background: 'rgba(255,82,82,0.15)', color: '#ff5252', border: '1px solid rgba(255,82,82,0.3)',
-                      borderRadius: 8, padding: '6px 14px', fontSize: 12,
-                      fontWeight: 700, cursor: 'pointer',
-                    }}>✗ Rejeitar</button>
+                    <button onClick={() => updateStatus(item.id, 'rejeitado')} style={{
+                      padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      background: '#ff4444', color: 'white', fontWeight: 600, fontSize: 13,
+                    }}>✕ Rejeitar</button>
                   </>
                 )}
-                <span style={{ color: C.muted, fontSize: 16 }}>{isOpen ? '▲' : '▼'}</span>
+                <button onClick={() => setExpanded(expanded === item.id ? null : item.id)} style={{
+                  padding: '6px 14px', borderRadius: 6, border: '1px solid #ddd', cursor: 'pointer',
+                  background: 'white', fontSize: 13,
+                }}>
+                  {expanded === item.id ? 'Fechar ▲' : 'Ver tudo ▼'}
+                </button>
               </div>
             </div>
 
-            {/* Conteúdo expandido */}
-            {isOpen && data && (
-              <div style={{ padding: '0 18px 18px', borderTop: `1px solid ${C.border}` }}>
+            {/* Expandido */}
+            {expanded === item.id && (
+              <div style={{ marginTop: 16, borderTop: '1px solid #f0f0f0', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-                {/* Gancho */}
-                {data.gancho && (
-                  <div style={{ marginTop: 14 }}>
-                    <div style={{ fontSize: 10, color: C.green, fontFamily: 'monospace', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>Gancho</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{data.gancho}</div>
+                {/* Caption */}
+                {item.caption && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#333' }}>📝 Caption</div>
+                    <div style={{ fontSize: 13, color: '#555', background: '#f8f8f8', padding: '10px 12px', borderRadius: 8, whiteSpace: 'pre-wrap' }}>
+                      {item.caption}
+                    </div>
                   </div>
                 )}
 
-                {/* Slides */}
-                {data.slides?.length > 0 && (
-                  <div style={{ marginTop: 14 }}>
-                    <div style={{ fontSize: 10, color: C.green, fontFamily: 'monospace', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '1px' }}>Slides ({data.slides.length})</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {data.slides.map((s: any) => (
-                        <div key={s.numero} style={{
-                          background: C.s2, borderRadius: 8, padding: '10px 14px',
-                          fontSize: 13,
-                        }}>
-                          <span style={{ color: C.green, fontWeight: 700, marginRight: 8 }}>#{s.numero}</span>
-                          <strong>{s.titulo}</strong>
-                          {s.corpo && <div style={{ color: C.muted, marginTop: 4, fontSize: 12 }}>{s.corpo}</div>}
+                {/* Hashtags */}
+                {item.hashtags && item.hashtags.length > 0 && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6, color: '#333' }}>🏷️ Hashtags</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {item.hashtags.map((h, i) => (
+                        <span key={i} style={{ background: '#e8f5e9', color: '#00C853', padding: '3px 8px', borderRadius: 12, fontSize: 12, fontWeight: 600 }}>
+                          #{h.replace(/^#/, '')}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Visual / Prompt */}
+                {item.visual_description && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#333' }}>🎨 Descrição visual / Prompt</div>
+                    <div style={{ fontSize: 13, color: '#555', background: '#f0f4ff', padding: '10px 12px', borderRadius: 8, whiteSpace: 'pre-wrap' }}>
+                      {item.visual_description}
+                    </div>
+                  </div>
+                )}
+
+                {/* CTA */}
+                {item.cta && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#333' }}>📣 CTA</div>
+                    <div style={{ fontSize: 13, color: '#555' }}>{item.cta}</div>
+                  </div>
+                )}
+
+                {/* Horário */}
+                {item.melhor_horario && (
+                  <div style={{ fontSize: 13, color: '#888' }}>⏰ Melhor horário: <strong>{item.melhor_horario}</strong></div>
+                )}
+
+                {/* Slides (carousel) */}
+                {item.slides && typeof item.slides === 'object' && Array.isArray(item.slides) && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8, color: '#333' }}>🖼️ Slides do Carrossel</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {(item.slides as Record<string, string>[]).map((slide, i) => (
+                        <div key={i} style={{ background: '#f8f8f8', padding: '10px 12px', borderRadius: 8, fontSize: 13 }}>
+                          <strong>Slide {slide.numero || i + 1} — {slide.tipo}</strong>
+                          {slide.titulo && <div><b>Título:</b> {slide.titulo}</div>}
+                          {slide.corpo && <div><b>Corpo:</b> {slide.corpo}</div>}
+                          {slide.destaque && <div><b>Destaque:</b> {slide.destaque}</div>}
+                          {slide.prompt_imagem && (
+                            <div style={{ marginTop: 6, background: '#f0f4ff', padding: '8px', borderRadius: 6 }}>
+                              <b>🎨 Prompt imagem:</b> {slide.prompt_imagem}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Legenda */}
-                {data.legenda && (
-                  <div style={{ marginTop: 14 }}>
-                    <div style={{ fontSize: 10, color: C.green, fontFamily: 'monospace', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>Legenda</div>
-                    <div style={{
-                      background: C.s2, borderRadius: 8, padding: '10px 14px',
-                      fontSize: 12, color: C.muted, whiteSpace: 'pre-wrap', lineHeight: 1.6,
-                    }}>{data.legenda}</div>
+                {/* Roteiro Reels (slides como objeto) */}
+                {item.slides && typeof item.slides === 'object' && !Array.isArray(item.slides) && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8, color: '#333' }}>🎬 Roteiro Reels</div>
+                    <div style={{ background: '#f8f8f8', padding: '12px', borderRadius: 8, fontSize: 13, whiteSpace: 'pre-wrap' }}>
+                      {Object.entries(item.slides as Record<string, string>).map(([key, val]) => (
+                        <div key={key} style={{ marginBottom: 8 }}>
+                          <strong style={{ color: '#00C853' }}>{key.replace(/_/g, ' ').toUpperCase()}:</strong>
+                          <div style={{ marginTop: 2 }}>{val}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* Prompt de imagem */}
-                {data.prompt_imagem && (
-                  <div style={{ marginTop: 14 }}>
-                    <div style={{ fontSize: 10, color: C.green, fontFamily: 'monospace', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '1px' }}>Prompt de Imagem (Gemini)</div>
-                    <div style={{
-                      background: C.darkGreen, borderRadius: 8, padding: '10px 14px',
-                      fontSize: 12, color: '#a8d5a2', whiteSpace: 'pre-wrap', lineHeight: 1.6,
-                    }}>{data.prompt_imagem}</div>
-                    <button onClick={() => navigator.clipboard.writeText(data.prompt_imagem)} style={{
-                      marginTop: 6, background: 'transparent', border: `1px solid ${C.border}`,
-                      color: C.muted, borderRadius: 6, padding: '4px 10px', fontSize: 11,
-                      cursor: 'pointer',
-                    }}>📋 Copiar prompt</button>
-                  </div>
-                )}
-
-                {/* Melhor horário */}
-                {data.melhor_horario && (
-                  <div style={{ marginTop: 12, fontSize: 12, color: C.muted }}>
-                    🕐 Melhor horário: <strong style={{ color: C.text }}>{data.melhor_horario}</strong>
-                    {data.cta && <> · CTA: <strong style={{ color: C.text }}>{data.cta}</strong></>}
-                  </div>
-                )}
               </div>
             )}
           </div>
-        )
-      })}
+        ))}
+      </div>
     </div>
   )
 }
