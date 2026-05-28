@@ -211,7 +211,7 @@ export async function GET(req: NextRequest) {
   const auth = req.headers.get('x-admin-key')
   const cronSecret = req.headers.get('authorization')
   const sessionCookie = req.cookies.get('imoney_admin_session')?.value
-  const SECRET = process.env.ADMIN_SESSION_SECRET || 'imoneyval1BI'
+  const SECRET = process.env.ADMIN_SESSION_SECRET || 'imoney-admin-secret-2025'
   const isAdmin = auth === SECRET || sessionCookie === SECRET
   const isCron = cronSecret === `Bearer ${process.env.CRON_SECRET}`
   if (!isAdmin && !isCron) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
