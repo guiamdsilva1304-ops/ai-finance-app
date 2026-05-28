@@ -218,6 +218,16 @@ export async function GET(req: NextRequest) {
       sendWeeklyEmails(),
       sendMonthlyEmails(),
     ])
+
+    // Segunda-feira: dispara briefing do Agente de Dados
+    if (new Date().getDay() === 1) {
+      try {
+        await fetch(`${req.nextUrl.origin}/api/admin/agentes/dados?enviar=true`, {
+          headers: { 'x-admin-key': process.env.ADMIN_SESSION_SECRET ?? '' },
+        })
+      } catch { /* silencioso */ }
+    }
+
     return NextResponse.json({ ok: true, ...queue, ...weekly, ...monthly })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
