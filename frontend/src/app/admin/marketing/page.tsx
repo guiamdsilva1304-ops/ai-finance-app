@@ -1,264 +1,382 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 type Post = {
-  id: string; platform: string; content_type: string; tema: string;
-  angulo: string; caption: string; hashtags: string[]; cta: string;
-  melhor_horario: string; visual_description: string; scheduled_for: string;
-  status: string; notas_rejeicao?: string; image_url?: string;
+  id: string;
+  plataforma: string;
+  titulo: string;
+  conteudo: string;
+  status: string;
+  created_at: string;
+  metadata: {
+    analista?: { insights?: string[]; oportunidade_do_dia?: string; tom_recomendado?: string };
+    estrategista?: { tema_do_dia?: string; pilar_sepc?: string; hook_principal?: string };
+    data_geracao?: string;
+  };
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  reels_script: "🎬 Reels", carrossel: "🃏 Carrossel", single_post: "📸 Post",
-};
-const STATUS_COLORS: Record<string, string> = {
-  aguardando_aprovacao: "#ea580c", aprovado: "#16a34a",
-  rejeitado: "#dc2626", publicado: "#6b7280",
+const PLATFORM_COLORS: Record<string, string> = {
+  tiktok: "#FF0050",
+  instagram: "#E1306C",
+  linkedin: "#0A66C2",
 };
 
-export default function MarketingPage() {
+const PLATFORM_ICONS: Record<string, string> = {
+  tiktok: "🎵",
+  instagram: "📸",
+  linkedin: "💼",
+};
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  pendente: { label: "Aguardando revisão", color: "#F59E0B" },
+  aprovado: { label: "Aprovado", color: "#00C853" },
+  rejeitado: { label: "Rejeitado", color: "#EF4444" },
+};
+
+export default function AdminMarketingPage() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [notas, setNotas] = useState("");
-  const [generatingImage, setGeneratingImage] = useState(false);
-  const [filter, setFilter] = useState("aguardando_aprovacao");
+  const [filter, setFilter] = useState<"todos" | "pendente" | "aprovado" | "rejeitado">("pendente");
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   const fetchPosts = async () => {
     setLoading(true);
-    const res = await fetch("/api/agents/marketing");
-    const data = await res.json();
-    setPosts(data.posts || []);
+    const { data } = await supabase
+      .from("admin_posts")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(60);
+    setPosts(data ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
-  const generateWeek = async () => {
-    setGenerating(true);
-    await fetch("/api/agents/marketing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dias: 7 }) });
-    await fetchPosts();
-    setGenerating(false);
-  };
-
-  const downloadFile = async (url: string, filename: string) => {
+  const runPipeline = async () => {
+    setRunning(true);
+    setFeedback(null);
     try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } catch {
-      window.open(url, "_blank");
-    }
-  };
-
-  const generateImage = async (postId: string, visualDescription: string) => {
-    setGeneratingImage(true);
-    try {
-      const res = await fetch("/api/agents/marketing/image", {
+      const res = await fetch("/api/agents/marketing", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId, visual_description: visualDescription }),
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ""}`,
+          "x-cron-secret": process.env.NEXT_PUBLIC_CRON_SECRET ?? "",
+        },
       });
       const data = await res.json();
-      if (data.image_url) {
+      if (res.ok) {
+        setFeedback({ type: "success", msg: `✅ Time executou! Tema: "${data.tema_do_dia}" — ${data.posts_gerados} posts gerados.` });
         await fetchPosts();
-        setSelectedPost(prev => prev ? { ...prev, image_url: data.image_url, image_status: "ready" } : null);
+        setFilter("pendente");
+      } else {
+        setFeedback({ type: "error", msg: `❌ Erro: ${data.error}` });
       }
-    } catch (err) {
-      console.error("Erro ao gerar imagem:", err);
-    } finally {
-      setGeneratingImage(false);
+    } catch (e) {
+      setFeedback({ type: "error", msg: "❌ Falha ao conectar com o pipeline." });
     }
+    setRunning(false);
   };
 
-  const updateStatus = async (id: string, status: string, notas_rejeicao?: string) => {
-    await fetch(`/api/agents/marketing/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, notas_rejeicao }),
-    });
-    await fetchPosts();
-    setSelectedPost(null);
-    setNotas("");
+  const handleAction = async (id: string, action: "aprovar" | "rejeitar") => {
+    const newStatus = action === "aprovar" ? "aprovado" : "rejeitado";
+    await supabase.from("admin_posts").update({ status: newStatus }).eq("id", id);
+    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p)));
+    if (selectedPost?.id === id) setSelectedPost((p) => p ? { ...p, status: newStatus } : p);
   };
 
-  const filtered = posts.filter(p => filter === "todos" ? true : p.status === filter);
-  const pending = posts.filter(p => p.status === "aguardando_aprovacao").length;
-  const approved = posts.filter(p => p.status === "aprovado").length;
+  const filteredPosts = posts.filter(
+    (p) => p.metadata?.agente === "marketing-team" && (filter === "todos" || p.status === filter)
+  );
+
+  const pendingCount = posts.filter((p) => p.metadata?.agente === "marketing-team" && p.status === "pendente").length;
+
+  const parseConteudo = (raw: string) => {
+    try { return JSON.parse(raw); } catch { return {}; }
+  };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'Nunito', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#0d1117", color: "#e6edf3", fontFamily: "Nunito, sans-serif", padding: "2rem" }}>
       {/* Header */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "16px 32px", display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ flex: 1 }}>
-          <h1 style={{ margin: 0, fontWeight: 800, fontSize: 20, color: "#0f172a" }}>📱 Pipeline de Marketing</h1>
-          <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>Lucas gera, você aprova em 15 min</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+        <div>
+          <h1 style={{ fontSize: "1.8rem", fontWeight: 800, color: "#00C853", margin: 0 }}>
+            🤖 Time de Marketing IA
+          </h1>
+          <p style={{ color: "#8b949e", margin: "0.25rem 0 0", fontSize: "0.9rem" }}>
+            Analista → Estrategista → Copywriter · Automático todo dia às 8h
+          </p>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700, color: "#ea580c" }}>
-            ⏳ {pending} aguardando
-          </div>
-          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700, color: "#16a34a" }}>
-            ✅ {approved} aprovados
-          </div>
-          <button onClick={generateWeek} disabled={generating} style={{ background: "#16a34a", border: "none", borderRadius: 10, padding: "8px 18px", fontSize: 13, color: "#fff", cursor: generating ? "not-allowed" : "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif", opacity: generating ? 0.6 : 1 }}>
-            {generating ? "Gerando..." : "⚡ Gerar semana"}
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          {pendingCount > 0 && (
+            <span style={{ background: "#F59E0B", color: "#000", borderRadius: "999px", padding: "0.2rem 0.8rem", fontSize: "0.8rem", fontWeight: 700 }}>
+              {pendingCount} pendente{pendingCount > 1 ? "s" : ""}
+            </span>
+          )}
+          <button
+            onClick={runPipeline}
+            disabled={running}
+            style={{
+              background: running ? "#1a3a1a" : "#00C853",
+              color: running ? "#00C853" : "#0d1117",
+              border: "none",
+              borderRadius: "8px",
+              padding: "0.6rem 1.4rem",
+              fontWeight: 700,
+              cursor: running ? "not-allowed" : "pointer",
+              fontSize: "0.95rem",
+              transition: "all 0.2s",
+            }}
+          >
+            {running ? "⏳ Gerando..." : "▶ Rodar agora"}
           </button>
         </div>
       </div>
 
-      <div style={{ padding: "24px 32px", maxWidth: 1100, margin: "0 auto" }}>
-        {/* Filters */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-          {[["aguardando_aprovacao", "⏳ Para aprovar"], ["aprovado", "✅ Aprovados"], ["rejeitado", "❌ Rejeitados"], ["publicado", "📤 Publicados"], ["todos", "Todos"]].map(([val, label]) => (
-            <button key={val} onClick={() => setFilter(val)} style={{ background: filter === val ? "#0f172a" : "#fff", color: filter === val ? "#fff" : "#475569", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
-              {label}
-            </button>
-          ))}
+      {/* Feedback */}
+      {feedback && (
+        <div style={{
+          background: feedback.type === "success" ? "#0d2d1a" : "#2d0d0d",
+          border: `1px solid ${feedback.type === "success" ? "#00C853" : "#EF4444"}`,
+          borderRadius: "8px",
+          padding: "0.75rem 1rem",
+          marginBottom: "1.5rem",
+          fontSize: "0.9rem",
+        }}>
+          {feedback.msg}
         </div>
+      )}
 
-        {loading ? (
-          <div style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>Carregando posts...</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 60 }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>📱</div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a", marginBottom: 6 }}>Nenhum post aqui ainda</div>
-            <div style={{ fontSize: 13, color: "#64748b", marginBottom: 20 }}>Clique em "Gerar semana" para o Lucas criar 7 posts para você aprovar</div>
-            <button onClick={generateWeek} disabled={generating} style={{ background: "#16a34a", border: "none", borderRadius: 10, padding: "10px 24px", fontSize: 14, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>
-              ⚡ Gerar semana agora
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-            {filtered.map(post => (
-              <div key={post.id} onClick={() => setSelectedPost(post)} style={{ background: "#fff", border: `1px solid ${post.status === "aguardando_aprovacao" ? "#fed7aa" : "#e2e8f0"}`, borderLeft: `4px solid ${STATUS_COLORS[post.status] || "#e2e8f0"}`, borderRadius: 12, padding: "16px", cursor: "pointer", transition: "box-shadow 0.15s" }}
-                onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)")}
-                onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                  <div>
-                    <span style={{ fontSize: 12, fontWeight: 700, background: "#f1f5f9", color: "#475569", padding: "2px 8px", borderRadius: 20 }}>{TYPE_LABELS[post.content_type] || post.content_type}</span>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", marginTop: 6 }}>{post.tema}</div>
-                  </div>
-                  <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "right" }}>
-                    <div>{new Date(post.scheduled_for).toLocaleDateString("pt-BR")}</div>
-                    <div>{post.melhor_horario}</div>
-                  </div>
-                </div>
-                <p style={{ fontSize: 13, color: "#475569", margin: "0 0 10px", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                  {post.caption}
-                </p>
-                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                  {(post.hashtags || []).slice(0, 4).map(h => (
-                    <span key={h} style={{ fontSize: 10, color: "#16a34a", background: "#f0fdf4", padding: "1px 6px", borderRadius: 20 }}>#{h}</span>
-                  ))}
-                </div>
-                {post.status === "aguardando_aprovacao" && (
-                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                    <button onClick={e => { e.stopPropagation(); updateStatus(post.id, "aprovado"); }} style={{ flex: 1, background: "#16a34a", border: "none", borderRadius: 8, padding: "7px", fontSize: 12, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>✅ Aprovar</button>
-                    <button onClick={e => { e.stopPropagation(); setSelectedPost(post); }} style={{ flex: 1, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px", fontSize: 12, color: "#475569", cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>Ver mais</button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+      {/* Filters */}
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+        {(["pendente", "aprovado", "rejeitado", "todos"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            style={{
+              background: filter === f ? "#00C853" : "#161b22",
+              color: filter === f ? "#0d1117" : "#8b949e",
+              border: `1px solid ${filter === f ? "#00C853" : "#30363d"}`,
+              borderRadius: "6px",
+              padding: "0.4rem 1rem",
+              cursor: "pointer",
+              fontWeight: filter === f ? 700 : 400,
+              fontSize: "0.85rem",
+              textTransform: "capitalize",
+            }}
+          >
+            {f}
+          </button>
+        ))}
       </div>
 
-      {/* Modal de detalhe */}
-      {selectedPost && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24 }} onClick={() => setSelectedPost(null)}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 560, width: "100%", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div>
-                <span style={{ fontSize: 12, fontWeight: 700, background: "#f1f5f9", color: "#475569", padding: "2px 8px", borderRadius: 20 }}>{TYPE_LABELS[selectedPost.content_type] || selectedPost.content_type}</span>
-                <h2 style={{ margin: "8px 0 0", fontSize: 18, fontWeight: 800, color: "#0f172a" }}>{selectedPost.tema}</h2>
-              </div>
-              <button onClick={() => setSelectedPost(null)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#64748b" }}>✕</button>
-            </div>
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "4rem", color: "#8b949e" }}>Carregando posts...</div>
+      ) : filteredPosts.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "4rem", color: "#8b949e" }}>
+          <p style={{ fontSize: "2rem" }}>🤖</p>
+          <p>Nenhum post {filter === "todos" ? "gerado" : filter} ainda.</p>
+          <p style={{ fontSize: "0.85rem" }}>Clique em "Rodar agora" para o time gerar o conteúdo de hoje.</p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: selectedPost ? "1fr 1fr" : "repeat(auto-fill, minmax(340px, 1fr))", gap: "1rem" }}>
+          {/* Post cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {filteredPosts.map((post) => {
+              const conteudo = parseConteudo(post.conteudo);
+              const color = PLATFORM_COLORS[post.plataforma] ?? "#8b949e";
+              const icon = PLATFORM_ICONS[post.plataforma] ?? "📄";
+              const statusInfo = STATUS_LABELS[post.status];
+              const isSelected = selectedPost?.id === post.id;
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", marginBottom: 4 }}>Ângulo</div>
-                <div style={{ fontSize: 13, color: "#475569" }}>{selectedPost.angulo}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", marginBottom: 4 }}>Caption</div>
-                <div style={{ fontSize: 13, color: "#0f172a", lineHeight: 1.6, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "12px 14px", whiteSpace: "pre-wrap" }}>{selectedPost.caption}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", marginBottom: 4 }}>Visual (para criar no Canva/CapCut)</div>
-                <div style={{ fontSize: 13, color: "#475569", background: "#faf5ff", border: "1px solid #ddd6fe", borderRadius: 8, padding: "10px 12px" }}>{selectedPost.visual_description}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", marginBottom: 4 }}>CTA</div>
-                <div style={{ fontSize: 13, color: "#16a34a", fontWeight: 700 }}>{selectedPost.cta}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", marginBottom: 6 }}>Hashtags</div>
-                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                  {(selectedPost.hashtags || []).map(h => (
-                    <span key={h} style={{ fontSize: 12, color: "#16a34a", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "2px 8px", borderRadius: 20 }}>#{h}</span>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 12px", background: "#f8fafc", borderRadius: 8 }}>
-                <span style={{ fontSize: 12, color: "#64748b" }}>📅 {new Date(selectedPost.scheduled_for).toLocaleDateString("pt-BR")}</span>
-                <span style={{ fontSize: 12, color: "#64748b" }}>🕐 {selectedPost.melhor_horario}</span>
-              </div>
-            </div>
-
-            {selectedPost.status === "aguardando_aprovacao" && (
-              <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
-                <button onClick={() => updateStatus(selectedPost.id, "aprovado")} style={{ background: "#16a34a", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>
-                  ✅ Aprovar post
-                </button>
-                <div>
-                  <textarea value={notas} onChange={e => setNotas(e.target.value)} placeholder="Motivo da rejeição ou o que mudar..." style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10, fontSize: 13, fontFamily: "'Nunito', sans-serif", resize: "none", marginBottom: 8 }} rows={2} />
-                  <button onClick={() => updateStatus(selectedPost.id, "rejeitado", notas)} style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px", fontSize: 13, color: "#dc2626", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>
-                    ❌ Rejeitar e pedir reescrita
-                  </button>
-                </div>
-              </div>
-            )}
-            {selectedPost.status === "aprovado" && (
-              <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
-                {selectedPost.image_url ? (
-                  <div>
-                    <img src={selectedPost.image_url} alt="Imagem gerada" style={{ width: "100%", borderRadius: 10, marginBottom: 10 }} />
-                    <button onClick={() => generateImage(selectedPost.id, selectedPost.visual_description || "")} disabled={generatingImage} style={{ width: "100%", background: "#7c3aed", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif", opacity: generatingImage ? 0.6 : 1 }}>
-                      🔄 Gerar nova imagem
-                    </button>
+              return (
+                <div
+                  key={post.id}
+                  onClick={() => setSelectedPost(isSelected ? null : post)}
+                  style={{
+                    background: isSelected ? "#161b22" : "#0d1117",
+                    border: `1px solid ${isSelected ? color : "#30363d"}`,
+                    borderRadius: "12px",
+                    padding: "1.25rem",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    boxShadow: isSelected ? `0 0 0 2px ${color}33` : "none",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span style={{ fontSize: "1.2rem" }}>{icon}</span>
+                      <span style={{ color, fontWeight: 700, textTransform: "capitalize", fontSize: "0.95rem" }}>
+                        {post.plataforma}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "0.75rem", color: statusInfo.color, background: `${statusInfo.color}22`, padding: "0.2rem 0.6rem", borderRadius: "999px" }}>
+                      {statusInfo.label}
+                    </span>
                   </div>
-                ) : (
-                  <button onClick={() => generateImage(selectedPost.id, selectedPost.visual_description || "")} disabled={generatingImage} style={{ width: "100%", background: "#7c3aed", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, color: "#fff", cursor: generatingImage ? "not-allowed" : "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif", opacity: generatingImage ? 0.6 : 1 }}>
-                    {generatingImage ? "🎨 Gerando imagem DALL-E 3..." : "🎨 Gerar imagem com DALL-E 3"}
-                  </button>
-                )}
-                <button onClick={() => updateStatus(selectedPost.id, "publicado")} style={{ width: "100%", background: "#0f172a", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>
-                  📤 Marcar como publicado
-                </button>
-                {selectedPost.image_url && (
-                  <button onClick={() => downloadFile(selectedPost.image_url!, `imoney-${selectedPost.tema?.slice(0,20)}.png`)} style={{ width: "100%", background: "#0369a1", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>
-                    ⬇️ Baixar imagem
-                  </button>
-                )}
-                <button onClick={() => {
-                  const caption = (selectedPost.caption || "") + "\n\n" + (selectedPost.hashtags || []).map((h: string) => "#" + h.replace(/#/g,"")).join(" ");
-                  navigator.clipboard.writeText(caption);
-                  alert("✅ Caption copiada!");
-                }} style={{ width: "100%", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px", fontSize: 13, color: "#0f172a", cursor: "pointer", fontWeight: 700, fontFamily: "'Nunito', sans-serif" }}>
-                  📋 Copiar caption + hashtags
-                </button>
-              </div>
-            )}
+
+                  {post.metadata?.estrategista?.tema_do_dia && (
+                    <p style={{ color: "#e6edf3", fontWeight: 600, marginBottom: "0.5rem", fontSize: "0.9rem" }}>
+                      {post.metadata.estrategista.tema_do_dia}
+                    </p>
+                  )}
+
+                  {post.metadata?.estrategista?.pilar_sepc && (
+                    <span style={{ fontSize: "0.75rem", background: "#1a3a1a", color: "#00C853", padding: "0.15rem 0.5rem", borderRadius: "4px" }}>
+                      {post.metadata.estrategista.pilar_sepc}
+                    </span>
+                  )}
+
+                  <p style={{ color: "#8b949e", fontSize: "0.8rem", marginTop: "0.75rem" }}>
+                    {new Date(post.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+
+                  {/* Ações rápidas */}
+                  {post.status === "pendente" && (
+                    <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleAction(post.id, "aprovar")}
+                        style={{ flex: 1, background: "#00C85322", color: "#00C853", border: "1px solid #00C853", borderRadius: "6px", padding: "0.4rem", cursor: "pointer", fontWeight: 700, fontSize: "0.8rem" }}
+                      >
+                        ✓ Aprovar
+                      </button>
+                      <button
+                        onClick={() => handleAction(post.id, "rejeitar")}
+                        style={{ flex: 1, background: "#EF444422", color: "#EF4444", border: "1px solid #EF4444", borderRadius: "6px", padding: "0.4rem", cursor: "pointer", fontWeight: 700, fontSize: "0.8rem" }}
+                      >
+                        ✕ Rejeitar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
+
+          {/* Painel de detalhe */}
+          {selectedPost && (
+            <div style={{ background: "#161b22", border: "1px solid #30363d", borderRadius: "12px", padding: "1.5rem", position: "sticky", top: "1rem", maxHeight: "90vh", overflowY: "auto" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+                <h2 style={{ color: PLATFORM_COLORS[selectedPost.plataforma], margin: 0, fontSize: "1.1rem" }}>
+                  {PLATFORM_ICONS[selectedPost.plataforma]} {selectedPost.plataforma.charAt(0).toUpperCase() + selectedPost.plataforma.slice(1)}
+                </h2>
+                <button onClick={() => setSelectedPost(null)} style={{ background: "none", border: "none", color: "#8b949e", cursor: "pointer", fontSize: "1.2rem" }}>✕</button>
+              </div>
+
+              {/* Insights do Analista */}
+              {selectedPost.metadata?.analista?.insights && (
+                <div style={{ marginBottom: "1.25rem" }}>
+                  <h3 style={{ color: "#8b949e", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.5rem" }}>📊 Insights do Analista</h3>
+                  <ul style={{ margin: 0, padding: "0 0 0 1rem" }}>
+                    {selectedPost.metadata.analista.insights.map((insight, i) => (
+                      <li key={i} style={{ color: "#e6edf3", fontSize: "0.85rem", marginBottom: "0.25rem" }}>{insight}</li>
+                    ))}
+                  </ul>
+                  {selectedPost.metadata.analista.oportunidade_do_dia && (
+                    <p style={{ color: "#00C853", fontSize: "0.85rem", marginTop: "0.5rem" }}>
+                      💡 {selectedPost.metadata.analista.oportunidade_do_dia}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Hook do Estrategista */}
+              {selectedPost.metadata?.estrategista?.hook_principal && (
+                <div style={{ marginBottom: "1.25rem" }}>
+                  <h3 style={{ color: "#8b949e", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.5rem" }}>🎯 Hook Principal</h3>
+                  <p style={{ color: "#e6edf3", fontSize: "0.9rem", fontStyle: "italic", background: "#0d1117", padding: "0.75rem", borderRadius: "8px", borderLeft: "3px solid #00C853" }}>
+                    "{selectedPost.metadata.estrategista.hook_principal}"
+                  </p>
+                </div>
+              )}
+
+              {/* Conteúdo gerado */}
+              <div>
+                <h3 style={{ color: "#8b949e", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.75rem" }}>✍️ Conteúdo Gerado</h3>
+                <ContentDetail plataforma={selectedPost.plataforma} conteudo={parseConteudo(selectedPost.conteudo)} />
+              </div>
+
+              {/* Ações */}
+              {selectedPost.status === "pendente" && (
+                <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem" }}>
+                  <button
+                    onClick={() => handleAction(selectedPost.id, "aprovar")}
+                    style={{ flex: 1, background: "#00C853", color: "#0d1117", border: "none", borderRadius: "8px", padding: "0.75rem", cursor: "pointer", fontWeight: 800, fontSize: "0.95rem" }}
+                  >
+                    ✓ Aprovar post
+                  </button>
+                  <button
+                    onClick={() => handleAction(selectedPost.id, "rejeitar")}
+                    style={{ flex: 1, background: "#EF444422", color: "#EF4444", border: "1px solid #EF4444", borderRadius: "8px", padding: "0.75rem", cursor: "pointer", fontWeight: 700, fontSize: "0.95rem" }}
+                  >
+                    ✕ Rejeitar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+function ContentDetail({ plataforma, conteudo }: { plataforma: string; conteudo: Record<string, unknown> }) {
+  const fieldStyle = { background: "#0d1117", borderRadius: "8px", padding: "0.75rem", marginBottom: "0.75rem" };
+  const labelStyle = { color: "#8b949e", fontSize: "0.75rem", marginBottom: "0.4rem", display: "block" as const };
+  const textStyle = { color: "#e6edf3", fontSize: "0.875rem", whiteSpace: "pre-wrap" as const, lineHeight: 1.6 };
+  const tagsStyle = { display: "flex", flexWrap: "wrap" as const, gap: "0.35rem", marginTop: "0.4rem" };
+  const tagStyle = { background: "#1a3a1a", color: "#00C853", borderRadius: "4px", padding: "0.15rem 0.5rem", fontSize: "0.75rem" };
+
+  if (plataforma === "tiktok") {
+    return (
+      <>
+        {conteudo.script && <div style={fieldStyle}><span style={labelStyle}>🎬 Roteiro</span><p style={textStyle}>{String(conteudo.script)}</p></div>}
+        {conteudo.legenda && <div style={fieldStyle}><span style={labelStyle}>📝 Legenda</span><p style={textStyle}>{String(conteudo.legenda)}</p></div>}
+        {Array.isArray(conteudo.hashtags) && <div style={fieldStyle}><span style={labelStyle}>🏷️ Hashtags</span><div style={tagsStyle}>{(conteudo.hashtags as string[]).map((h, i) => <span key={i} style={tagStyle}>{h}</span>)}</div></div>}
+      </>
+    );
+  }
+
+  if (plataforma === "instagram") {
+    return (
+      <>
+        {conteudo.caption && <div style={fieldStyle}><span style={labelStyle}>📝 Caption</span><p style={textStyle}>{String(conteudo.caption)}</p></div>}
+        {Array.isArray(conteudo.slides) && (
+          <div style={fieldStyle}>
+            <span style={labelStyle}>🎠 Slides do Carrossel</span>
+            {(conteudo.slides as string[]).map((s, i) => (
+              <div key={i} style={{ background: "#161b22", borderRadius: "6px", padding: "0.5rem 0.75rem", marginBottom: "0.4rem", borderLeft: `2px solid #00C853` }}>
+                <span style={{ color: "#00C853", fontSize: "0.7rem", fontWeight: 700 }}>Slide {i + 1}</span>
+                <p style={{ ...textStyle, margin: "0.2rem 0 0" }}>{s}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {Array.isArray(conteudo.hashtags) && <div style={fieldStyle}><span style={labelStyle}>🏷️ Hashtags</span><div style={tagsStyle}>{(conteudo.hashtags as string[]).map((h, i) => <span key={i} style={tagStyle}>{h}</span>)}</div></div>}
+      </>
+    );
+  }
+
+  if (plataforma === "linkedin") {
+    return (
+      <>
+        {conteudo.post && <div style={fieldStyle}><span style={labelStyle}>💼 Post LinkedIn</span><p style={textStyle}>{String(conteudo.post)}</p></div>}
+        {Array.isArray(conteudo.hashtags) && <div style={fieldStyle}><span style={labelStyle}>🏷️ Hashtags</span><div style={tagsStyle}>{(conteudo.hashtags as string[]).map((h, i) => <span key={i} style={tagStyle}>{h}</span>)}</div></div>}
+      </>
+    );
+  }
+
+  return <pre style={{ ...textStyle, overflow: "auto" }}>{JSON.stringify(conteudo, null, 2)}</pre>;
 }
