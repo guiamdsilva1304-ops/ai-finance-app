@@ -50,6 +50,7 @@ export default function AgenteConteudo() {
   const [pipeline, setPipeline] = useState<PipelineItem[]>([])
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const [erro, setErro] = useState('')
+  const [exportando, setExportando] = useState(false)
 
 
   async function carregar() {
@@ -90,6 +91,33 @@ export default function AgenteConteudo() {
     }
   }
 
+  async function exportarCalendario() {
+    setExportando(true)
+    try {
+      const now = new Date()
+      const res = await fetch(
+        `/api/admin/agentes/conteudo/calendar?month=${now.getMonth() + 1}&year=${now.getFullYear()}`,
+        { credentials: 'include' }
+      )
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Erro ao exportar')
+      }
+      const blob = await res.blob()
+      const burl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = burl
+      const months = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+      a.download = `calendario-imoney-${months[now.getMonth()]}-${now.getFullYear()}.html`
+      a.click()
+      URL.revokeObjectURL(burl)
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao exportar')
+    } finally {
+      setExportando(false)
+    }
+  }
+
   useEffect(() => { carregar() }, [])
 
   const ACOES = [
@@ -110,10 +138,16 @@ export default function AgenteConteudo() {
             <div style={{ fontSize: 12, color: '#6b9e80', fontWeight: 600 }}>Gera roteiros e carrosséis · toda segunda e quinta</div>
           </div>
         </div>
-        <button onClick={carregar} disabled={loading}
-          style={{ padding: '8px 14px', borderRadius: 10, border: '1.5px solid #e4f5e9', background: '#fff', fontSize: 13, fontWeight: 700, color: '#1D9E75', cursor: 'pointer' }}>
-          {loading ? '...' : '↻ Atualizar'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={exportarCalendario} disabled={exportando}
+            style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: exportando ? '#e4f5e9' : '#1D9E75', color: '#fff', fontSize: 13, fontWeight: 700, cursor: exportando ? 'wait' : 'pointer' }}>
+            {exportando ? '⏳ Exportando...' : '📅 Exportar Calendário HTML'}
+          </button>
+          <button onClick={carregar} disabled={loading}
+            style={{ padding: '8px 14px', borderRadius: 10, border: '1.5px solid #e4f5e9', background: '#fff', fontSize: 13, fontWeight: 700, color: '#1D9E75', cursor: 'pointer' }}>
+            {loading ? '...' : '↻ Atualizar'}
+          </button>
+        </div>
       </div>
 
       {erro && (
