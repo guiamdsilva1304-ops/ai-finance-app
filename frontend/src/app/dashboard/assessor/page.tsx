@@ -852,23 +852,67 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
 
         {/* Input area */}
         <div style={{ flexShrink: 0, marginTop: 8 }}>
-          {limiteAtingido && infoLimite && (
-            <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0a3d28, #1D9E75)', borderRadius: '16px 16px 0 0', marginBottom: -8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
-                    Limite diário atingido — {infoLimite.usadas}/{infoLimite.limite} mensagens
-                  </div>
-                  <div style={{ fontSize: 12, color: '#9FE1CB' }}>
-                    Assine o Pro para acesso ilimitado ao Assessor IA
-                  </div>
+          {infoLimite && planoUsuario === 'free' && (() => {
+            const usadas = infoLimite.usadas
+            const limite = infoLimite.limite
+            const pct = usadas / limite
+            const restantes = limite - usadas
+
+            // 70-89%: aviso sutil
+            if (pct >= 0.7 && pct < 0.9 && !limiteAtingido) return (
+              <div style={{ padding: '10px 16px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: '12px 12px 0 0', marginBottom: -8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>⚡</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#92400E' }}>
+                    {restantes} mensagem{restantes !== 1 ? 's' : ''} restante{restantes !== 1 ? 's' : ''} hoje
+                  </span>
                 </div>
-                <a href="/dashboard/pro" style={{ background: '#fff', color: '#1D9E75', fontWeight: 800, fontSize: 13, padding: '10px 20px', borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                  Assinar Pro
+                <a href="/dashboard/pro" style={{ fontSize: 12, fontWeight: 800, color: '#F97316', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                  Ver Pro →
                 </a>
               </div>
-            </div>
-          )}
+            )
+
+            // 90-99%: urgência
+            if (pct >= 0.9 && !limiteAtingido) return (
+              <div style={{ padding: '12px 16px', background: 'linear-gradient(135deg, #7C2D12, #C2410C)', borderRadius: '12px 12px 0 0', marginBottom: -8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', marginBottom: 2 }}>
+                      🔥 Última mensagem do dia!
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>
+                      Não perca o fio da conversa — continue amanhã ou assine agora
+                    </div>
+                  </div>
+                  <a href="/dashboard/pro" style={{ background: '#fff', color: '#C2410C', fontWeight: 800, fontSize: 12, padding: '8px 16px', borderRadius: 8, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                    Assinar Pro
+                  </a>
+                </div>
+              </div>
+            )
+
+            // 100%: bloqueado
+            if (limiteAtingido) return (
+              <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0a3d28, #1D9E75)', borderRadius: '16px 16px 0 0', marginBottom: -8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 2 }}>
+                      Limite de hoje atingido ({infoLimite.limite} msgs)
+                    </div>
+                    <div style={{ fontSize: 12, color: '#9FE1CB' }}>
+                      Não deixe seu plano financeiro parar — o Pro tem 50 msgs/dia
+                    </div>
+                  </div>
+                  <a href="/dashboard/pro" style={{ background: '#fff', color: '#1D9E75', fontWeight: 800, fontSize: 13, padding: '10px 20px', borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                    Assinar Pro — R$ 29,90/mês
+                  </a>
+                </div>
+              </div>
+            )
+
+            return null
+          })()}
           <form
             onSubmit={(e) => { e.preventDefault(); send(input); }}
             style={{ display: 'flex', gap: 8, background: '#fff', border: '1px solid #e4f5e9', borderRadius: 20, padding: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
