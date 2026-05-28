@@ -2,6 +2,7 @@
 import { amplitude } from "@/app/amplitude";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { Trash2, X, ChevronRight, User, Target, TrendingUp, MapPin, Briefcase, Heart, Brain } from "lucide-react";
 import { Icon } from "@/components/imoney/primitives";
@@ -491,6 +492,8 @@ export default function AssessorPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = createSupabaseBrowser();
+  const searchParams = useSearchParams();
+  const fromScore = searchParams.get("from") === "score";
 
   useEffect(() => {
     async function load() {
@@ -532,10 +535,54 @@ export default function AssessorPage() {
       }
 
       setUserCtx({ renda, gastos, metas, perfil, mem })
+
+      // Se veio da tela de score e não tem histórico, gera mensagem proativa
+      const historyData = historyRes.status === "fulfilled" ? historyRes.value.data : null;
+      if (fromScore && (!historyData?.length)) {
+        const diag = perfil?.diagnostico_json as Record<string, unknown> | null;
+        const score = diag?.score ?? perfil?.score_saude ?? null;
+        const titulo = diag?.titulo ?? "";
+        const plano = Array.isArray(diag?.plano_30_dias) ? (diag.plano_30_dias as string[]) : [];
+        const nome = (perfil?.nome as string)?.split(" ")[0] ?? "você";
+        const objetivo = mem?.objetivo ?? perfil?.perfil_financeiro ?? "";
+
+        const contexto = [
+          score !== null ? `Score iMoney: ${score}/100 (${titulo})` : "",
+          objetivo ? `Objetivo principal: ${objetivo}` : "",
+          renda > 0 ? `Renda: R$ ${renda.toLocaleString("pt-BR")}` : "",
+          gastos > 0 ? `Gastos: R$ ${gastos.toLocaleString("pt-BR")}` : "",
+          plano.length > 0 ? `Plano 30 dias: ${plano.slice(0, 2).join("; ")}` : "",
+        ].filter(Boolean).join(" | ");
+
+        const prompt = `O usuário ${nome} acabou de ver seu diagnóstico financeiro. ${contexto}. 
+Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, específica para o score e situação dele, e que termine com UMA pergunta concreta para começar o plano de ação. Máximo 4 linhas. Seja direto e humano, não genérico.`;
+
+        try {
+          const { data: { session: sess } } = await supabase.auth.getSession();
+          const resp = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess?.access_token}` },
+            body: JSON.stringify({
+              messages: [{ role: "user", content: prompt }],
+              context: { renda, gastos, metas, perfil, mem },
+              proactive: true,
+            }),
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            const text = data.message ?? data.content ?? "";
+            if (text) {
+              const { text: parsed, plan } = parsePlan(text);
+              setMessages([{ role: "assistant", content: parsed, plan: plan ?? undefined }]);
+            }
+          }
+        } catch { /* silencioso */ }
+      }
+
       setHistoryLoaded(true);
     }
     load();
-  }, [supabase]);
+  }, [supabase, fromScore]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

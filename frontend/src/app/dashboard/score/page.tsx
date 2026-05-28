@@ -193,7 +193,7 @@ export default function ScorePage() {
 
         {/* Actions */}
         <div className="s-card" style={{ animationDelay: "0.4s", display: "flex", flexDirection: "column", gap: 10 }}>
-          <button onClick={() => router.push("/dashboard/assessor")}
+          <button onClick={() => router.push("/dashboard/assessor?from=score")}
             style={{ width: "100%", padding: "16px 0", borderRadius: 14, border: "none", background: "#1D9E75", color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "'Nunito',sans-serif", boxShadow: "0 4px 20px rgba(29,158,117,0.35)" }}>
             💬 Falar com meu Assessor IA
           </button>
