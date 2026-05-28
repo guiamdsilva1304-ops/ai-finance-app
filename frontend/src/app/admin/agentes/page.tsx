@@ -7,8 +7,10 @@ import ApprovalQueue from './ApprovalQueue'
 import ContentPipeline from './ContentPipeline'
 import Metricas from './Metricas'
 
+import AgenteCS from './AgenteCS'
+
 type AgentId = 'seo' | 'growth'
-type Aba = 'hub' | 'metricas' | 'aprovacao' | 'pipeline' | 'agentes'
+type Aba = 'hub' | 'metricas' | 'aprovacao' | 'pipeline' | 'agentes' | 'cs'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -238,9 +240,9 @@ export default function AgentesPage() {
         </div>
 
         <div style={{ display: 'flex', borderBottom: '1px solid #e8ede8' }}>
-          {(['hub', 'metricas', 'aprovacao', 'pipeline', 'agentes'] as Aba[]).map(a => (
+          {(['hub', 'metricas', 'aprovacao', 'pipeline', 'agentes', 'cs'] as Aba[]).map(a => (
             <button key={a} onClick={() => setAba(a)} style={{ flex: 1, padding: '10px 0', border: 'none', background: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: aba === a ? '#1D9E75' : '#aaa', borderBottom: aba === a ? '2px solid #1D9E75' : '2px solid transparent' }}>
-              {a === 'hub' ? '⚡ Hub' : a === 'metricas' ? '📊 Métricas' : a === 'aprovacao' ? '✓ Aprovação' : a === 'pipeline' ? '📋 Pipeline' : 'Agentes'}
+              {a === 'hub' ? '⚡ Hub' : a === 'metricas' ? '📊 Métricas' : a === 'aprovacao' ? '✓ Aprovação' : a === 'pipeline' ? '📋 Pipeline' : a === 'cs' ? '🎧 CS' : 'Agentes'}
             </button>
           ))}
         </div>
@@ -279,6 +281,8 @@ export default function AgentesPage() {
         <div style={{ flex: 1, overflowY: 'auto', display: aba === 'metricas' ? 'block' : 'none' }}><Metricas /></div>
         <div style={{ flex: 1, overflowY: 'auto', display: aba === 'aprovacao' ? 'block' : 'none' }}><ApprovalQueue /></div>
 
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'cs' ? 'block' : 'none' }}><AgenteCS /></div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'pipeline' ? 'block' : 'none' }}><ContentPipeline /></div>
 
