@@ -57,101 +57,181 @@ interface MetaCompletionProps {
 
 export function MetaCompletion({ metaNome, metaValor, onNovaMeta, onFechar }: MetaCompletionProps) {
   const particles = useConfetti(true);
-  const [shared, setShared] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+  const cardRef = useCallback((node: HTMLDivElement | null) => { storyCardRef = node; }, []);
 
-  async function compartilhar() {
-    const texto = `🏆 Realizei minha meta financeira!\n\n"${metaNome}" — R$ ${metaValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n\nCom a iMoney, meus sonhos viraram realidade. 💚\nimoney.ia.br`;
+  const ano = new Date().getFullYear();
+  const valorFmt = `R$ ${metaValor.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+
+  async function baixarCard() {
+    if (!storyCardRef || downloading) return;
+    setDownloading(true);
     try {
-      if (navigator.share) {
-        await navigator.share({ title: "Meta conquistada!", text: texto });
-      } else {
-        await navigator.clipboard.writeText(texto);
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(storyCardRef, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      });
+      const url = canvas.toDataURL("image/png");
+
+      // Tenta compartilhar como arquivo (mobile)
+      if (navigator.canShare) {
+        const blob = await (await fetch(url)).blob();
+        const file = new File([blob], "minha-conquista-imoney.png", { type: "image/png" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "Minha conquista no iMoney! 🏆" });
+          setDownloaded(true);
+          return;
+        }
       }
-      setShared(true);
-      setTimeout(() => setShared(false), 3000);
-    } catch { /* cancelled */ }
+
+      // Fallback: download direto
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "minha-conquista-imoney.png";
+      a.click();
+      setDownloaded(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDownloading(false);
+    }
   }
 
   return (
     <div style={{
       position: "fixed", inset: 0,
-      background: "linear-gradient(160deg, #0a3d28 0%, #064e2e 60%, #0d7a4e 100%)",
+      background: "linear-gradient(160deg, #050f08 0%, #0a3d28 60%, #0d5435 100%)",
       zIndex: 300,
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      padding: 32, overflow: "hidden",
+      padding: "24px 20px", overflow: "hidden",
       fontFamily: "'Nunito', sans-serif",
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
-        @keyframes pop { 0%{transform:scale(0.5);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
-        @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.6} }
-        .cel-pop { animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-        .cel-fade1 { animation: fadeUp 0.5s ease 0.2s forwards; opacity: 0; }
-        .cel-fade2 { animation: fadeUp 0.5s ease 0.4s forwards; opacity: 0; }
-        .cel-fade3 { animation: fadeUp 0.5s ease 0.6s forwards; opacity: 0; }
-        .cel-shimmer { animation: shimmer 2s ease-in-out infinite; }
+        @keyframes pop { 0%{transform:scale(0.5);opacity:0} 60%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,200,83,0.4)} 50%{box-shadow:0 0 0 16px rgba(0,200,83,0)} }
+        .cel-pop { animation: pop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+        .cel-f1 { animation: fadeUp 0.5s ease 0.15s forwards; opacity:0; }
+        .cel-f2 { animation: fadeUp 0.5s ease 0.3s forwards; opacity:0; }
+        .cel-f3 { animation: fadeUp 0.5s ease 0.5s forwards; opacity:0; }
+        .cel-pulse { animation: pulse 2s ease-in-out infinite; }
       `}</style>
 
+      {/* Confetti */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
         {particles.map(p => (
           <div key={p.id} style={{
-            position: "absolute",
-            left: `${p.x}%`, top: `${p.y}%`,
-            width: p.shape === "rect" ? p.size : p.size,
-            height: p.shape === "rect" ? p.size * 0.5 : p.size,
+            position: "absolute", left: `${p.x}%`, top: `${p.y}%`,
+            width: p.size, height: p.shape === "rect" ? p.size * 0.45 : p.size,
             borderRadius: p.shape === "circle" ? "50%" : 2,
-            background: p.color,
-            transform: `rotate(${p.rotation}deg)`,
-            opacity: 0.9,
+            background: p.color, transform: `rotate(${p.rotation}deg)`, opacity: 0.85,
           }} />
         ))}
       </div>
 
-      <div className="cel-pop" style={{ fontSize: 88, marginBottom: 8, filter: "drop-shadow(0 0 24px rgba(255,215,0,0.5))" }}>🏆</div>
-
-      <div className="cel-fade1" style={{ background: "rgba(255,215,0,0.15)", border: "1px solid rgba(255,215,0,0.3)", borderRadius: 20, padding: "5px 16px", marginBottom: 20 }}>
-        <span className="cel-shimmer" style={{ fontSize: 12, fontWeight: 800, color: "#FFD600", textTransform: "uppercase", letterSpacing: "0.12em" }}>
-          ⭐ Meta Conquistada
-        </span>
+      {/* Trophy */}
+      <div className="cel-pop" style={{ fontSize: 72, marginBottom: 6, filter: "drop-shadow(0 0 32px rgba(255,215,0,0.6))" }}>🏆</div>
+      <div className="cel-f1" style={{ fontSize: 13, fontWeight: 800, color: "#FFD600", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 16, opacity: 0 }}>
+        Meta Conquistada!
       </div>
 
-      <div className="cel-fade1" style={{ textAlign: "center", marginBottom: 12 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 900, color: "#fff", margin: "0 0 8px", lineHeight: 1.2 }}>
-          Você conseguiu!
-        </h1>
-        <p style={{ fontSize: 16, color: "rgba(255,255,255,0.75)", margin: 0, maxWidth: 300, lineHeight: 1.6 }}>
-          <strong style={{ color: "#A7F3D0" }}>{metaNome}</strong>
-          <br />
-          R$ {metaValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} guardados.
-        </p>
+      {/* ══ STORY CARD ══ */}
+      <div className="cel-f2" style={{ opacity: 0, width: "100%", maxWidth: 340, marginBottom: 20 }}>
+        <div
+          ref={cardRef}
+          style={{
+            width: "100%",
+            background: "linear-gradient(145deg, #0a3d28 0%, #116b3c 45%, #00C853 100%)",
+            borderRadius: 28,
+            padding: "32px 28px 28px",
+            position: "relative",
+            overflow: "hidden",
+            boxShadow: "0 24px 60px rgba(0,0,0,0.5)",
+          }}
+        >
+          {/* Círculos decorativos */}
+          <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", bottom: -60, left: -30, width: 200, height: 200, borderRadius: "50%", background: "rgba(0,200,83,0.08)", pointerEvents: "none" }} />
+
+          {/* Logo */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 28 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: "#00C853", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: 18 }}>💚</span>
+            </div>
+            <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", letterSpacing: "-0.3px" }}>iMoney</span>
+          </div>
+
+          {/* Badge */}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,215,0,0.2)", border: "1px solid rgba(255,215,0,0.5)", borderRadius: 20, padding: "5px 14px", marginBottom: 20 }}>
+            <span style={{ fontSize: 13 }}>⭐</span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: "#FFD600", textTransform: "uppercase", letterSpacing: "0.1em" }}>Sonho Realizado</span>
+          </div>
+
+          {/* Meta nome */}
+          <p style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.55)", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Minha conquista</p>
+          <h2 style={{ fontSize: 26, fontWeight: 900, color: "#fff", margin: "0 0 20px", lineHeight: 1.2, fontFamily: "'Nunito', sans-serif" }}>
+            {metaNome}
+          </h2>
+
+          {/* Valor */}
+          <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 18, padding: "16px 20px", marginBottom: 20, border: "1px solid rgba(255,255,255,0.12)" }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Valor guardado</p>
+            <p style={{ fontSize: 32, fontWeight: 900, color: "#00E676", margin: 0, fontFamily: "'Nunito', sans-serif", letterSpacing: "-0.5px" }}>
+              {valorFmt}
+            </p>
+          </div>
+
+          {/* Barra 100% */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)" }}>Progresso</span>
+              <span style={{ fontSize: 12, fontWeight: 900, color: "#00E676" }}>100% ✓</span>
+            </div>
+            <div style={{ height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 999 }}>
+              <div style={{ height: "100%", width: "100%", background: "linear-gradient(90deg, #00C853, #00E676)", borderRadius: 999 }} />
+            </div>
+          </div>
+
+          {/* Rodapé */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", margin: 0, fontWeight: 600 }}>imoney.ia.br · {ano}</p>
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", margin: 0, fontWeight: 600 }}>Seus sonhos têm um plano. 💚</p>
+          </div>
+        </div>
       </div>
 
-      <div className="cel-fade2" style={{ background: "rgba(255,255,255,0.08)", borderRadius: 16, padding: "16px 20px", marginBottom: 32, maxWidth: 320, textAlign: "center", border: "1px solid rgba(255,255,255,0.12)" }}>
-        <p style={{ fontSize: 14, color: "#d1fae5", fontStyle: "italic", margin: 0, lineHeight: 1.7, fontWeight: 600 }}>
-          &ldquo;Cada meta conquistada é a prova de que você é capaz de realizar qualquer sonho.&rdquo;
-        </p>
-      </div>
-
-      <div className="cel-fade3" style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 340 }}>
-        <button onClick={compartilhar} style={{
-          padding: "15px 0", borderRadius: 14, border: "2px solid rgba(255,255,255,0.3)",
-          background: "rgba(255,255,255,0.12)", color: "#fff", fontSize: 15, fontWeight: 800,
-          cursor: "pointer", fontFamily: "'Nunito',sans-serif", backdropFilter: "blur(10px)",
-        }}>
-          {shared ? "✅ Copiado! Compartilhe agora" : "📤 Compartilhar conquista"}
+      {/* Botões */}
+      <div className="cel-f3" style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 340, opacity: 0 }}>
+        <button
+          onClick={baixarCard}
+          disabled={downloading}
+          className="cel-pulse"
+          style={{
+            padding: "16px 0", borderRadius: 16, border: "none",
+            background: downloaded ? "#00C853" : "linear-gradient(135deg, #00C853, #00E676)",
+            color: "#fff", fontSize: 15, fontWeight: 800,
+            cursor: downloading ? "wait" : "pointer",
+            fontFamily: "'Nunito',sans-serif",
+            boxShadow: "0 8px 28px rgba(0,200,83,0.4)",
+          }}
+        >
+          {downloading ? "Gerando imagem..." : downloaded ? "✅ Salvo! Poste no Story" : "📲 Salvar e Compartilhar"}
         </button>
         <button onClick={onNovaMeta} style={{
-          padding: "15px 0", borderRadius: 14, border: "none",
-          background: "#fff", color: "#0a3d28", fontSize: 15, fontWeight: 800,
+          padding: "15px 0", borderRadius: 16, border: "2px solid rgba(255,255,255,0.2)",
+          background: "transparent", color: "#fff", fontSize: 15, fontWeight: 800,
           cursor: "pointer", fontFamily: "'Nunito',sans-serif",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
         }}>
           ✨ Criar próxima meta
         </button>
         <button onClick={onFechar} style={{
-          padding: "12px 0", borderRadius: 14, border: "none",
-          background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600,
+          padding: "10px 0", borderRadius: 14, border: "none",
+          background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 13, fontWeight: 600,
           cursor: "pointer", fontFamily: "'Nunito',sans-serif",
         }}>
           Ver minhas metas
@@ -160,6 +240,9 @@ export function MetaCompletion({ metaNome, metaValor, onNovaMeta, onFechar }: Me
     </div>
   );
 }
+
+// Ref global para o card (fora do componente para evitar closure stale)
+let storyCardRef: HTMLDivElement | null = null;
 
 interface MilestoneToastProps {
   pct: number;
