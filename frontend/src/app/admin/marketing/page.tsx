@@ -67,14 +67,10 @@ export default function AdminMarketingPage() {
     setRunning(true);
     setFeedback(null);
     try {
-      const res = await fetch("/api/agents/marketing", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ""}`,
-          "x-cron-secret": process.env.NEXT_PUBLIC_CRON_SECRET ?? "",
-        },
-      });
+     const res = await fetch("/api/agents/marketing/trigger", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+});
       const data = await res.json();
       if (res.ok) {
         setFeedback({ type: "success", msg: `✅ Time executou! Tema: "${data.tema_do_dia}" — ${data.posts_gerados} posts gerados.` });
