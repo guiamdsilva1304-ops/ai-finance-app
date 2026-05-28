@@ -8,6 +8,7 @@
     { "path": "/api/cron/growth?secret=imoneyval1BI", "schedule": "0 10 * * *" },
     { "path": "/api/cron/reactivation", "schedule": "0 12 * * *" },
     { "path": "/api/cron/reset-budgets", "schedule": "0 0 1 * *" },
-    { "path": "/api/cron/monthly-summary", "schedule": "0 8 1 * *" }
+    { "path": "/api/cron/monthly-summary", "schedule": "0 8 1 * *" },
+    { "path": "/api/cron/agentes", "schedule": "0 13 * * *" }
   ]
 }
