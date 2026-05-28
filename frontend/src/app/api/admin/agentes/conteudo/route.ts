@@ -54,13 +54,15 @@ Retorne APENAS este JSON sem markdown:
   "angulo": "ângulo criativo específico",
   "hook": "primeira frase que para o scroll (max 10 palavras, impactante)",
   "roteiro": {
-    "hook_0_3s": "o que acontece nos primeiros 3 segundos (texto na tela + ação)",
-    "desenvolvimento_3_25s": "desenvolvimento principal com 3-4 pontos concisos",
-    "cta_final_25_35s": "call to action para o app"
+    "hook_0_3s": "EXATO: escreva as primeiras palavras que o criador fala em voz alta (0-3s)",
+    "desenvolvimento_3_25s": "EXATO: escreva cada frase que o criador fala (3-25s), separadas por | ex: Frase 1 | Frase 2 | Frase 3",
+    "cta_final_25_35s": "EXATO: escreva a frase final com CTA para baixar o app"
   },
+  "roteiro_completo": "ROTEIRO PALAVRA POR PALAVRA completo do vídeo (0-35s), pronto para o criador ler e gravar. Inclua marcações de tempo entre parênteses.",
+  "prompt_thumbnail": "Prompt completo em português para gerar a thumbnail/capa do Reels no Claude ou Canva. Descreva cores, elementos, texto na imagem, estilo visual.",
   "caption": "legenda completa com gancho + valor + CTA + emojis (max 150 palavras)",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"],
-  "descricao_visual": "descrição detalhada do visual/cenário para gravar",
+  "descricao_visual": "descrição detalhada do visual/cenário para gravar: roupa, fundo, iluminação, props",
   "melhor_horario": "horário ideal para postar (ex: Terça 19h-21h)",
   "pilar": "${pilar.id}",
   "plataforma": "instagram,tiktok"
@@ -109,7 +111,8 @@ Retorne APENAS este JSON sem markdown:
       "tipo": "conteudo",
       "titulo": "título do slide",
       "corpo": "texto principal (max 20 palavras)",
-      "destaque": "número, emoji ou dado impactante"
+      "destaque": "número, emoji ou dado impactante",
+      "prompt_imagem": "Prompt completo em português para gerar a imagem deste slide no Claude ou Canva: fundo branco, verde #00C853, Nunito ExtraBold, ícone clay 3D [descreva o ícone específico], título '[titulo]', elemento destaque '[destaque]', layout [descrição do layout]"
     }
   ],
   "caption": "legenda completa com gancho + valor + CTA (max 150 palavras)",
@@ -173,7 +176,13 @@ async function salvarNoPipeline(conteudo: Record<string, unknown>, tipo: 'reels'
       cta: conteudo.cta_ultimo_slide ?? (conteudo.roteiro as Record<string,string>)?.cta_final_25_35s,
       melhor_horario: conteudo.melhor_horario,
       visual_description: tipo === 'reels'
-        ? (conteudo.descricao_visual as string)
+        ? `${conteudo.descricao_visual ?? ''}
+
+🎬 ROTEIRO COMPLETO:
+${conteudo.roteiro_completo ?? ''}
+
+🖼️ PROMPT THUMBNAIL:
+${conteudo.prompt_thumbnail ?? ''}`
         : `Carrossel ${conteudo.slides_count ?? 7} slides`,
       slides: tipo === 'carousel' ? conteudo.slides : (conteudo.roteiro ?? null),
       slides_count: tipo === 'carousel' ? (conteudo.slides_count ?? 7) : null,
