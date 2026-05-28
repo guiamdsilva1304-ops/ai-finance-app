@@ -61,17 +61,12 @@ export default function AgenteRetencao() {
   const [erros, setErros] = useState<Array<{ email: string; erro: string }>>([])
   const [erro, setErro] = useState('')
 
-  const adminKey = typeof window !== 'undefined'
-    ? localStorage.getItem('imoney_admin_key') || ''
-    : ''
 
   async function carregar() {
     setLoading(true)
     setErro('')
     try {
-      const res = await fetch('/api/admin/agentes/retencao', {
-        headers: { 'x-admin-key': adminKey },
-      })
+      const res = await fetch('/api/admin/agentes/retencao', { credentials: 'include' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setGatilhos(data.gatilhos)
@@ -91,7 +86,8 @@ export default function AgenteRetencao() {
     try {
       const res = await fetch('/api/admin/agentes/retencao', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gatilho }),
       })
       const data = await res.json()
