@@ -88,6 +88,19 @@ export async function GET(req: NextRequest) {
     resultados.conteudo = { skipped: true, motivo: 'apenas segunda e quinta' }
   }
 
+  // ── Agente Retenção: todo dia ─────────────────────────────────────────────
+  try {
+    const res = await fetch(`${origin}/api/admin/agentes/retencao`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify({ gatilho: 'todos' }),
+    })
+    const data = await res.json()
+    resultados.retencao = { enviados: data.enviados ?? 0, erros: data.erros?.length ?? 0 }
+  } catch (e) {
+    erros.retencao = e instanceof Error ? e.message : String(e)
+  }
+
   return NextResponse.json({
     ok: true,
     executadoEm: new Date().toISOString(),

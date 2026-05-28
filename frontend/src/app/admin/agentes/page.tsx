@@ -11,9 +11,10 @@ import AgenteCS from './AgenteCS'
 import AgenteDados from './AgenteDados'
 import AgenteReceita from './AgenteReceita'
 import AgenteConteudo from './AgenteConteudo'
+import AgenteRetencao from './AgenteRetencao'
 
 type AgentId = 'seo' | 'growth'
-type Aba = 'hub' | 'metricas' | 'aprovacao' | 'pipeline' | 'agentes' | 'cs' | 'dados' | 'receita' | 'conteudo'
+type Aba = 'hub' | 'metricas' | 'aprovacao' | 'pipeline' | 'agentes' | 'cs' | 'dados' | 'receita' | 'conteudo' | 'retencao'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -243,9 +244,9 @@ export default function AgentesPage() {
         </div>
 
         <div style={{ display: 'flex', borderBottom: '1px solid #e8ede8' }}>
-          {(['hub', 'metricas', 'aprovacao', 'pipeline', 'agentes', 'cs', 'dados', 'receita', 'conteudo'] as Aba[]).map(a => (
+          {(['hub', 'metricas', 'aprovacao', 'pipeline', 'agentes', 'cs', 'dados', 'receita', 'conteudo', 'retencao'] as Aba[]).map(a => (
             <button key={a} onClick={() => setAba(a)} style={{ flex: 1, padding: '10px 0', border: 'none', background: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: aba === a ? '#1D9E75' : '#aaa', borderBottom: aba === a ? '2px solid #1D9E75' : '2px solid transparent' }}>
-              {a === 'hub' ? '⚡ Hub' : a === 'metricas' ? '📊 Métricas' : a === 'aprovacao' ? '✓ Aprovação' : a === 'pipeline' ? '📋 Pipeline' : a === 'cs' ? '🎧 CS' : a === 'dados' ? '🔬 Dados' : a === 'receita' ? '💰 Receita' : a === 'conteudo' ? '✍️ Conteúdo' : 'Agentes'}
+              {a === 'hub' ? '⚡ Hub' : a === 'metricas' ? '📊' : a === 'aprovacao' ? '✓' : a === 'pipeline' ? '📋' : a === 'cs' ? '🎧 CS' : a === 'dados' ? '🔬' : a === 'receita' ? '💰' : a === 'conteudo' ? '✍️' : a === 'retencao' ? '🧲' : 'Agentes'}
             </button>
           ))}
         </div>
@@ -289,6 +290,7 @@ export default function AgentesPage() {
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'dados' ? 'block' : 'none' }}><AgenteDados /></div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'receita' ? 'block' : 'none' }}><AgenteReceita /></div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'conteudo' ? 'block' : 'none' }}><AgenteConteudo /></div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'retencao' ? 'block' : 'none' }}><AgenteRetencao /></div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: aba === 'pipeline' ? 'block' : 'none' }}><ContentPipeline /></div>
 
