@@ -12,3 +12,11 @@
     { "path": "/api/cron/agentes", "schedule": "0 13 * * *" }
   ]
 }
+{
+  "crons": [
+    {
+      "path": "/api/cron/marketing",
+      "schedule": "0 11 * * *"
+    }
+  ]
+}
