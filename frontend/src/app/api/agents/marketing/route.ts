@@ -1,131 +1,303 @@
+// /app/api/agents/marketing/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
 
-export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const ESTRATEGIA_SEMANAL: Record<number, { tipo: string; tema: string; formato: string }> = {
-  0: { tipo: "carrossel", tema: "planejamento financeiro semanal e metas de dinheiro", formato: "5 slides motivacionais com dicas práticas para a semana" },
-  1: { tipo: "carrossel", tema: "conceito financeiro essencial: reserva de emergência, SELIC, inflação, juros compostos ou investimentos", formato: "5-6 slides educativos estilo 'o que você precisa saber sobre X'" },
-  2: { tipo: "single_post", tema: "dado chocante sobre finanças do brasileiro: endividamento, rotativo do cartão, salário mínimo, FGTS", formato: "Post direto com dado real gigante e contexto impactante" },
-  3: { tipo: "single_post", tema: "verdade inconveniente ou frase impactante sobre dinheiro e finanças pessoais", formato: "Post direto com frase grande e dado real do Brasil" },
-  4: { tipo: "carrossel", tema: "tutorial passo a passo: como montar orçamento, sair das dívidas ou começar a investir", formato: "6-7 slides com passos numerados e práticos" },
-  5: { tipo: "carrossel", tema: "comparativo financeiro: poupança vs investimento, aluguel vs compra, gastar vs guardar", formato: "5 slides comparando opções com dados reais" },
-  6: { tipo: "single_post", tema: "erro financeiro comum que todo brasileiro comete: poupança como investimento, parcelamento, rotativo", formato: "Post impactante com dado real e chamada para ação" },
-};
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-const DIAS_PT = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+// ─────────────────────────────────────────────
+// AGENTE 1: ANALISTA
+// Lê métricas do Supabase e gera insights
+// ─────────────────────────────────────────────
+async function runAnalyst(): Promise<string> {
+  // Busca dados reais do Supabase
+  const [{ data: users }, { data: metas }, { data: posts }] = await Promise.all([
+    supabase.from("user_profiles").select("created_at, is_pro").order("created_at", { ascending: false }).limit(30),
+    supabase.from("metas").select("categoria, valor_meta, progresso").limit(50),
+    supabase.from("admin_posts").select("plataforma, status, created_at").order("created_at", { ascending: false }).limit(20),
+  ]);
 
-export async function GET() {
+  const totalUsers = users?.length ?? 0;
+  const proUsers = users?.filter((u) => u.is_pro).length ?? 0;
+  const conversionRate = totalUsers > 0 ? ((proUsers / totalUsers) * 100).toFixed(1) : "0";
+  const topCategories = metas
+    ? Object.entries(
+        metas.reduce((acc: Record<string, number>, m) => {
+          acc[m.categoria] = (acc[m.categoria] ?? 0) + 1;
+          return acc;
+        }, {})
+      )
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([cat]) => cat)
+    : [];
+
+  const context = `
+Métricas iMoney (últimos dados):
+- Total de usuários: ${totalUsers}
+- Usuários Pro: ${proUsers} (${conversionRate}% de conversão)
+- Top categorias de metas: ${topCategories.join(", ") || "Viagem, Emergência, Aposentadoria"}
+- Posts publicados recentemente: ${posts?.length ?? 0}
+- Data de hoje: ${new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
+`;
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-5",
+    max_tokens: 1024,
+    system: `Você é o Analista de Marketing da iMoney, uma fintech brasileira que ajuda pessoas a transformar sonhos financeiros em metas concretas.
+Sua missão: analisar métricas e gerar 3-5 insights acionáveis que guiarão o conteúdo do dia.
+Seja direto, use dados, identifique oportunidades de conteúdo com base no comportamento dos usuários.
+Responda em JSON com a estrutura: { "insights": ["...", "..."], "oportunidade_do_dia": "...", "tom_recomendado": "..." }`,
+    messages: [{ role: "user", content: `Analise estes dados e gere insights para o time de conteúdo:\n${context}` }],
+  });
+
+  return response.content[0].type === "text" ? response.content[0].text : "{}";
+}
+
+// ─────────────────────────────────────────────
+// AGENTE 2: ESTRATEGISTA
+// Recebe insights e define a pauta do dia
+// ─────────────────────────────────────────────
+async function runStrategist(analystOutput: string): Promise<string> {
+  const today = new Date();
+  const dayOfWeek = today.toLocaleDateString("pt-BR", { weekday: "long" });
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-5",
+    max_tokens: 1024,
+    system: `Você é o Estrategista de Conteúdo da iMoney.
+Brand: fintech brasileira, tom próximo e encorajador, persona Marina (26 anos, analista de marketing, SP).
+Pilares SEPC: Sonho, Educação, Plano, Conquista.
+Visual: #1a3a1a / #00C853 / branco, Nunito.
+Tagline: "Seus sonhos têm um plano. A iMoney cuida dele."
+
+Sua missão: com base nos insights do Analista, definir a pauta do dia para 3 plataformas.
+Considere o dia da semana para o formato ideal.
+
+Responda SOMENTE em JSON válido, sem markdown, sem explicações:
+{
+  "pauta": {
+    "tema_do_dia": "...",
+    "pilar_sepc": "Sonho|Educação|Plano|Conquista",
+    "hook_principal": "...",
+    "tiktok": { "formato": "...", "angulo": "...", "cta": "..." },
+    "instagram": { "formato": "...", "angulo": "...", "cta": "..." },
+    "linkedin": { "formato": "...", "angulo": "...", "cta": "..." }
+  }
+}`,
+    messages: [
+      {
+        role: "user",
+        content: `Hoje é ${dayOfWeek}. Insights do Analista:\n${analystOutput}\n\nDefina a pauta do dia.`,
+      },
+    ],
+  });
+
+  return response.content[0].type === "text" ? response.content[0].text : "{}";
+}
+
+// ─────────────────────────────────────────────
+// AGENTE 3: COPYWRITER
+// Recebe pauta e escreve os 3 conteúdos
+// ─────────────────────────────────────────────
+async function runCopywriter(strategistOutput: string): Promise<string> {
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-5",
+    max_tokens: 2048,
+    system: `Você é o Copywriter da iMoney. Escreve conteúdo que converte.
+Tom: próximo, brasileiro, sem juridiquês financeiro. Como uma amiga que entende de dinheiro.
+Nunca use: "alavancar", "sinergia", "disruptivo".
+Use: linguagem do cotidiano, emojis com moderação, storytelling curto.
+
+Escreva o conteúdo COMPLETO para cada plataforma com base na pauta recebida.
+
+Responda SOMENTE em JSON válido, sem markdown:
+{
+  "conteudos": {
+    "tiktok": {
+      "script": "roteiro completo em bullet points de fala",
+      "legenda": "legenda com emojis e hashtags",
+      "hashtags": ["#...", "#..."]
+    },
+    "instagram": {
+      "caption": "legenda completa para o post/carrossel",
+      "slides": ["texto slide 1", "texto slide 2", "..."],
+      "hashtags": ["#...", "#..."]
+    },
+    "linkedin": {
+      "post": "post completo para LinkedIn, tom mais profissional mas ainda humano",
+      "hashtags": ["#...", "#..."]
+    }
+  }
+}`,
+    messages: [
+      {
+        role: "user",
+        content: `Pauta definida pelo Estrategista:\n${strategistOutput}\n\nEscreva o conteúdo completo para as 3 plataformas.`,
+      },
+    ],
+  });
+
+  return response.content[0].type === "text" ? response.content[0].text : "{}";
+}
+
+// ─────────────────────────────────────────────
+// PIPELINE PRINCIPAL
+// ─────────────────────────────────────────────
+export async function POST(req: NextRequest) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    const { data } = await supabase
-      .from("content_pipeline")
-      .select("*")
-      .order("scheduled_for", { ascending: true });
-    return NextResponse.json({ posts: data || [] });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    // Verifica cron secret ou auth de admin
+    const authHeader = req.headers.get("authorization");
+    const cronSecret = req.headers.get("x-cron-secret");
+
+    const isAuthorized =
+      cronSecret === process.env.CRON_SECRET ||
+      authHeader === `Bearer ${process.env.CRON_SECRET}`;
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.log("[Marketing Agents] Iniciando pipeline...");
+
+    // Step 1: Analista
+    console.log("[Marketing Agents] Rodando Analista...");
+    const analystOutput = await runAnalyst();
+
+    // Step 2: Estrategista
+    console.log("[Marketing Agents] Rodando Estrategista...");
+    const strategistOutput = await runStrategist(analystOutput);
+
+    // Step 3: Copywriter
+    console.log("[Marketing Agents] Rodando Copywriter...");
+    const copywriterOutput = await runCopywriter(strategistOutput);
+
+    // Parse dos outputs
+    const cleanJson = (str: string) =>
+      str.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
+    let analyst, strategist, copywriter;
+    try {
+      analyst = JSON.parse(cleanJson(analystOutput));
+      strategist = JSON.parse(cleanJson(strategistOutput));
+      copywriter = JSON.parse(cleanJson(copywriterOutput));
+    } catch (e) {
+      console.error("[Marketing Agents] Erro ao parsear JSON:", e);
+      return NextResponse.json({ error: "Erro ao parsear output dos agentes" }, { status: 500 });
+    }
+
+    // Salva no Supabase com status "pendente" (aguarda revisão)
+    const today = new Date().toISOString().split("T")[0];
+    const tema = strategist?.pauta?.tema_do_dia ?? "Conteúdo do dia";
+
+    const postsToInsert = [
+      {
+        plataforma: "tiktok",
+        titulo: `[TikTok] ${tema}`,
+        conteudo: JSON.stringify(copywriter?.conteudos?.tiktok ?? {}),
+        status: "pendente",
+        metadata: {
+          analista: analyst,
+          estrategista: strategist?.pauta,
+          data_geracao: today,
+          agente: "marketing-team",
+        },
+      },
+      {
+        plataforma: "instagram",
+        titulo: `[Instagram] ${tema}`,
+        conteudo: JSON.stringify(copywriter?.conteudos?.instagram ?? {}),
+        status: "pendente",
+        metadata: {
+          analista: analyst,
+          estrategista: strategist?.pauta,
+          data_geracao: today,
+          agente: "marketing-team",
+        },
+      },
+      {
+        plataforma: "linkedin",
+        titulo: `[LinkedIn] ${tema}`,
+        conteudo: JSON.stringify(copywriter?.conteudos?.linkedin ?? {}),
+        status: "pendente",
+        metadata: {
+          analista: analyst,
+          estrategista: strategist?.pauta,
+          data_geracao: today,
+          agente: "marketing-team",
+        },
+      },
+    ];
+
+    const { data: savedPosts, error: saveError } = await supabase
+      .from("admin_posts")
+      .insert(postsToInsert)
+      .select();
+
+    if (saveError) {
+      console.error("[Marketing Agents] Erro ao salvar posts:", saveError);
+      return NextResponse.json({ error: "Erro ao salvar no Supabase" }, { status: 500 });
+    }
+
+    console.log("[Marketing Agents] Pipeline concluído com sucesso!");
+
+    return NextResponse.json({
+      success: true,
+      tema_do_dia: tema,
+      pilar: strategist?.pauta?.pilar_sepc,
+      posts_gerados: savedPosts?.length ?? 3,
+      posts: savedPosts,
+      pipeline: {
+        analista: analyst,
+        estrategista: strategist?.pauta,
+        conteudos: copywriter?.conteudos,
+      },
+    });
+  } catch (error) {
+    console.error("[Marketing Agents] Erro no pipeline:", error);
+    return NextResponse.json({ error: "Erro interno no pipeline" }, { status: 500 });
   }
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json().catch(() => ({}));
-    const key = process.env.ANTHROPIC_API_KEY;
-    if (!key) return NextResponse.json({ error: "ANTHROPIC_API_KEY ausente" }, { status: 500 });
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    // Estratégia do dia — com override manual opcional
-    const diaSemana = body.dia_semana ?? new Date().getDay();
-    const estrategia = ESTRATEGIA_SEMANAL[diaSemana] || ESTRATEGIA_SEMANAL[1];
-    const diaStr = DIAS_PT[diaSemana];
-
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 2000,
-        system: `Você é Lucas, CMO da iMoney — fintech brasileira de IA financeira pessoal. Público: brasileiros 25-40 anos. Tom: direto, provocativo, baseado em dados reais (SELIC, IBGE, endividamento). Retorne SOMENTE JSON válido sem markdown e sem backticks.
-
-REGRA DE FORMATO:
-- Use "carrossel" quando o tema tiver múltiplos passos, lista de itens, comparativos ou explicações sequenciais (ex: "5 erros", "como fazer X em Y passos", "diferença entre A e B")
-- Use "single_post" quando o tema tiver 1 dado chocante, 1 frase impactante ou 1 insight rápido (ex: "X% dos brasileiros...", "Você sabia que...", frases de impacto)`,
-        messages: [{
-          role: "user",
-          content: `Hoje é ${diaStr}. Crie 1 post para Instagram da iMoney seguindo esta estratégia:
-
-FORMATO: ${estrategia.tipo}
-TEMA GUIA: ${estrategia.tema}
-ESTILO: ${estrategia.formato}
-
-Seja criativo — escolha um ângulo específico dentro do tema, use dados reais do Brasil, seja provocativo e relevante para o público brasileiro de 25-40 anos.
-
-Retorne SOMENTE este JSON (sem markdown, sem backticks, sem explicações):
-[{"content_type":"${estrategia.tipo}","tema":"tema específico escolhido","angulo":"ângulo criativo do post","caption":"caption com emojis máx 150 chars","hashtags":["hashtag1","hashtag2","hashtag3","hashtag4"],"cta":"call to action específico","melhor_horario":"18h-20h","visual_description":"descrição detalhada do visual para DALL-E 3: fundo branco, texto em verde escuro bold gigante, ícones 3D verdes flutuando, logo iMoney no canto inferior direito","dias_a_partir_de_hoje":0,"slides":[]}]
-
-${estrategia.tipo === "carrossel" ? `IMPORTANTE: preencha "slides" com ${estrategia.tipo === "carrossel" ? "5-6" : "0"} objetos: [{"texto":"TEXTO EM MAIUSCULAS MAX 8 PALAVRAS","visual_description":"visual específico deste slide"}]` : 'Deixe "slides" como array vazio [].'}`
-        }]
-      })
-    });
-
-    const resText = await res.text();
-    if (!res.ok) {
-      return NextResponse.json({ error: `Anthropic ${res.status}: ${resText.slice(0, 200)}` }, { status: 500 });
-    }
-
-    const data = JSON.parse(resText);
-    const text = data.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("") || "";
-
-    let posts;
-    try {
-      const jsonMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
-      const clean = jsonMatch ? jsonMatch[0] : text.replace(/```json|```/g, "").trim();
-      posts = JSON.parse(clean);
-      if (!Array.isArray(posts)) posts = [posts];
-    } catch {
-      return NextResponse.json({ error: "JSON invalido", raw: text.slice(0, 500) }, { status: 500 });
-    }
-
-    const today = new Date();
-    const inserts = posts.map((p: any, i: number) => {
-      const d = new Date(today);
-      d.setDate(d.getDate() + (p.dias_a_partir_de_hoje || i));
-      return {
-        platform: "instagram",
-        content_type: p.content_type || estrategia.tipo,
-        tema: p.tema || "Finanças",
-        angulo: p.angulo || "",
-        caption: p.caption || "",
-        hashtags: p.hashtags || [],
-        cta: p.cta || "",
-        melhor_horario: p.melhor_horario || "18h-20h",
-        visual_description: p.visual_description || "",
-        slides: p.slides || [],
-        slides_count: p.slides?.length || 1,
-        scheduled_for: d.toISOString().split("T")[0],
-        status: "aguardando_aprovacao",
-        image_status: "pending",
-      };
-    });
-
-    const { data: saved, error } = await supabase.from("content_pipeline").insert(inserts).select();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    return NextResponse.json({ success: true, generated: inserts.length, estrategia: estrategia.tipo, dia: diaStr, posts: saved });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+// GET: retorna posts pendentes de revisão
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const { data: posts, error } = await supabase
+    .from("admin_posts")
+    .select("*")
+    .eq("status", "pendente")
+    .order("created_at", { ascending: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ posts });
+}
+
+// PATCH: aprova ou rejeita um post
+export async function PATCH(req: NextRequest) {
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id, action } = await req.json(); // action: "aprovar" | "rejeitar"
+  const newStatus = action === "aprovar" ? "aprovado" : "rejeitado";
+
+  const { error } = await supabase
+    .from("admin_posts")
+    .update({ status: newStatus })
+    .eq("id", id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ success: true, status: newStatus });
 }
