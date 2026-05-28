@@ -339,17 +339,29 @@ export default function DashboardPage() {
           </>
         )}
 
-        {!loading && scoreProfile?.diagnostico_json?.score_imoney && (
-          <a href="/dashboard/score" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", marginBottom: 14, border: "1.5px solid #e4f5e9" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <span style={{ fontSize: 20, fontWeight: 900, color: "#16a34a", fontFamily: "Nunito, sans-serif" }}>{scoreProfile.score_saude ?? 0}</span>
-            </div>
-            <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Score iMoney</p>
-              <p style={{ fontSize: 14, fontWeight: 800, color: "#0d2414", margin: "2px 0 0", fontFamily: "Nunito, sans-serif" }}>Ver diagnóstico →</p>
-            </div>
-          </a>
-        )}
+        {!loading && scoreProfile?.score_saude != null && (() => {
+          const sc = scoreProfile.score_saude ?? 0;
+          const cor = scoreNivelColor(sc);
+          const nivel = scoreNivelLabel(sc);
+          return (
+            <a href="/dashboard/score" style={{ display: "block", textDecoration: "none", marginBottom: 14 }}>
+              <div style={{ background: "#fff", borderRadius: 16, padding: "16px", border: `1.5px solid ${cor}30`, boxShadow: `0 2px 12px ${cor}14` }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 6px" }}>Saúde Financeira</p>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                    <span style={{ fontSize: 40, fontWeight: 900, color: cor, lineHeight: 1, fontFamily: "Nunito, sans-serif" }}>{sc}</span>
+                    <span style={{ fontSize: 14, color: "#c4d8c8", fontWeight: 700 }}>/100</span>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: cor, background: `${cor}18`, borderRadius: 8, padding: "3px 10px" }}>{nivel}</span>
+                </div>
+                <div style={{ height: 6, background: "#f0f7f2", borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${Math.min(100, sc)}%`, background: `linear-gradient(90deg, ${cor}99, ${cor})`, borderRadius: 999 }} />
+                </div>
+                <p style={{ fontSize: 11, color: "#8db89d", margin: "6px 0 0", fontWeight: 600 }}>Toque para ver diagnóstico completo →</p>
+              </div>
+            </a>
+          );
+        })()}
       </div>
     </div>
 
@@ -378,27 +390,44 @@ export default function DashboardPage() {
       <AssessorCard insight={insight} />
 
       {!loading && (
-        scoreProfile?.diagnostico_json?.score_imoney ? (
-          <a href="/dashboard/score" style={{ display: "block", textDecoration: "none", marginBottom: 20 }}>
-            <div style={{ background: "#fff", border: "1.5px solid #e4f5e9", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontSize: 22, fontWeight: 900, color: scoreNivelColor(scoreProfile.score_saude ?? 0), fontFamily: "Nunito, sans-serif" }}>{scoreProfile.score_saude ?? 0}</span>
-                </div>
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Score iMoney</p>
-                  <p style={{ fontSize: 14, fontWeight: 800, color: "#0d2414", margin: "2px 0 0", fontFamily: "Nunito, sans-serif" }}>
-                    {scoreNivelLabel(scoreProfile.score_saude ?? 0)}
-                    {scoreProfile.diagnostico_json?.score_imoney?.titulo && (
-                      <span style={{ fontWeight: 600, color: "#6b9e80" }}> · {scoreProfile.diagnostico_json.score_imoney.titulo}</span>
+        scoreProfile?.score_saude != null ? (() => {
+          const sc = scoreProfile.score_saude ?? 0;
+          const cor = scoreNivelColor(sc);
+          const nivel = scoreNivelLabel(sc);
+          const proxNivel = sc <= 30 ? "Atenção" : sc <= 50 ? "Estável" : sc <= 70 ? "Saudável" : sc <= 85 ? "Excelente" : null;
+          const pctBarra = Math.min(100, sc);
+          return (
+            <a href="/dashboard/score" style={{ display: "block", textDecoration: "none", marginBottom: 20 }}>
+              <div style={{ background: "#fff", border: `1.5px solid ${cor}30`, borderRadius: 20, padding: "20px 22px", boxShadow: `0 4px 20px ${cor}18`, cursor: "pointer", transition: "box-shadow 0.2s" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                  <div>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>Saúde Financeira</p>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span style={{ fontSize: 48, fontWeight: 900, color: cor, lineHeight: 1, fontFamily: "Nunito, sans-serif" }}>{sc}</span>
+                      <span style={{ fontSize: 16, color: "#c4d8c8", fontWeight: 700 }}>/100</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: cor, background: `${cor}18`, borderRadius: 8, padding: "2px 10px", marginLeft: 4 }}>{nivel}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    {proxNivel && (
+                      <p style={{ fontSize: 11, color: "#8db89d", margin: "0 0 4px", fontWeight: 600 }}>Próximo nível</p>
                     )}
-                  </p>
+                    {proxNivel && (
+                      <p style={{ fontSize: 13, fontWeight: 800, color: "#0d2414", margin: 0 }}>{proxNivel} →</p>
+                    )}
+                    {!proxNivel && <span style={{ fontSize: 22 }}>🏆</span>}
+                  </div>
                 </div>
+                <div style={{ height: 8, background: "#f0f7f2", borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pctBarra}%`, background: `linear-gradient(90deg, ${cor}99, ${cor})`, borderRadius: 999, transition: "width 1s ease" }} />
+                </div>
+                <p style={{ fontSize: 11, color: "#8db89d", margin: "8px 0 0", fontWeight: 600 }}>
+                  Use o Assessor IA para melhorar seu score → ver diagnóstico completo
+                </p>
               </div>
-              <span style={{ fontSize: 18, color: "#16a34a" }}>→</span>
-            </div>
-          </a>
-        ) : (
+            </a>
+          );
+        })() : (
           <a href="/dashboard/diagnostico" style={{ display: "block", textDecoration: "none", marginBottom: 20 }}>
             <div style={{ background: "linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)", borderRadius: 16, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div>
