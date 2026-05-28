@@ -67,16 +67,13 @@ export default function AgenteDados() {
   const [emailEnviado, setEmailEnviado] = useState(false)
   const [erro, setErro] = useState('')
 
-  const adminKey = typeof window !== 'undefined'
-    ? localStorage.getItem('imoney_admin_key') || ''
-    : ''
 
   async function gerar(enviar = false) {
     enviar ? setEnviando(true) : setLoading(true)
     setErro('')
     try {
       const url = enviar ? '/api/admin/agentes/dados?enviar=true' : '/api/admin/agentes/dados'
-      const res = await fetch(url, { headers: { 'x-admin-key': adminKey } })
+      const res = await fetch(url, { credentials: 'include' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setMetricas(data.metricas)
