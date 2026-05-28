@@ -71,6 +71,23 @@ export async function GET(req: NextRequest) {
     erros.receita = e instanceof Error ? e.message : String(e)
   }
 
+  // ── Agente Conteúdo: segunda e quinta ────────────────────────────────────
+  if (diaSemana === 1 || diaSemana === 4) {
+    try {
+      const res = await fetch(`${origin}/api/admin/agentes/conteudo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        body: JSON.stringify({ acao: 'semana_completa' }),
+      })
+      const data = await res.json()
+      resultados.conteudo = { gerados: data.gerados ?? 0, ok: data.ok }
+    } catch (e) {
+      erros.conteudo = e instanceof Error ? e.message : String(e)
+    }
+  } else {
+    resultados.conteudo = { skipped: true, motivo: 'apenas segunda e quinta' }
+  }
+
   return NextResponse.json({
     ok: true,
     executadoEm: new Date().toISOString(),
