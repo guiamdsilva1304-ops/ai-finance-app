@@ -93,7 +93,7 @@ export default function AdminMarketingPage() {
   };
 
   const filteredPosts = posts.filter(
-    (p) => p.metadata?.agente === "marketing-team" && (filter === "todos" || p.status === filter)
+    (p) => (p.metadata?.agente === "marketing-team" || p.plataforma != null) && (filter === "todos" || p.status === filter)
   );
 
   const pendingCount = posts.filter((p) => p.metadata?.agente === "marketing-team" && p.status === "pendente").length;
