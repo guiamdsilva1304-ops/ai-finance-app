@@ -46,6 +46,7 @@ const STATUS_CONFIG: Record<string, { cor: string; bg: string; label: string; do
 }
 
 export default function Hub() {
+  const [dataAtual, setDataAtual] = useState('')
   const [missoes, setMissoes] = useState<Missao[]>([])
   const [metricas, setMetricas] = useState<Metricas | null>(null)
   const [loading, setLoading] = useState(true)
@@ -53,11 +54,15 @@ export default function Hub() {
   const [resultados, setResultados] = useState<Record<string, string>>({})
   const [expandido, setExpandido] = useState<string | null>(null)
 
+    useEffect(() => {
+    setDataAtual(new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }))
+  }, [])
+
   const carregar = useCallback(async () => {
     try {
       const [mRes, metrRes] = await Promise.all([
-        fetch('/api/admin/hub'),
-        fetch('/api/admin/metricas'),
+        fetch('/api/admin/hub', { credentials: 'include', credentials: 'include' }),
+        fetch('/api/admin/metricas', { credentials: 'include' }),
       ])
       const mData = await mRes.json()
       const metrData = await metrRes.json()
@@ -73,7 +78,7 @@ export default function Hub() {
     setExecutando(missao.id)
     setResultados(prev => ({ ...prev, [missao.id]: '⟳ Executando...' }))
     try {
-      const res = await fetch('/api/admin/hub', {
+      const res = await fetch('/api/admin/hub', { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ missao_id: missao.id, agent_id: missao.agent_id, prompt: missao.prompt }),
@@ -110,7 +115,7 @@ export default function Hub() {
             ⚡ Hub de Missões
           </div>
           <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
-            Agentes trabalhando para crescer a iMoney — {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+            Agentes trabalhando para crescer a iMoney — {dataAtual}
           </div>
         </div>
         <button onClick={executarTodos} disabled={!!executando}
