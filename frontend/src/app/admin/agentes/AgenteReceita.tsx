@@ -50,17 +50,12 @@ export default function AgenteReceita() {
   const [erros, setErros] = useState<Array<{ email: string; erro: string }>>([])
   const [erro, setErro] = useState('')
 
-  const adminKey = typeof window !== 'undefined'
-    ? localStorage.getItem('imoney_admin_key') || ''
-    : ''
 
   async function carregar() {
     setLoading(true)
     setErro('')
     try {
-      const res = await fetch('/api/admin/agentes/receita', {
-        headers: { 'x-admin-key': adminKey },
-      })
+      const res = await fetch('/api/admin/agentes/receita', { credentials: 'include' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setDados(data)
@@ -79,7 +74,8 @@ export default function AgenteReceita() {
     try {
       const res = await fetch('/api/admin/agentes/receita', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ acao }),
       })
       const data = await res.json()
