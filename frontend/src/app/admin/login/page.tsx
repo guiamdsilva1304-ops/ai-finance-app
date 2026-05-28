@@ -20,7 +20,11 @@ function LoginForm() {
         body: JSON.stringify({ password }),
       });
       if (!res.ok) { setError("Senha incorreta."); return; }
-      localStorage.setItem('imoney_admin_key', password)
+      const data = await res.json();
+      // Salva o session secret retornado pela API para uso nos headers das rotas de agentes
+      if (data.sessionKey) {
+        localStorage.setItem("imoney_admin_key", data.sessionKey);
+      }
       router.push(from);
     } catch { setError("Erro de conexão."); }
     finally { setLoading(false); }
