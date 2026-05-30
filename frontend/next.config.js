@@ -9,11 +9,11 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  // unsafe-eval necessário para Next.js dev
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://brasilapi.com.br https://api.bcb.gov.br",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://brasilapi.com.br https://api.bcb.gov.br https://*.google.com wss://*.google.com",
       "frame-ancestors 'none'",
     ].join('; '),
   },
@@ -37,5 +37,5 @@ const nextConfig = {
     ]
   },
 }
-"connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://brasilapi.com.br https://api.bcb.gov.br https://*.google.com wss://*.google.com",
+
 module.exports = nextConfig
