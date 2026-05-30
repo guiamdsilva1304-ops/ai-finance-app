@@ -8,13 +8,14 @@ const FEATURES_FREE = [
   'Controle de transações',
   'Metas financeiras ilimitadas',
   'Taxas SELIC e IPCA em tempo real',
-  'Assessor IA · 3 msgs/dia',
+  'Assessor IA · 3 msgs/dia (respostas gerais)',
 ]
 
 const FEATURES_PRO = [
   'Tudo do plano gratuito',
-  'Assessor IA · 10 msgs/dia',
-  '🎤 Voz no Assessor (fale sua pergunta)',
+  'Assessor IA · 10 msgs/dia (análise completa dos seus dados)',
+  '🎤 Voz no Assessor — fale sua pergunta',
+  '🎤 Adicionar transações por voz',
   'Controle de investimentos',
   'Análise de renda e gastos',
   'Relatórios mensais automáticos',
@@ -25,7 +26,6 @@ const FEATURES_PRO = [
 const FEATURES_PREMIUM = [
   'Tudo do plano Pro',
   'Assessor IA ilimitado · 24h',
-  '🎤 Voz no Assessor (fale sua pergunta)',
   'Exportação de dados em CSV',
   'Relatório mensal em PDF',
   'Histórico completo ilimitado',
