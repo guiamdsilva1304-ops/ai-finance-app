@@ -4,7 +4,7 @@ import { amplitude } from "@/app/amplitude";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { Trash2, X, ChevronRight, User, Target, TrendingUp, MapPin, Briefcase, Heart, Brain } from "lucide-react";
+import { Trash2, X, ChevronRight, User, Target, TrendingUp, MapPin, Briefcase, Heart, Brain, Mic, MicOff } from "lucide-react";
 import { Icon } from "@/components/imoney/primitives";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -226,7 +226,6 @@ function buildContextualStarters(ctx: UserContext | null): Array<{ label: string
   const sobra = ctx.renda - ctx.gastos
   const metaPrincipal = ctx.metas?.[0]
 
-  // Starter baseado na sobra
   if (sobra > 0) {
     starters.push({
       label: `💰 Investir R$${Math.round(sobra).toLocaleString('pt-BR')}/mês`,
@@ -239,7 +238,6 @@ function buildContextualStarters(ctx: UserContext | null): Array<{ label: string
     })
   }
 
-  // Starter baseado na meta principal
   if (metaPrincipal) {
     const pct = metaPrincipal.valor_alvo > 0
       ? Math.round((metaPrincipal.valor_atual / metaPrincipal.valor_alvo) * 100)
@@ -251,14 +249,12 @@ function buildContextualStarters(ctx: UserContext | null): Array<{ label: string
     })
   }
 
-  // Starter de reserva de emergência (sempre útil)
   const reservaIdeal = ctx.renda * 6
   starters.push({
     label: "🛡️ Quanto guardar de reserva?",
     prompt: `Com minha renda atual, quanto preciso ter de reserva de emergência? Onde é melhor guardar esse dinheiro?`,
   })
 
-  // Starter de corte de gastos se renda > 0
   if (ctx.renda > 0) {
     starters.push({
       label: "✂️ Onde posso cortar gastos?",
@@ -294,7 +290,6 @@ function MemorySidebar({
   if (perfil.idade) items.push({ icon: <User size={13}/>, label: "Idade", value: `${perfil.idade} anos` })
   if (perfil.filhos !== undefined && perfil.filhos !== null) items.push({ icon: <Heart size={13}/>, label: "Filhos", value: String(perfil.filhos) })
 
-  // Dados da memória do Assessor
   if (mem.sonho_principal) items.push({ icon: <span style={{ fontSize: 13 }}>✨</span>, label: "Sonho principal", value: mem.sonho_principal as string })
   if (mem.perfil_risco) items.push({ icon: <TrendingUp size={13}/>, label: "Perfil de risco", value: mem.perfil_risco as string })
   if (mem.objetivo_financeiro) items.push({ icon: <Target size={13}/>, label: "Objetivo", value: mem.objetivo_financeiro as string })
@@ -302,7 +297,6 @@ function MemorySidebar({
 
   return (
     <>
-      {/* Overlay */}
       <div
         onClick={onClose}
         style={{
@@ -313,7 +307,6 @@ function MemorySidebar({
         }}
       />
 
-      {/* Drawer */}
       <div style={{
         position: 'fixed', top: 0, right: 0, bottom: 0,
         width: 320, background: '#fff',
@@ -323,7 +316,6 @@ function MemorySidebar({
         display: 'flex', flexDirection: 'column',
         overflowY: 'auto',
       }}>
-        {/* Header do drawer */}
         <div style={{
           padding: '20px 20px 16px',
           borderBottom: '1px solid #e4f5e9',
@@ -348,10 +340,7 @@ function MemorySidebar({
           </button>
         </div>
 
-        {/* Conteúdo */}
         <div style={{ flex: 1, padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-          {/* Perfil */}
           {items.length > 0 && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#8db89d', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
@@ -375,7 +364,6 @@ function MemorySidebar({
             </div>
           )}
 
-          {/* Metas */}
           {metas.length > 0 && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#8db89d', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
@@ -419,7 +407,6 @@ function MemorySidebar({
             </div>
           )}
 
-          {/* Aviso de privacidade */}
           <div style={{
             padding: '12px 14px', background: '#f0fdf4',
             borderRadius: 10, border: '1px solid #bbf7d0',
@@ -461,7 +448,6 @@ function MessageCounter({
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      {/* Mini barra */}
       <div style={{ width: 48, height: 4, background: '#e4f5e9', borderRadius: 2, overflow: 'hidden' }}>
         <div style={{
           height: '100%', width: `${pct}%`,
@@ -478,6 +464,74 @@ function MessageCounter({
   )
 }
 
+// ─── Botão de voz ────────────────────────────────────────────────────────────
+
+function VoiceButton({
+  isPro,
+  isListening,
+  isDisabled,
+  onToggle,
+}: {
+  isPro: boolean
+  isListening: boolean
+  isDisabled: boolean
+  onToggle: () => void
+}) {
+  // Usuário free: botão bloqueado com link para Pro
+  if (!isPro) {
+    return (
+      <a
+        href="/dashboard/pro"
+        title="Recurso exclusivo Pro — clique para assinar"
+        style={{
+          flexShrink: 0, width: 40, height: 40, borderRadius: '50%',
+          background: '#f0fdf4', border: '1.5px solid #bbf7d0',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', textDecoration: 'none', position: 'relative',
+          transition: 'background 0.15s',
+        }}
+      >
+        <Mic size={16} color="#8db89d" />
+        {/* Badge de cadeado */}
+        <div style={{
+          position: 'absolute', bottom: -2, right: -2,
+          width: 14, height: 14, borderRadius: '50%',
+          background: '#00C853', border: '1.5px solid #fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 7, color: '#fff', fontWeight: 900,
+        }}>
+          ★
+        </div>
+      </a>
+    )
+  }
+
+  // Usuário Pro: botão funcional
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={isDisabled}
+      title={isListening ? "Parar gravação" : "Falar com o Assessor"}
+      style={{
+        flexShrink: 0, width: 40, height: 40, borderRadius: '50%',
+        background: isListening ? '#FF4C4C' : '#f0fdf4',
+        border: `1.5px solid ${isListening ? '#FF4C4C' : '#bbf7d0'}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: isDisabled ? 'not-allowed' : 'pointer',
+        opacity: isDisabled ? 0.4 : 1,
+        transition: 'all 0.2s',
+        animation: isListening ? 'pulse-mic 1.2s ease-in-out infinite' : 'none',
+      }}
+    >
+      {isListening
+        ? <MicOff size={16} color="#fff" />
+        : <Mic size={16} color="#1D9E75" />
+      }
+    </button>
+  )
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function AssessorPage() {
@@ -490,10 +544,64 @@ export default function AssessorPage() {
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [userCtx, setUserCtx] = useState<UserContext | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // ─── Voz ──────────────────────────────────────────────────────────────────
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  // ──────────────────────────────────────────────────────────────────────────
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = createSupabaseBrowser();
   const searchParams = useSearchParams();
   const fromScore = searchParams.get("from") === "score";
+
+  // ─── Voice: inicializa Web Speech API ────────────────────────────────────
+  const isPro = planoUsuario === 'pro' || planoUsuario === 'premium';
+
+  const toggleListening = useCallback(() => {
+    if (!isPro) return;
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Seu navegador não suporta reconhecimento de voz. Use o Chrome.");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "pt-BR";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsListening(true);
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+      setIsListening(false);
+      // Auto-envia após 300ms para o usuário ver o que foi transcrito
+      setTimeout(() => {
+        send(transcript);
+      }, 300);
+    };
+
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [isPro, isListening]);
+
+  // Cleanup ao desmontar
+  useEffect(() => {
+    return () => { recognitionRef.current?.stop(); };
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     async function load() {
@@ -536,7 +644,6 @@ export default function AssessorPage() {
 
       setUserCtx({ renda, gastos, metas, perfil, mem })
 
-      // Se veio da tela de score e não tem histórico, gera mensagem proativa
       const historyData = historyRes.status === "fulfilled" ? historyRes.value.data : null;
       if (fromScore && (!historyData?.length)) {
         const diag = perfil?.diagnostico_json as Record<string, unknown> | null;
@@ -692,7 +799,6 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
       if (data.usadas !== undefined) {
         const novoInfo = { usadas: data.usadas, limite: data.limite ?? 3, plano: data.plano ?? planoUsuario }
         setInfoLimite(novoInfo)
-        // Atualiza ctx para o contador refletir imediatamente
         setUserCtx(prev => prev ? { ...prev } : prev)
       }
       const { text: replyText, plan } = parsePlan(data.reply)
@@ -720,7 +826,6 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
 
   return (
     <>
-      {/* Sidebar de memória */}
       {userCtx && (
         <MemorySidebar
           open={sidebarOpen}
@@ -740,7 +845,6 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
             </h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Botão de memória */}
             {userCtx && (
               <button
                 onClick={() => setSidebarOpen(true)}
@@ -852,13 +956,13 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
 
         {/* Input area */}
         <div style={{ flexShrink: 0, marginTop: 8 }}>
+          {/* Banner de limite (free) */}
           {infoLimite && planoUsuario === 'free' && (() => {
             const usadas = infoLimite.usadas
             const limite = infoLimite.limite
             const pct = usadas / limite
             const restantes = limite - usadas
 
-            // 70-89%: aviso sutil
             if (pct >= 0.7 && pct < 0.9 && !limiteAtingido) return (
               <div style={{ padding: '10px 16px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: '12px 12px 0 0', marginBottom: -8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -873,7 +977,6 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
               </div>
             )
 
-            // 90-99%: urgência
             if (pct >= 0.9 && !limiteAtingido) return (
               <div style={{ padding: '12px 16px', background: 'linear-gradient(135deg, #7C2D12, #C2410C)', borderRadius: '12px 12px 0 0', marginBottom: -8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -892,7 +995,6 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
               </div>
             )
 
-            // 100%: bloqueado
             if (limiteAtingido) return (
               <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0a3d28, #1D9E75)', borderRadius: '16px 16px 0 0', marginBottom: -8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -913,18 +1015,57 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
 
             return null
           })()}
+
+          {/* Banner de escuta ativa (Pro) */}
+          {isListening && (
+            <div style={{
+              padding: '10px 16px', marginBottom: 8,
+              background: 'linear-gradient(135deg, #0a3d28, #1D9E75)',
+              borderRadius: 12,
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                {[0,1,2,3].map(i => (
+                  <div key={i} style={{
+                    width: 3, borderRadius: 3,
+                    background: '#fff',
+                    animation: `wave ${0.6 + i * 0.1}s ease-in-out infinite alternate`,
+                    animationDelay: `${i * 0.1}s`,
+                  }}/>
+                ))}
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                Ouvindo... fale sua pergunta
+              </span>
+              <button
+                onClick={toggleListening}
+                style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 6, padding: '4px 10px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
           <form
             onSubmit={(e) => { e.preventDefault(); send(input); }}
             style={{ display: 'flex', gap: 8, background: '#fff', border: '1px solid #e4f5e9', borderRadius: 20, padding: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
           >
+            {/* Botão de voz — sempre visível, bloqueado para free */}
+            <VoiceButton
+              isPro={isPro}
+              isListening={isListening}
+              isDisabled={loading || limiteAtingido}
+              onToggle={toggleListening}
+            />
+
             <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }}}
-              placeholder="Digite sua pergunta financeira..."
+              placeholder={isListening ? "Ouvindo..." : "Digite ou fale sua pergunta financeira..."}
               rows={1}
               style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#0d2414', padding: '6px 8px', maxHeight: 128, fontFamily: 'Nunito, sans-serif' }}
-              disabled={loading || limiteAtingido}
+              disabled={loading || limiteAtingido || isListening}
             />
             <button type="submit" disabled={!input.trim() || loading || limiteAtingido} style={{
               flexShrink: 0, width: 40, height: 40, borderRadius: '50%',
@@ -939,17 +1080,26 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
           </form>
 
           {/* Contador sempre visível */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingInline: 4 }}>
             <MessageCounter
               usadas={usadas}
               limite={limite}
               plano={planoUsuario}
             />
+            {/* Hint de voz para free */}
+            {!isPro && (
+              <a href="/dashboard/pro" style={{ fontSize: 11, color: '#8db89d', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                <Mic size={11}/>
+                Voz disponível no Pro
+              </a>
+            )}
           </div>
         </div>
 
         <style>{`
           @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+          @keyframes pulse-mic { 0%,100%{box-shadow:0 0 0 0 rgba(255,76,76,0.4)} 50%{box-shadow:0 0 0 8px rgba(255,76,76,0)} }
+          @keyframes wave { from{height:4px} to{height:16px} }
         `}</style>
       </div>
     </>
