@@ -73,7 +73,7 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
     if (!result) return
     setState('saving')
 
-    const supabase = createClient()
+   const supabase = createSupabaseBrowser()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
