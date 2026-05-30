@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createSupabaseBrowser } from '@/lib/supabase'
 
 interface VoiceResult {
   tipo: 'gasto' | 'receita'
