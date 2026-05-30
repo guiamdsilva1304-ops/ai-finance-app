@@ -1,32 +1,32 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase";
 
 const STEPS = [
   { id: 1, titulo: "Qual é o seu grande sonho? 🌟", subtitulo: "Vamos começar pelo que mais importa pra você" },
-  { id: 2, titulo: "Agora, seu perfil básico", subtitulo: "Para personalizar suas análises" },
-  { id: 3, titulo: "Quanto você quer guardar?", subtitulo: "Isso nos ajuda a montar seu plano" },
+  { id: 2, titulo: "Agora, vamos te conhecer", subtitulo: "Para o plano ser feito pra você" },
+  { id: 3, titulo: "Vamos montar seu plano", subtitulo: "A iMoney já calcula quanto você precisa guardar" },
   { id: 4, titulo: "Radiografia Financeira 🩻", subtitulo: "5 perguntas rápidas para seu diagnóstico personalizado" },
 ];
 
 const SONHOS = [
-  { emoji: "🏠", label: "Casa própria", descricao: "Comprar ou dar entrada no imóvel" },
-  { emoji: "✈️", label: "Viagem dos sonhos", descricao: "Aquela viagem que você sempre quis fazer" },
-  { emoji: "🚗", label: "Meu primeiro carro", descricao: "Comprar um carro novo ou seminovo" },
-  { emoji: "🛡️", label: "Reserva de emergência", descricao: "Ter segurança financeira para imprevistos" },
+  { emoji: "🏠", label: "Casa própria",            descricao: "Comprar ou dar entrada no imóvel" },
+  { emoji: "✈️", label: "Viagem dos sonhos",       descricao: "Aquela viagem que você sempre quis fazer" },
+  { emoji: "🚗", label: "Meu primeiro carro",      descricao: "Comprar um carro novo ou seminovo" },
+  { emoji: "🛡️", label: "Reserva de emergência",   descricao: "Sair do limite de uma vez por todas" },
   { emoji: "📈", label: "Independência financeira", descricao: "Investir e viver de renda no futuro" },
-  { emoji: "🎓", label: "Educação / pós-grad", descricao: "Investir na sua carreira e conhecimento" },
-  { emoji: "💳", label: "Sair das dívidas", descricao: "Zerar as dívidas e recomeçar do zero" },
-  { emoji: "✨", label: "Outro sonho", descricao: "Você digita o que quiser" },
+  { emoji: "🎓", label: "Educação / pós-grad",     descricao: "Dar o próximo passo na carreira" },
+  { emoji: "💳", label: "Sair das dívidas",        descricao: "Zerar as dívidas e recomeçar do zero" },
+  { emoji: "✨", label: "Outro sonho",             descricao: "Você digita o que quiser" },
 ];
 
 const PERGUNTAS = [
-  { id: 1, texto: "Como você se sente quando pensa em dinheiro?", opcoes: ["😰 Ansioso", "😌 Tranquilo", "😕 Perdido", "🔥 Motivado"] },
-  { id: 2, texto: "Qual seu maior desafio financeiro hoje?", opcoes: ["💳 Dívidas", "🐷 Guardar dinheiro", "🔍 Entender onde gasto", "📈 Investir"] },
-  { id: 3, texto: "Você tem reserva de emergência?", opcoes: ["❌ Não tenho", "📦 Menos de 3 meses", "✅ 3–6 meses", "🏆 Mais de 6 meses"] },
-  { id: 4, texto: "Como você lida com uma conta inesperada?", opcoes: ["💳 Cartão de crédito", "🤝 Peço emprestado", "🏦 Uso minha reserva", "😟 Fico sem pagar"] },
-  { id: 5, texto: "Qual é seu objetivo principal agora?", opcoes: ["🚀 Sair das dívidas", "🛡️ Criar reserva", "📈 Investir", "✈️ Viajar / realizar sonho"] },
+  { id: 1, texto: "Como você se sente quando pensa em dinheiro?",   opcoes: ["😰 Ansioso", "😌 Tranquilo", "😕 Perdido", "🔥 Motivado"] },
+  { id: 2, texto: "Qual seu maior desafio financeiro hoje?",        opcoes: ["💳 Dívidas", "🐷 Guardar dinheiro", "🔍 Entender onde gasto", "📈 Investir"] },
+  { id: 3, texto: "Você tem reserva de emergência?",                opcoes: ["❌ Não tenho", "📦 Menos de 3 meses", "✅ 3–6 meses", "🏆 Mais de 6 meses"] },
+  { id: 4, texto: "Como você lida com uma conta inesperada?",       opcoes: ["💳 Cartão de crédito", "🤝 Peço emprestado", "🏦 Uso minha reserva", "😟 Fico sem pagar"] },
+  { id: 5, texto: "Qual é seu objetivo principal agora?",           opcoes: ["🚀 Sair das dívidas", "🛡️ Criar reserva", "📈 Investir", "✈️ Viajar / realizar sonho"] },
 ];
 
 interface Diagnostico {
@@ -57,10 +57,32 @@ export default function OnboardingPage() {
   const sonhoEhOutro = sonhoSelecionado === "✨ Outro sonho";
   const metaNome = sonhoEhOutro ? sonhoCustom : sonhoSelecionado;
 
+  // ── Cálculo em tempo real ────────────────────────────────────────────────
+  const calculo = useMemo(() => {
+    const v = parseFloat(metaValor);
+    const m = parseInt(metaMeses);
+    const r = parseFloat(renda);
+    if (!v || !m) return null;
+    const porMes = v / m;
+    const pctRenda = r > 0 ? (porMes / r) * 100 : null;
+    return { porMes, pctRenda, viavel: pctRenda === null || pctRenda <= 50 };
+  }, [metaValor, metaMeses, renda]);
+
   async function salvarPerfil(userId: string) {
-    await supabase.from("user_profiles").upsert({ id: userId, user_id: userId, nome, ocupacao, renda_mensal: parseFloat(renda) || 0, updated_at: new Date().toISOString() });
+    await supabase.from("user_profiles").upsert({
+      id: userId, user_id: userId, nome, ocupacao,
+      renda_mensal: parseFloat(renda) || 0,
+      updated_at: new Date().toISOString(),
+    });
     if (metaNome && metaValor) {
-      await supabase.from("metas").insert({ user_id: userId, nome: metaNome, valor_alvo: parseFloat(metaValor) || 0, valor_atual: 0, prazo_meses: parseInt(metaMeses) || 12, concluida: false, created_at: new Date().toISOString() });
+      await supabase.from("metas").insert({
+        user_id: userId, nome: metaNome,
+        valor_alvo: parseFloat(metaValor) || 0,
+        valor_atual: 0,
+        prazo_meses: parseInt(metaMeses) || 12,
+        concluida: false,
+        created_at: new Date().toISOString(),
+      });
     }
   }
 
@@ -76,7 +98,11 @@ export default function OnboardingPage() {
       if (!user) { router.push("/login"); return; }
       await salvarPerfil(user.id);
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/onboarding/diagnostico", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ respostas, nome, ocupacao, renda: parseFloat(renda) || 0, meta: metaNome }) });
+      const res = await fetch("/api/onboarding/diagnostico", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ respostas, nome, ocupacao, renda: parseFloat(renda) || 0, meta: metaNome }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao gerar diagnóstico");
       setDiagnostico(data.diagnostico);
@@ -129,6 +155,7 @@ export default function OnboardingPage() {
     (step === 3) ||
     (step === 4 && todasRespondidas);
 
+  // ── Tela de resultado (Radiografia) ─────────────────────────────────────
   if (diagnostico) {
     const scorePct = Math.min(100, (diagnostico.score / 1000) * 100);
     const scoreColor = diagnostico.score < 400 ? "#ef4444" : diagnostico.score < 650 ? "#f59e0b" : "#1D9E75";
@@ -183,13 +210,16 @@ export default function OnboardingPage() {
     );
   }
 
+  // ── Tela principal ───────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f0fdf4 0%, #fff 60%)", fontFamily: "'Nunito',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: step === 4 ? "flex-start" : "center", padding: "24px" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap'); @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}} @keyframes pulse-green{0%,100%{box-shadow:0 0 0 0 rgba(29,158,117,0.3)}50%{box-shadow:0 0 0 8px rgba(29,158,117,0)}} .step{animation:fadeIn 0.3s ease} .sonho-btn{transition:all 0.2s ease;cursor:pointer} .sonho-btn:hover{transform:translateY(-2px)} .sonho-btn.selected{animation:pulse-green 1s ease 1} input,select{outline:none} input:focus,select:focus{border-color:#1D9E75 !important;box-shadow:0 0 0 3px rgba(29,158,117,0.1)}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap'); @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}} @keyframes pulse-green{0%,100%{box-shadow:0 0 0 0 rgba(29,158,117,0.3)}50%{box-shadow:0 0 0 8px rgba(29,158,117,0)}} @keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}} .step{animation:fadeIn 0.3s ease} .sonho-btn{transition:all 0.2s ease;cursor:pointer} .sonho-btn:hover{transform:translateY(-2px)} .sonho-btn.selected{animation:pulse-green 1s ease 1} .calculo-box{animation:slideIn 0.3s ease} input,select{outline:none} input:focus,select:focus{border-color:#1D9E75 !important;box-shadow:0 0 0 3px rgba(29,158,117,0.1)}`}</style>
+
       <div style={{ marginBottom: 24, textAlign: "center", marginTop: step === 4 ? 24 : 0 }}>
-        <div style={{ fontSize: 28, marginBottom: 4 }}>🌱</div>
+        <div style={{ fontSize: 28, marginBottom: 4 }}>🧭</div>
         <div style={{ fontSize: 18, fontWeight: 900, color: "#0a3d28" }}>iMoney</div>
       </div>
+
       <div style={{ width: "100%", maxWidth: step === 1 ? 560 : 480, background: "#fff", borderRadius: 24, boxShadow: "0 8px 40px rgba(0,0,0,0.08)", overflow: "hidden" }}>
         <div style={{ height: 4, background: "#f0f0f0" }}>
           <div style={{ height: "100%", width: `${progresso}%`, background: "#1D9E75", transition: "width 0.4s ease", borderRadius: 4 }} />
@@ -203,6 +233,7 @@ export default function OnboardingPage() {
             <p style={{ fontSize: 14, color: "#888", margin: 0, lineHeight: 1.6 }}>{stepAtual.subtitulo}</p>
           </div>
 
+          {/* ── Step 1: Sonho ── */}
           {step === 1 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -224,21 +255,22 @@ export default function OnboardingPage() {
               {sonhoSelecionado && !sonhoEhOutro && (
                 <div style={{ background: "#E1F5EE", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 18 }}>✅</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#085041" }}>Ótima escolha! A iMoney vai montar um plano para: <strong>{sonhoSelecionado}</strong></span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#085041" }}>Ótimo! A iMoney vai montar e executar o plano para: <strong>{sonhoSelecionado}</strong></span>
                 </div>
               )}
             </div>
           )}
 
+          {/* ── Step 2: Perfil ── */}
           {step === 2 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ background: "#f0fdf4", borderRadius: 12, padding: "10px 14px", border: "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
                 <span style={{ fontSize: 20 }}>{sonhoSelecionado.split(" ")[0]}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#085041" }}>Meta: {sonhoEhOutro ? sonhoCustom : sonhoSelecionado.split(" ").slice(1).join(" ")}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#085041" }}>Sonho: {sonhoEhOutro ? sonhoCustom : sonhoSelecionado.split(" ").slice(1).join(" ")}</span>
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>SEU NOME</label>
-                <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Como você quer ser chamado?" autoFocus style={{ width: "100%", border: "2px solid #e8ede8", borderRadius: 12, padding: "12px 16px", fontSize: 15, fontFamily: "'Nunito',sans-serif", color: "#1a1a1a", boxSizing: "border-box", transition: "border 0.2s" }} />
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>COMO VOCÊ QUER SER CHAMADO?</label>
+                <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome" autoFocus style={{ width: "100%", border: "2px solid #e8ede8", borderRadius: 12, padding: "12px 16px", fontSize: 15, fontFamily: "'Nunito',sans-serif", color: "#1a1a1a", boxSizing: "border-box", transition: "border 0.2s" }} />
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>OCUPAÇÃO</label>
@@ -255,6 +287,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
+          {/* ── Step 3: Plano ── */}
           {step === 3 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ background: "#f0fdf4", borderRadius: 12, padding: "10px 14px", border: "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: 10 }}>
@@ -264,8 +297,10 @@ export default function OnboardingPage() {
                   <div style={{ fontSize: 13, fontWeight: 800, color: "#085041" }}>{sonhoEhOutro ? sonhoCustom : sonhoSelecionado.split(" ").slice(1).join(" ")}</div>
                 </div>
               </div>
+
+              {/* Renda */}
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>RENDA MENSAL APROXIMADA</label>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>SUA RENDA MENSAL APROXIMADA</label>
                 <div style={{ position: "relative" }}>
                   <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 15, fontWeight: 700, color: "#aaa" }}>R$</span>
                   <input value={renda} onChange={e => setRenda(e.target.value.replace(/\D/g, ""))} placeholder="0" autoFocus type="number" min="0" style={{ width: "100%", border: "2px solid #e8ede8", borderRadius: 12, padding: "12px 16px 12px 44px", fontSize: 15, fontFamily: "'Nunito',sans-serif", color: "#1a1a1a", boxSizing: "border-box", transition: "border 0.2s" }} />
@@ -278,13 +313,15 @@ export default function OnboardingPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Meta + Prazo */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>VALOR DA META (R$)</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>QUANTO VALE ESSE SONHO? (R$)</label>
                   <input value={metaValor} onChange={e => setMetaValor(e.target.value)} placeholder="0" type="number" min="0" style={{ width: "100%", border: "2px solid #e8ede8", borderRadius: 12, padding: "12px 16px", fontSize: 14, fontFamily: "'Nunito',sans-serif", color: "#1a1a1a", boxSizing: "border-box", transition: "border 0.2s" }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>PRAZO</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>EM QUANTO TEMPO?</label>
                   <select value={metaMeses} onChange={e => setMetaMeses(e.target.value)} style={{ width: "100%", border: "2px solid #e8ede8", borderRadius: 12, padding: "12px 16px", fontSize: 14, fontFamily: "'Nunito',sans-serif", color: "#1a1a1a", boxSizing: "border-box", background: "#fff", transition: "border 0.2s" }}>
                     <option value="3">3 meses</option>
                     <option value="6">6 meses</option>
@@ -295,10 +332,32 @@ export default function OnboardingPage() {
                   </select>
                 </div>
               </div>
+
+              {/* ── Cálculo em tempo real ── */}
+              {calculo && (
+                <div className="calculo-box" style={{ background: calculo.viavel ? "#E1F5EE" : "#fff8e1", border: `2px solid ${calculo.viavel ? "#1D9E75" : "#f59e0b"}`, borderRadius: 14, padding: "16px 18px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: calculo.viavel ? "#085041" : "#92400e", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+                    {calculo.viavel ? "▶ Seu plano" : "⚠️ Atenção"}
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: calculo.viavel ? "#085041" : "#92400e", marginBottom: 4 }}>
+                    R$ {calculo.porMes.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}<span style={{ fontSize: 13, fontWeight: 700 }}>/mês</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: calculo.viavel ? "#1D9E75" : "#b45309", fontWeight: 600, lineHeight: 1.5 }}>
+                    {calculo.pctRenda !== null
+                      ? calculo.viavel
+                        ? `${calculo.pctRenda.toFixed(0)}% da sua renda — a iMoney vai te lembrar toda semana.`
+                        : `Isso representa ${calculo.pctRenda.toFixed(0)}% da sua renda. Considere aumentar o prazo ou o valor.`
+                      : `Guardando esse valor por mês, você chega lá em ${metaMeses} meses.`
+                    }
+                  </div>
+                </div>
+              )}
+
               <p style={{ fontSize: 12, color: "#aaa", margin: 0, textAlign: "center" }}>Pode aproximar — você ajusta isso depois no dashboard.</p>
             </div>
           )}
 
+          {/* ── Step 4: Radiografia ── */}
           {step === 4 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
               {PERGUNTAS.map(p => (
