@@ -14,6 +14,7 @@ const FEATURES_FREE = [
 const FEATURES_PRO = [
   'Tudo do plano gratuito',
   'Assessor IA · 10 msgs/dia',
+  '🎤 Voz no Assessor (fale sua pergunta)',
   'Controle de investimentos',
   'Análise de renda e gastos',
   'Relatórios mensais automáticos',
@@ -24,6 +25,7 @@ const FEATURES_PRO = [
 const FEATURES_PREMIUM = [
   'Tudo do plano Pro',
   'Assessor IA ilimitado · 24h',
+  '🎤 Voz no Assessor (fale sua pergunta)',
   'Exportação de dados em CSV',
   'Relatório mensal em PDF',
   'Histórico completo ilimitado',
