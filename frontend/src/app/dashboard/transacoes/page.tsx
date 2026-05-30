@@ -362,7 +362,7 @@ export default function TransacoesPage() {
       <p className="text-xs text-center text-[#8db89d] mt-4">
         {filtered.length} transaç{filtered.length === 1 ? "ão" : "ões"} · máx. 500 por usuário
       </p>
-
+<VoiceTransactionButton onSuccess={load} />
       {/* Portals para modais */}
       {mounted && showImportModal && createPortal(modalImportar, document.body)}
       {mounted && showPremiumModal && createPortal(modalPremium, document.body)}
