@@ -12,12 +12,21 @@ interface VoiceResult {
   erro?: string
 }
 
+const ERROS: Record<string, string> = {
+  'not-allowed': 'Permissão de microfone negada. Libere nas configurações do Chrome.',
+  'no-speech': 'Nenhuma fala detectada. Tente novamente.',
+  'network': 'Erro de rede. Verifique sua conexão.',
+  'audio-capture': 'Microfone não encontrado.',
+  'aborted': 'Gravação cancelada.',
+}
+
 export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () => void }) {
   const [state, setState] = useState<'idle' | 'recording' | 'processing' | 'confirm' | 'saving'>('idle')
   const [result, setResult] = useState<VoiceResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [transcript, setTranscript] = useState('')
   const recognitionRef = useRef<any>(null)
+  const gotResultRef = useRef(false)
 
   const startRecording = () => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -26,6 +35,7 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
       return
     }
 
+    gotResultRef.current = false
     const recognition = new SR()
     recognition.lang = 'pt-BR'
     recognition.continuous = false
@@ -35,6 +45,7 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
     recognition.onstart = () => setState('recording')
 
     recognition.onresult = async (event: any) => {
+      gotResultRef.current = true
       const text = event.results[0][0].transcript
       setTranscript(text)
       setState('processing')
@@ -59,9 +70,17 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
       }
     }
 
-    recognition.onerror = () => {
-      setError('Erro ao gravar. Tente novamente.')
+    recognition.onerror = (event: any) => {
+      console.error('[voice] erro:', event.error, event)
+      const msg = ERROS[event.error] ?? `Erro: ${event.error}`
+      setError(msg)
       setState('idle')
+    }
+
+    recognition.onend = () => {
+      if (!gotResultRef.current) {
+        setState('idle')
+      }
     }
 
     recognition.start()
@@ -73,7 +92,7 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
     if (!result) return
     setState('saving')
 
-   const supabase = createSupabaseBrowser()
+    const supabase = createSupabaseBrowser()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -100,7 +119,6 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
 
   return (
     <>
-      {/* Botão flutuante mic */}
       <button
         onClick={state === 'recording' ? stopRecording : startRecording}
         disabled={state === 'processing' || state === 'saving'}
@@ -124,14 +142,12 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
         )}
       </button>
 
-      {/* Label de gravando */}
       {state === 'recording' && (
         <div className="fixed bottom-40 right-6 z-50 bg-gray-800 text-white text-xs px-3 py-2 rounded-full shadow">
           🎙 Ouvindo... toque para parar
         </div>
       )}
 
-      {/* Error toast */}
       {error && (
         <div className="fixed bottom-40 right-6 z-50 bg-red-500 text-white text-sm px-4 py-2 rounded-xl shadow-lg max-w-xs flex items-center gap-2">
           {error}
@@ -139,13 +155,11 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
         </div>
       )}
 
-      {/* Modal de confirmação */}
       {(state === 'confirm' || state === 'saving') && result && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
             <h3 className="font-bold text-gray-800 text-lg mb-1">Confirmar transação</h3>
             <p className="text-xs text-gray-400 mb-4 italic">"{transcript}"</p>
-
             <div className="space-y-3 mb-6">
               <div className="flex justify-between items-center bg-gray-50 rounded-xl p-3">
                 <span className="text-sm text-gray-500">Tipo</span>
@@ -170,20 +184,13 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
                 <span className="font-medium text-gray-800 text-sm">{result.categoria}</span>
               </div>
             </div>
-
             <div className="flex gap-3">
-              <button
-                onClick={handleCancel}
-                disabled={state === 'saving'}
-                className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium"
-              >
+              <button onClick={handleCancel} disabled={state === 'saving'}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium">
                 Cancelar
               </button>
-              <button
-                onClick={handleConfirm}
-                disabled={state === 'saving'}
-                className="flex-1 py-3 rounded-xl bg-[#00C853] text-white font-semibold"
-              >
+              <button onClick={handleConfirm} disabled={state === 'saving'}
+                className="flex-1 py-3 rounded-xl bg-[#00C853] text-white font-semibold">
                 {state === 'saving' ? 'Salvando...' : 'Confirmar ✓'}
               </button>
             </div>
