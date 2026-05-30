@@ -10,6 +10,7 @@ import { CATEGORIAS, type Categoria, type Transaction } from "@/types";
 import Link from "next/link";
 import ImportarExtrato from "@/components/ImportarExtrato";
 import { StreakToast } from "@/components/imoney/celebration";
+import VoiceTransactionButton from "@/components/VoiceTransactionButton";
 const CAT_COLORS: Record<string, string> = {
   Moradia:"bg-blue-100 text-blue-700", Alimentação:"bg-orange-100 text-orange-700",
   Transporte:"bg-yellow-100 text-yellow-700", Saúde:"bg-red-100 text-red-700",
