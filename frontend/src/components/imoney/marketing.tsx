@@ -85,7 +85,7 @@ export function Hero() {
           display: 'inline-flex', alignItems: 'center', gap: 8,
           background: C.green50, color: C.green900, padding: '8px 14px',
           borderRadius: 999, fontSize: 13, fontWeight: 800,
-        }}>🧭 IA que entende o seu sonho</div>
+        }}>🧭 A plataforma que executa por você</div>
         <h1 className="mkt-hero-h1" style={{
           fontSize: 64, fontWeight: 800, color: C.green900,
           letterSpacing: '-0.03em', lineHeight: 1.02, margin: '20px 0 16px',
@@ -93,15 +93,15 @@ export function Hero() {
           Seus sonhos<br/>têm um plano.
         </h1>
         <p className="mkt-hero-sub" style={{ fontSize: 19, color: C.ink2, lineHeight: 1.55, maxWidth: 480, margin: 0 }}>
-          A iMoney transforma o que você quer — casa própria, viagem, independência — em metas concretas. Com Assessor IA 24h pelo seu projeto de vida.
+          Sem precisar aprender sobre finanças. Sem planilha. Você fala o que quer — a iMoney monta o plano, acompanha e te diz o próximo passo.
         </p>
         <div className="mkt-hero-btns" style={{ display: 'flex', gap: 12, marginTop: 28 }}>
-          <Button href="/login" style={{ padding: '16px 26px', fontSize: 16 }}>Acesso grátis</Button>
+          <Button href="/login" style={{ padding: '16px 26px', fontSize: 16 }}>Começar agora — é grátis</Button>
           <Button variant="ghost" href="#como-funciona" style={{ padding: '16px 26px', fontSize: 16 }}>Ver como funciona →</Button>
         </div>
         <div style={{ display: 'flex', gap: 18, marginTop: 28, alignItems: 'center', fontSize: 13, color: C.ink2 }}>
           <span>⭐⭐⭐⭐⭐ 4.8 · 12k usuários</span>
-          <span>· grátis para começar</span>
+          <span>· sem cartão de crédito</span>
         </div>
       </div>
 
@@ -121,12 +121,12 @@ export function Hero() {
           background: '#fff', borderRadius: 18, padding: '14px 16px',
           boxShadow: '0 16px 40px rgba(26,58,26,0.12)',
           display: 'flex', gap: 10, alignItems: 'center',
-          width: 280, transform: 'rotate(3deg)',
+          width: 290, transform: 'rotate(3deg)',
         }}>
           <div style={{ width: 36, height: 36, borderRadius: 999, background: C.green500, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🧭</div>
           <div>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: C.green900 }}>Gui da iMoney</div>
-            <div style={{ fontSize: 12, color: C.ink2 }}>&ldquo;Tá faltando só R$1.250 — bora?&rdquo;</div>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: C.green900 }}>iMoney</div>
+            <div style={{ fontSize: 12, color: C.ink2 }}>▶ Próximo passo: guarda R$ 625 essa semana</div>
           </div>
         </div>
       </div>
@@ -137,20 +137,20 @@ export function Hero() {
 /* ───── Feature grid ───── */
 export function FeatureGrid() {
   const features = [
-    { ico: 'target' as const,      title: 'Metas por sonho',    body: 'Vire "quero uma casa" em "R$750/mês por 48 meses". Concreto e fácil de seguir.' },
-    { ico: 'compass' as const,     title: 'Assessor IA 24h',    body: 'O Gui responde dúvidas, recalcula rotas e celebra cada conquista — como um amigo.' },
-    { ico: 'trending-up' as const, title: 'Visão de futuro',    body: 'Não é planilha do passado. É o caminho até onde você quer chegar.' },
-    { ico: 'sparkles' as const,    title: 'Celebra cada passo', body: 'Cada R$ guardado conta. Marcos de 25%, 50%, 75%, 100% — sem culpa, só motivação.' },
+    { ico: 'target' as const,      title: 'Metas por sonho',      body: 'Você fala "quero uma casa". A iMoney vira isso em R$750/mês por 48 meses — e te acompanha até lá.' },
+    { ico: 'compass' as const,     title: 'Assessor que executa', body: 'Não te explica finanças — te diz o que fazer agora. Recalcula sua rota e celebra cada conquista junto.' },
+    { ico: 'trending-up' as const, title: 'Visão de futuro',      body: 'Não é planilha do passado. É o caminho concreto até onde você quer chegar — atualizado em tempo real.' },
+    { ico: 'sparkles' as const,    title: 'Te conhece de verdade', body: 'Cada meta, cada padrão, cada conquista fica na memória. Quanto mais você usa, mais a iMoney trabalha por você.' },
   ];
   return (
     <section id="como-funciona" className="mkt-feature-sect" style={{ padding: '80px 32px', background: C.paper, fontFamily: FONT }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: C.green500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>O que muda</div>
         <h2 className="mkt-feature-h2" style={{ fontSize: 44, fontWeight: 800, color: C.green900, letterSpacing: '-0.02em', margin: '8px 0 12px', lineHeight: 1.1, maxWidth: 720 }}>
-          O primeiro app de finanças que trabalha pelo seu projeto de vida.
+          O único app de finanças que trabalha por você — não pede pra você estudar.
         </h2>
         <p className="mkt-feature-p" style={{ fontSize: 17, color: C.ink2, maxWidth: 620, lineHeight: 1.55, margin: 0 }}>
-          Não é controle de gastos. É o caminho do sonho até a conquista.
+          Não é controle de gastos. É o caminho do sonho até a conquista, executado junto.
         </p>
         <div className="mkt-feature-grid" style={{ marginTop: 40, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
           {features.map(f => (
@@ -231,19 +231,19 @@ export function PWASection() {
 /* ───── Dream showcase ───── */
 export function DreamShowcase() {
   const dreams = [
-    { emoji: '🏠', title: 'Casa própria',           sub: 'Calcule sua entrada em 5 anos' },
-    { emoji: '✈️', title: 'Viagem dos sonhos',      sub: 'Quanto custa e como juntar' },
-    { emoji: '🚗', title: 'Trocar de carro',        sub: 'Financiar ou poupar — veja' },
-    { emoji: '🛡️', title: 'Reserva de emergência',  sub: 'Pare de viver no limite' },
-    { emoji: '💍', title: 'Casamento',              sub: 'Sem entrar em dívida' },
-    { emoji: '🎓', title: 'Estudar fora',           sub: 'Planeje o intercâmbio' },
+    { emoji: '🏠', title: 'Casa própria',           sub: 'Quanto guardar por mês para a entrada' },
+    { emoji: '✈️', title: 'Viagem dos sonhos',      sub: 'Plano pronto em menos de 1 minuto' },
+    { emoji: '🚗', title: 'Trocar de carro',        sub: 'Poupar ou financiar — a conta real' },
+    { emoji: '🛡️', title: 'Reserva de emergência',  sub: 'Saia do limite de uma vez por todas' },
+    { emoji: '💍', title: 'Casamento',              sub: 'O grande dia sem endividar' },
+    { emoji: '🎓', title: 'Estudar fora',           sub: 'Intercâmbio com plano executável' },
   ];
   return (
     <section id="sonhos" className="mkt-dream-sect" style={{ padding: '80px 32px', background: C.green900, color: '#fff', fontFamily: FONT }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: C.green500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Qual é o seu sonho?</div>
         <h2 className="mkt-dream-h2" style={{ fontSize: 44, fontWeight: 800, letterSpacing: '-0.02em', margin: '8px 0 36px', lineHeight: 1.1, maxWidth: 720 }}>
-          A iMoney conhece o sonho. E mostra o caminho.
+          Você fala o sonho. A iMoney monta o plano e executa junto.
         </h2>
         <div className="mkt-dream-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
           {dreams.map(d => (
@@ -317,7 +317,7 @@ export function PricingTable() {
               borderRadius: 999, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em',
             }}>MAIS POPULAR</div>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.75 }}>✨ Pro</div>
-            <h3 style={{ fontSize: 24, fontWeight: 800, margin: '6px 0 14px', letterSpacing: '-0.02em' }}>Invista no seu sonho</h3>
+            <h3 style={{ fontSize: 24, fontWeight: 800, margin: '6px 0 14px', letterSpacing: '-0.02em' }}>Executor completo</h3>
             <div>
               <Money value="29" cents="90" size={32} color="#fff"/>
               <span style={{ fontSize: 14, fontWeight: 800, marginLeft: 4, opacity: 0.85 }}>/mês</span>
@@ -327,8 +327,8 @@ export function PricingTable() {
               {[
                 'Tudo do Gratuito',
                 'Assessor IA · 50 msgs/dia',
-                'Controle de investimentos',
-                'Análises avançadas de gastos',
+                'Memória financeira completa',
+                'Detecção de padrões de gasto',
                 'Relatórios mensais automáticos',
                 'Suporte prioritário',
               ].map(t => (
@@ -389,7 +389,7 @@ export function BlogPreview() {
         <div className="mkt-blog-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 28 }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 800, color: C.green500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Do blog iMoney</div>
-            <h2 style={{ fontSize: 34, fontWeight: 800, color: C.green900, letterSpacing: '-0.02em', margin: '6px 0 0' }}>Aprenda enquanto sua meta cresce</h2>
+            <h2 style={{ fontSize: 34, fontWeight: 800, color: C.green900, letterSpacing: '-0.02em', margin: '6px 0 0' }}>Simples, direto, pra virar ação.</h2>
           </div>
           <a href="/blog" style={{ fontSize: 14, fontWeight: 800, color: C.green500, cursor: 'pointer', textDecoration: 'none' }}>Ver todos os artigos →</a>
         </div>
@@ -476,7 +476,7 @@ export function BrandVoice() {
 export function Footer() {
   const cols = [
     { h: 'Produto',  l: [['Como funciona','#como-funciona'], ['Sonhos','#sonhos'], ['Preços','#precos']] },
-    { h: 'Aprender', l: [['Blog','/blog']] },
+    { h: 'Conteúdo', l: [['Blog','/blog']] },
     { h: 'Empresa',  l: [['Privacidade','/privacidade'], ['Termos','/termos']] },
   ];
   return (
@@ -488,7 +488,7 @@ export function Footer() {
             <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>iMoney</span>
           </div>
           <p style={{ fontSize: 13.5, opacity: 0.6, lineHeight: 1.55, marginTop: 14, maxWidth: 280 }}>
-            A IA que cuida do seu projeto de vida. Construído no Brasil.
+            Seus sonhos têm um plano. A iMoney executa ele. Construído no Brasil.
           </p>
         </div>
         {cols.map(col => (
