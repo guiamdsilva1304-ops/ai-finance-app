@@ -37,5 +37,5 @@ const nextConfig = {
     ]
   },
 }
-
+"connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://brasilapi.com.br https://api.bcb.gov.br https://*.google.com wss://*.google.com",
 module.exports = nextConfig
