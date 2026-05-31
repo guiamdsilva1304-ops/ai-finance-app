@@ -253,7 +253,7 @@ async function sendSummaryEmail(
 </html>`
 
   await resend.emails.send({
-    from: 'iMoney <gui@imoney.ia.br>',
+    from: 'Gui da iMoney <gui@imoney.ia.br>',
     to: user.email,
     subject: `📊 Seu resumo financeiro de ${monthName} está pronto`,
     html
