@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const { data: proUsers, error: usersError } = await supabase
     .from('user_profiles')
     .select('user_id, full_name, email')
-    .eq('plan', 'pro')
+    .in('plan', ['pro', 'premium'])
 
   if (usersError || !proUsers?.length) {
     return NextResponse.json({ error: 'No pro users found', details: usersError })
