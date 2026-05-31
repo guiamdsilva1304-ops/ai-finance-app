@@ -125,7 +125,7 @@ export function Sidebar({ email, plan = 'free', ocupacao }: SidebarProps) {
         </div>
       )}
 
-      {!collapsed && plan === 'pro' && (
+      {!collapsed && (plan === 'pro' || plan === 'premium') && (
         <div className="px-3 pb-3">
           <div className="flex items-center gap-2 w-full justify-center py-2 px-4 rounded-xl text-xs font-bold" style={{ background: '#E1F5EE', color: '#085041' }}>
             <Icon name="sparkles" size={12} color="#085041" />
