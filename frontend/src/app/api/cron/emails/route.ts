@@ -46,7 +46,7 @@ const EMAIL_PROMPTS: Record<string, string> = {
   welcome:
     'Crie um email de boas-vindas para {nome} que acabou de se cadastrar no iMoney, app gratuito de financas pessoais com IA para brasileiros. Seja caloroso e motivador. Inclua 3 primeiros passos simples: 1) Cadastrar renda mensal 2) Adicionar primeiros gastos 3) Conversar com o assessor IA. Max 120 palavras. Tom amigavel e brasileiro. Retorne JSON: {"subject":"assunto impactante max 50 chars","body":"texto com quebras de linha \\n"}',
   onboarding_day1:
-    'Crie um email de re-engajamento para {nome} que se cadastrou no iMoney ontem mas ainda nao explorou o app. Seja humano e curioso — pergunte o que impediu, mostre que o Assessor IA esta esperando por uma conversa sobre as financas dele. Termine com UMA pergunta direta que instigue a resposta. Max 100 palavras. Tom pessoal, como se fosse o proprio fundador escrevendo. Retorne JSON: {"subject":"assunto max 50 chars que gere curiosidade","body":"texto com quebras de linha \\n"}',
+    'Crie um email de re-engajamento para {nome} que se cadastrou no iMoney ontem mas ainda nao explorou o app. Seja humano e curioso — pergunte o que impediu, mostre que o Assessor IA esta esperando por uma conversa sobre as financas dele. Termine com UMA pergunta direta que instigue a resposta. Max 100 palavras. Tom pessoal, como se fosse o proprio fundador escrevendo. O fundador se chama Gui Moreira — assine como Gui, fundador da iMoney. Retorne JSON: {"subject":"assunto max 50 chars que gere curiosidade","body":"texto com quebras de linha \\n"}',
   onboarding_day3:
     'Crie um email de dica para {nome}, usuario do iMoney ha 3 dias. Ensine como criar uma meta financeira no app (ex: reserva de emergencia) e como o assessor IA ajuda a planejar. Max 120 palavras. Tom encorajador. Retorne JSON: {"subject":"dica financeira para voce max 50 chars","body":"texto com quebras de linha \\n"}',
   onboarding_day7:
@@ -59,7 +59,7 @@ async function generateEmail(type: string, nome: string, extraContext = ''): Pro
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 512,
-    system: 'Responda SOMENTE com JSON valido. Sem markdown. Sem texto fora do JSON.',
+    system: 'Voce e o assistente de email marketing da iMoney. O app foi fundado por Gui Moreira. Quando o email mencionar ou assinar como fundador, use SEMPRE "Gui" ou "Gui Moreira". NUNCA invente outros nomes. Responda SOMENTE com JSON valido. Sem markdown. Sem texto fora do JSON.',
     messages: [{ role: 'user', content: prompt }],
   })
   const raw = msg.content
