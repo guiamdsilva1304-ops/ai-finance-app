@@ -75,7 +75,7 @@ export default function RendaPage() {
   ];
 
   if (plano === null) return null
-  if (plano !== "pro") return (
+  if (plano === "free") return (
     <ProBanner
       feature="Finanças para Autônomos"
       descricao="Calculadora de impostos (MEI, autônomo, CLT), simulador de mês fraco, cofre mensal e reserva de emergência. Ferramentas exclusivas para freelancers e empreendedores."
