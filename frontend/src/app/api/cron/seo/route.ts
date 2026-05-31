@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 120
+export const maxDuration = 60
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 const supabase = createClient(
@@ -42,17 +42,17 @@ const DAY_TYPE_MAP: Record<number, { type: string; format: string; instruction: 
   1: {
     type: 'educacional',
     format: 'Como fazer X em Y passos',
-    instruction: 'Artigo educacional profundo com passo a passo numerado detalhado. Cada passo deve ter ao menos 2 parágrafos explicando o "como" e o "por quê". Inclua exemplos concretos com valores em R$.',
+    instruction: 'Artigo educacional com passo a passo numerado. Cada passo deve ter 1 parágrafo explicando o como e o por quê, com exemplo em R$ quando possível.',
   },
   3: {
     type: 'comparativo',
     format: 'Comparativo ou lista ranked',
-    instruction: 'Artigo comparativo ou lista com rankings claros. Inclua obrigatoriamente 1 tabela markdown comparando as opções (colunas: opção, vantagem, desvantagem, para quem serve). Seja específico nos critérios de comparação.',
+    instruction: 'Artigo comparativo com rankings claros. Inclua obrigatoriamente 1 tabela markdown comparando opções (mínimo 3 colunas: opção, vantagem, para quem serve). Seja específico.',
   },
   5: {
     type: 'problema_solucao',
     format: 'Problema + solução prática',
-    instruction: 'Comece identificando o problema real com empatia (o leitor deve se reconhecer). Explique as causas raiz com profundidade. Ofereça solução prática em etapas claras. Termine com um plano de 30 dias.',
+    instruction: 'Comece identificando o problema com empatia. Explique as causas. Ofereça solução prática em etapas claras com exemplo numérico em R$.',
   },
 }
 
@@ -207,7 +207,7 @@ Retorne APENAS este JSON minificado, sem texto antes/depois, sem indentação:
 Regras:
 - slug: kebab-case, sem data, max 6 palavras
 - meta_description: 140–160 chars, inclui keyword principal
-- faq_schema: 5 perguntas longtail, respostas de 30–40 palavras cada (relevantes para featured snippet)
+- faq_schema: 4 perguntas longtail, respostas de 25–35 palavras cada (ótimas para featured snippet)
 - lsi_keywords_used: 8 termos relacionados e variações semânticas
 - article_type: use exatamente "${dayType.type}"`,
       messages: [{
@@ -226,11 +226,11 @@ Regras:
     const meta = JSON.parse(rawMeta) as ArticleJSON
     console.log('[SEO v2] Metadados OK:', meta.h1)
 
-    // ── CHAMADA 2: body completo (1200–1500 palavras) ─────────────────────────
+    // ── CHAMADA 2: body completo (800–1.000 palavras) ─────────────────────────
     console.log('[SEO v2] Chamada 2: body profundo...')
     const resp2 = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
+      max_tokens: 2500,
       system: `Você é o redator SEO sênior da iMoney (SaaS finanças pessoais, Brasil, 20–35 anos).
 PRODUTO: iMoney une metas de vida + gestão financeira + assessor IA. Preço R$29,90/mês.
 PERSONA: Marina, 26 anos, SP, R$4k/mês, quer organizar finanças mas odeia planilha.
@@ -240,22 +240,20 @@ VOCABULÁRIO OK: sonho, meta, conquista, jornada, plano. PROIBIDO: erro, falhou,
 TIPO DE ARTIGO: ${dayType.format}
 INSTRUÇÃO ESPECÍFICA: ${dayType.instruction}
 
-Escreva o artigo em markdown com 1.200–1.500 palavras. Estrutura obrigatória:
-- NÃO inclua o H1 no body — comece direto pelo parágrafo de intro
-- Intro (2–3 linhas): gancho emocional + promessa do artigo
-- Mínimo 5 H2s bem desenvolvidos, cada um com 2–3 parágrafos sólidos
-- Pelo menos 2 H3s dentro dos H2s para sub-tópicos relevantes
-- 1º H2: responde a intenção principal de forma direta e completa (featured snippet, 50–80 palavras)
-- Após o 2º H2: mid-CTA integrado naturalmente ao texto. Ex: "No iMoney, você já consegue configurar essa meta em menos de 5 minutos. [Começar grátis →](/login)"
-- 1 lista numerada com 5–6 itens (cada item com 1–2 frases de explicação)
-- 1 lista com bullets para complementar um dos H2s
-- Use pelo menos 1 dado concreto (SELIC, IPCA, salário mínimo) com contexto explicativo
-- Inclua pelo menos 1 exemplo prático com valores em R$ (ex: "Se você ganha R$3.500 e separa 20%...")
-- Conclusão: 3 bullets de resumo dos pontos principais + CTA final. Ex: "[Começar grátis no iMoney →](/login)"
-- Se artigo comparativo: inclua 1 tabela markdown com mínimo 3 colunas
-- Se artigo de passo a passo: a lista numerada principal deve ser o coração do artigo
+Escreva o artigo em markdown com 800–1.000 palavras. Estrutura obrigatória:
+- NÃO inclua o H1 — comece direto pelo parágrafo de intro
+- Intro (2 linhas): gancho emocional + promessa clara do artigo
+- 4 H2s bem desenvolvidos, cada um com 2 parágrafos sólidos
+- Pelo menos 1 H3 dentro de um dos H2s para sub-tópico relevante
+- 1º H2: responde a intenção principal de forma direta (featured snippet, 50–70 palavras)
+- Após o 2º H2: mid-CTA integrado ao texto. Ex: "No iMoney, você configura essa meta em minutos. [Começar grátis →](/login)"
+- 1 lista numerada com 4–5 itens (cada item com 1 frase de explicação)
+- 1 dado concreto com contexto (SELIC, IPCA ou salário mínimo)
+- 1 exemplo prático com valores em R$
+- Se comparativo: 1 tabela markdown (3 colunas mínimo)
+- Conclusão: 2 bullets de resumo + CTA final. Ex: "[Começar grátis no iMoney →](/login)"
 
-Retorne APENAS o markdown puro, sem blocos de código, sem JSON, sem emoji em títulos, sem comentários.`,
+Retorne APENAS o markdown puro, sem blocos de código, sem JSON, sem emoji em títulos.`,
       messages: [{
         role: 'user',
         content: `H1: ${meta.h1}\nPesquisa: ${researchContext}`,
@@ -263,7 +261,7 @@ Retorne APENAS o markdown puro, sem blocos de código, sem JSON, sem emoji em t�
     })
 
     const body_markdown = extractText(resp2.content).trim()
-    if (!body_markdown || body_markdown.length < 500) {
+    if (!body_markdown || body_markdown.length < 400) {
       console.error('[SEO v2] Chamada 2 falhou. Preview:', body_markdown.slice(0, 200))
       return NextResponse.json({ error: 'Body não gerado', preview: body_markdown.slice(0, 200) }, { status: 500 })
     }
