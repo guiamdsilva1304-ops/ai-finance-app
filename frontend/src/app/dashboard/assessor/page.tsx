@@ -822,7 +822,7 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
 
   const contextualStarters = buildContextualStarters(userCtx);
   const usadas = infoLimite?.usadas ?? 0;
-  const limite = infoLimite?.limite ?? (planoUsuario === 'pro' ? 10 : 3);
+  const limite = infoLimite?.limite ?? (planoUsuario === 'premium' ? 999 : planoUsuario === 'pro' ? 50 : 15);
 
   return (
     <>
