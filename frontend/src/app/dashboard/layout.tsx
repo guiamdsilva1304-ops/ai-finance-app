@@ -63,7 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Icon name="sparkles" size={12} color="#fff" /> Pro
             </Link>
           )}
-          {plan === 'pro' && (
+          {(plan === 'pro' || plan === 'premium') && (
             <span
               className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
               style={{ background: '#E1F5EE', color: '#085041' }}
