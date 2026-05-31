@@ -206,14 +206,14 @@ export default function ProPage() {
 
           {/* ── Premium ── */}
           <div style={{ background: 'linear-gradient(180deg, #78350f 0%, #F59E0B 100%)', borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(245,158,11,0.25)' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>⭐ Premium</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>⭐ Premium</div>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>Controle total</div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, marginBottom: 4 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>R$</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 6 }}>R$</span>
               <span style={{ fontSize: 44, fontWeight: 900, color: '#fff', lineHeight: 1 }}>59,90</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.65)', marginBottom: 6 }}>/mês</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 6 }}>/mês</span>
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 24 }}>menos de R$2/dia</div>
+            <div style={{ fontSize: 12, color: '#fff', marginBottom: 24 }}>menos de R$2/dia</div>
 
             <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {FEATURES_PREMIUM.map(f => (
@@ -225,7 +225,7 @@ export default function ProPage() {
 
             <div style={{ marginTop: 28 }}>
               {plano === 'premium' ? (
-                <div style={{ textAlign: 'center', padding: '14px 0', borderRadius: 12, background: 'rgba(255,255,255,0.2)', fontSize: 14, fontWeight: 700, color: '#fff' }}>
+                <div style={{ textAlign: 'center', padding: '14px 0', borderRadius: 12, background: '#fff', fontSize: 14, fontWeight: 700, color: '#fff' }}>
                   ⭐ Plano atual
                 </div>
               ) : (
