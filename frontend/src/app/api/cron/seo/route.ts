@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 120
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 const supabase = createClient(
@@ -35,6 +35,25 @@ interface ResearchData {
   our_differentiation?: string
   financial_data?: { selic?: string; ipca_2026?: string; salario_minimo?: string }
   lsi_keywords?: string[]
+}
+
+// Mapeamento de dia da semana para tipo de artigo
+const DAY_TYPE_MAP: Record<number, { type: string; format: string; instruction: string }> = {
+  1: {
+    type: 'educacional',
+    format: 'Como fazer X em Y passos',
+    instruction: 'Artigo educacional profundo com passo a passo numerado detalhado. Cada passo deve ter ao menos 2 parágrafos explicando o "como" e o "por quê". Inclua exemplos concretos com valores em R$.',
+  },
+  3: {
+    type: 'comparativo',
+    format: 'Comparativo ou lista ranked',
+    instruction: 'Artigo comparativo ou lista com rankings claros. Inclua obrigatoriamente 1 tabela markdown comparando as opções (colunas: opção, vantagem, desvantagem, para quem serve). Seja específico nos critérios de comparação.',
+  },
+  5: {
+    type: 'problema_solucao',
+    format: 'Problema + solução prática',
+    instruction: 'Comece identificando o problema real com empatia (o leitor deve se reconhecer). Explique as causas raiz com profundidade. Ofereça solução prática em etapas claras. Termine com um plano de 30 dias.',
+  },
 }
 
 function isAuthorized(req: NextRequest): boolean {
@@ -133,6 +152,10 @@ export async function GET(req: NextRequest) {
   const dryRun = searchParams.get('dry_run') === 'true'
 
   try {
+    // ── Tipo de artigo do dia ────────────────────────────────────────────────
+    const dayOfWeek = new Date().getDay() // 0=Dom,1=Seg,2=Ter,3=Qua,4=Qui,5=Sex,6=Sáb
+    const dayType = DAY_TYPE_MAP[dayOfWeek] ?? DAY_TYPE_MAP[1]
+
     // ── Guarda 1: já publicou hoje? ──────────────────────────────────────────
     if (!dryRun) {
       const hoje = new Date()
@@ -168,13 +191,14 @@ export async function GET(req: NextRequest) {
       : `Sem pesquisa. Use tema relevante para jovens brasileiros. Dados: SELIC 14,75%, IPCA ~5,5%, salário mínimo R$1.518.`
 
     // ── CHAMADA 1: apenas metadados + estrutura (sem body) ───────────────────
-    console.log('[SEO v2] Chamada 1: metadados...')
+    console.log('[SEO v2] Chamada 1: metadados... | dia:', dayType.type)
     const resp1 = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: `Você é o estrategista SEO da iMoney (SaaS finanças pessoais, Brasil, 20–35 anos).
 PRODUTO: iMoney une metas de vida + gestão financeira + assessor IA. Preço R$29,90/mês.
 PERSONA: Marina, 26 anos, SP, R$4k/mês.
+TIPO DE ARTIGO DO DIA: ${dayType.type} — ${dayType.format}
 TOM: próximo, encorajador, use "você". PROIBIDO: crypto, day-trade, promessa de retorno.
 
 Retorne APENAS este JSON minificado, sem texto antes/depois, sem indentação:
@@ -182,9 +206,10 @@ Retorne APENAS este JSON minificado, sem texto antes/depois, sem indentação:
 
 Regras:
 - slug: kebab-case, sem data, max 6 palavras
-- meta_description: 140–160 chars, inclui keyword
-- faq_schema: 3 perguntas, respostas max 20 palavras cada
-- lsi_keywords_used: 5 termos relacionados`,
+- meta_description: 140–160 chars, inclui keyword principal
+- faq_schema: 5 perguntas longtail, respostas de 30–40 palavras cada (relevantes para featured snippet)
+- lsi_keywords_used: 8 termos relacionados e variações semânticas
+- article_type: use exatamente "${dayType.type}"`,
       messages: [{
         role: 'user',
         content: `Hoje é ${dateStr}. Pesquisa: ${researchContext}`,
@@ -201,26 +226,36 @@ Regras:
     const meta = JSON.parse(rawMeta) as ArticleJSON
     console.log('[SEO v2] Metadados OK:', meta.h1)
 
-    // ── CHAMADA 2: apenas o body_markdown ────────────────────────────────────
-    console.log('[SEO v2] Chamada 2: body...')
+    // ── CHAMADA 2: body completo (1200–1500 palavras) ─────────────────────────
+    console.log('[SEO v2] Chamada 2: body profundo...')
     const resp2 = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1500,
-      system: `Você é o redator SEO da iMoney (SaaS finanças pessoais, Brasil, 20–35 anos).
+      max_tokens: 4000,
+      system: `Você é o redator SEO sênior da iMoney (SaaS finanças pessoais, Brasil, 20–35 anos).
 PRODUTO: iMoney une metas de vida + gestão financeira + assessor IA. Preço R$29,90/mês.
 PERSONA: Marina, 26 anos, SP, R$4k/mês, quer organizar finanças mas odeia planilha.
 TOM: próximo, encorajador, exemplos com R$, use "você". Nunca frio ou paternalista.
-VOCABULÁRIO OK: sonho, meta, conquista, jornada. PROIBIDO: erro, falhou, culpa, jargão técnico, crypto, day-trade, promessa de retorno.
+VOCABULÁRIO OK: sonho, meta, conquista, jornada, plano. PROIBIDO: erro, falhou, culpa, jargão técnico, crypto, day-trade, promessa de retorno.
 
-Escreva o artigo em markdown (300–350 palavras):
-- H1 fornecido abaixo (não repita, comece pelo parágrafo de intro)
-- Intro: gancho emocional + o que vai aprender (2 linhas)
-- 3 H2s — 1º H2 responde a intenção em até 50 palavras (featured snippet)
-- Após 2º H2: mid-CTA. Ex: No iMoney, você define essa meta grátis. [Começar](/login)
-- 1 lista numerada (4 itens)
-- Conclusão: 2 bullets + CTA final. Ex: [Começar grátis no iMoney](/login)
+TIPO DE ARTIGO: ${dayType.format}
+INSTRUÇÃO ESPECÍFICA: ${dayType.instruction}
 
-Retorne APENAS o markdown puro, sem blocos de código, sem JSON, sem emoji em títulos.`,
+Escreva o artigo em markdown com 1.200–1.500 palavras. Estrutura obrigatória:
+- NÃO inclua o H1 no body — comece direto pelo parágrafo de intro
+- Intro (2–3 linhas): gancho emocional + promessa do artigo
+- Mínimo 5 H2s bem desenvolvidos, cada um com 2–3 parágrafos sólidos
+- Pelo menos 2 H3s dentro dos H2s para sub-tópicos relevantes
+- 1º H2: responde a intenção principal de forma direta e completa (featured snippet, 50–80 palavras)
+- Após o 2º H2: mid-CTA integrado naturalmente ao texto. Ex: "No iMoney, você já consegue configurar essa meta em menos de 5 minutos. [Começar grátis →](/login)"
+- 1 lista numerada com 5–6 itens (cada item com 1–2 frases de explicação)
+- 1 lista com bullets para complementar um dos H2s
+- Use pelo menos 1 dado concreto (SELIC, IPCA, salário mínimo) com contexto explicativo
+- Inclua pelo menos 1 exemplo prático com valores em R$ (ex: "Se você ganha R$3.500 e separa 20%...")
+- Conclusão: 3 bullets de resumo dos pontos principais + CTA final. Ex: "[Começar grátis no iMoney →](/login)"
+- Se artigo comparativo: inclua 1 tabela markdown com mínimo 3 colunas
+- Se artigo de passo a passo: a lista numerada principal deve ser o coração do artigo
+
+Retorne APENAS o markdown puro, sem blocos de código, sem JSON, sem emoji em títulos, sem comentários.`,
       messages: [{
         role: 'user',
         content: `H1: ${meta.h1}\nPesquisa: ${researchContext}`,
@@ -228,7 +263,7 @@ Retorne APENAS o markdown puro, sem blocos de código, sem JSON, sem emoji em t�
     })
 
     const body_markdown = extractText(resp2.content).trim()
-    if (!body_markdown || body_markdown.length < 200) {
+    if (!body_markdown || body_markdown.length < 500) {
       console.error('[SEO v2] Chamada 2 falhou. Preview:', body_markdown.slice(0, 200))
       return NextResponse.json({ error: 'Body não gerado', preview: body_markdown.slice(0, 200) }, { status: 500 })
     }
@@ -237,7 +272,7 @@ Retorne APENAS o markdown puro, sem blocos de código, sem JSON, sem emoji em t�
     const validatedLinks = await validateInternalLinks(meta.internal_links ?? [])
 
     if (dryRun) {
-      return NextResponse.json({ ok: true, dry_run: true, meta, body_preview: body_markdown.slice(0, 300) })
+      return NextResponse.json({ ok: true, dry_run: true, day_type: dayType.type, meta, body_preview: body_markdown.slice(0, 500) })
     }
 
     // ── Inserção no banco ────────────────────────────────────────────────────
@@ -272,12 +307,12 @@ Retorne APENAS o markdown puro, sem blocos de código, sem JSON, sem emoji em t�
       faq_schema: meta.faq_schema ?? [],
       internal_links: validatedLinks,
       keyword_principal: research?.keyword_principal ?? '',
-      article_type: meta.article_type ?? research?.article_type ?? '',
+      article_type: dayType.type,
       word_count: palavras,
-      agent_version: 'v2.1',
+      agent_version: 'v2.2',
       author: 'Gui da iMoney',
       category: 'educacao-financeira',
-      tags: meta.lsi_keywords_used?.slice(0, 5) ?? [],
+      tags: meta.lsi_keywords_used?.slice(0, 8) ?? [],
       reading_time_min,
       published: true,
       published_at: new Date().toISOString(),
@@ -291,13 +326,14 @@ Retorne APENAS o markdown puro, sem blocos de código, sem JSON, sem emoji em t�
       return NextResponse.json({ error: dbError.message }, { status: 500 })
     }
 
-    console.log('[SEO v2] Publicado:', slugFinal, '| palavras:', palavras)
+    console.log('[SEO v2] Publicado:', slugFinal, '| palavras:', palavras, '| tipo:', dayType.type)
     return NextResponse.json({
       sucesso: true,
       titulo: meta.h1,
       slug: slugFinal,
       palavras,
-      article_type: meta.article_type,
+      article_type: dayType.type,
+      reading_time_min,
       keyword: research?.keyword_principal ?? null,
     })
 
