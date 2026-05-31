@@ -8,6 +8,7 @@ import { Plus, Trash2, RefreshCw, Globe, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Investment, ExchangeRate } from "@/types";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import VoiceInvestmentButton from "@/components/VoiceInvestmentButton";
 
 const TIPOS = [
   "Ações BR (B3)","Ações EUA","Ações Europa","Ações Outros",
@@ -325,5 +326,6 @@ export default function InvestimentosPage() {
         </div>
       )}
     </div>
+      <VoiceInvestmentButton onSuccess={load} />
   );
 }
