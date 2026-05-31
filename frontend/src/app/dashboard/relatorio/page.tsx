@@ -53,10 +53,10 @@ export default function RelatorioPage() {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/login'); return }
       const { data: p } = await supabase.from('user_profiles')
-        .select('plan, nome, full_name').eq('id', data.user.id).single()
+        .select('plan, nome').eq('id', data.user.id).single()
       if (p?.plan !== 'premium') { router.push('/dashboard/pro'); return }
       setPlan(p.plan)
-      setNome(p?.full_name || p?.nome || data.user.email?.split('@')[0] || '')
+      setNome(p?.nome || data.user.email?.split('@')[0] || '')
     })
   }, [])
 
