@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
 interface VoiceResult {
@@ -20,20 +21,30 @@ const ERROS: Record<string, string> = {
   'aborted': 'Gravação cancelada.',
 }
 
-export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () => void }) {
+interface Props {
+  onSuccess: () => void
+  isPro: boolean
+}
+
+export default function VoiceTransactionButton({ onSuccess, isPro }: Props) {
+  const router = useRouter()
   const [state, setState] = useState<'idle' | 'recording' | 'processing' | 'confirm' | 'saving'>('idle')
+  const [showUpgrade, setShowUpgrade] = useState(false)
   const [result, setResult] = useState<VoiceResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [transcript, setTranscript] = useState('')
   const recognitionRef = useRef<any>(null)
   const gotResultRef = useRef(false)
 
+  const handleFabClick = () => {
+    if (!isPro) { setShowUpgrade(true); return }
+    if (state === 'recording') stopRecording()
+    else startRecording()
+  }
+
   const startRecording = () => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) {
-      setError('Use o Chrome para reconhecimento de voz.')
-      return
-    }
+    if (!SR) { setError('Use o Chrome para reconhecimento de voz.'); return }
 
     gotResultRef.current = false
     const recognition = new SR()
@@ -57,13 +68,8 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
           body: JSON.stringify({ transcript: text }),
         })
         const data = await res.json()
-        if (data.erro) {
-          setError(data.erro)
-          setState('idle')
-        } else {
-          setResult(data)
-          setState('confirm')
-        }
+        if (data.erro) { setError(data.erro); setState('idle') }
+        else { setResult(data); setState('confirm') }
       } catch {
         setError('Erro ao processar. Tente novamente.')
         setState('idle')
@@ -71,16 +77,13 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
     }
 
     recognition.onerror = (event: any) => {
-      console.error('[voice] erro:', event.error, event)
       const msg = ERROS[event.error] ?? `Erro: ${event.error}`
       setError(msg)
       setState('idle')
     }
 
     recognition.onend = () => {
-      if (!gotResultRef.current) {
-        setState('idle')
-      }
+      if (!gotResultRef.current) setState('idle')
     }
 
     recognition.start()
@@ -91,7 +94,6 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
   const handleConfirm = async () => {
     if (!result) return
     setState('saving')
-
     const supabase = createSupabaseBrowser()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -111,22 +113,16 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
     onSuccess()
   }
 
-  const handleCancel = () => {
-    setResult(null)
-    setState('idle')
-    setError(null)
-  }
+  const handleCancel = () => { setResult(null); setState('idle'); setError(null) }
 
   return (
     <>
       <button
-        onClick={state === 'recording' ? stopRecording : startRecording}
+        onClick={handleFabClick}
         disabled={state === 'processing' || state === 'saving'}
-        title="Adicionar transação por voz"
+        title={isPro ? 'Adicionar transação por voz' : 'Recurso exclusivo Pro'}
         className={`fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
-          state === 'recording'
-            ? 'bg-red-500 animate-pulse'
-            : 'bg-[#00C853] hover:bg-[#00a844]'
+          state === 'recording' ? 'bg-red-500 animate-pulse' : 'bg-[#00C853] hover:bg-[#00a844]'
         } disabled:opacity-50`}
       >
         {state === 'processing' || state === 'saving' ? (
@@ -136,9 +132,16 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
             <rect x="6" y="6" width="12" height="12" rx="2" />
           </svg>
         ) : (
-          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
-          </svg>
+          <div className="relative flex items-center justify-center">
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
+            </svg>
+            {!isPro && (
+              <span className="absolute -top-1 -right-1 bg-yellow-400 text-[#0d2414] text-[8px] font-black px-1 rounded-full leading-4">
+                PRO
+              </span>
+            )}
+          </div>
         )}
       </button>
 
@@ -155,6 +158,44 @@ export default function VoiceTransactionButton({ onSuccess }: { onSuccess: () =>
         </div>
       )}
 
+      {/* Upgrade modal (free users) */}
+      {showUpgrade && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <div className="text-center mb-5">
+              <div className="text-4xl mb-3">🎙️</div>
+              <h3 className="font-black text-gray-800 text-xl mb-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                Adicionar por voz
+              </h3>
+              <p className="text-sm text-gray-500">
+                Registre seus gastos e receitas em segundos — só fale o valor e o que foi.
+              </p>
+            </div>
+            <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl p-4 mb-5 space-y-2">
+              {[
+                '"Gastei 45 reais no iFood"',
+                '"Recebi 3 mil de salário"',
+                '"Uber, 22 reais"',
+              ].map(ex => (
+                <p key={ex} className="text-xs text-[#16a34a] font-medium italic">{ex}</p>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowUpgrade(false)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm">
+                Agora não
+              </button>
+              <button onClick={() => router.push('/dashboard/pro')}
+                className="flex-1 py-3 rounded-xl bg-[#00C853] text-white font-black text-sm"
+                style={{ fontFamily: 'Nunito, sans-serif' }}>
+                Assinar Pro ✦
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm modal (pro/premium users) */}
       {(state === 'confirm' || state === 'saving') && result && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
