@@ -325,7 +325,7 @@ export default function InvestimentosPage() {
           )}
         </div>
       )}
-      <VoiceInvestmentButton onSuccess={load} isPro={plano === "pro"} />
+      <VoiceInvestmentButton onSuccess={load} isPro={plano === "pro" || plano === "premium"} />
     </div>
   );
 }
