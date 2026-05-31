@@ -200,7 +200,7 @@ export default function DashboardPage() {
     setMainMeta(principal);
 
     if (profileRes.data) {
-      setIsPro(profileRes.data.plan === "pro");
+      setIsPro(profileRes.data.plan === "pro" || profileRes.data.plan === "premium");
       const name = profileRes.data.full_name || profileRes.data.nome || "";
       if (name) {
         setUserName(name.split(" ")[0]);
