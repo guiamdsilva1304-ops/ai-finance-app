@@ -146,6 +146,16 @@ export function Sidebar({ email, plan = 'free', ocupacao }: SidebarProps) {
       <div className="px-3 pb-5 border-t border-[#e4f5e9] pt-3 space-y-1">
         {/* Open Finance */}
         <Link
+          href="/dashboard/relatorio"
+              className={[
+                "nav-link",
+                pathname.startsWith("/dashboard/relatorio") ? "nav-link-active" : "",
+              ].join(" ")}
+            >
+              <Icon name="bar-chart" size={18} />
+              {!collapsed && <span>Relatório</span>}
+            </Link>
+            <Link
           href="/dashboard/openfinance"
           className={cn(
             "nav-link",
