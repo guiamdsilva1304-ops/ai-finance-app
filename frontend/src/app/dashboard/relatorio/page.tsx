@@ -116,11 +116,10 @@ export default function RelatorioPage() {
   const gerarAnalise = async () => {
     setGerandoIA(true)
     setIaError('')
-    const { data: { session } } = await supabase.auth.getSession()
     try {
       const res = await fetch('/api/relatorio/summary', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mes: mes + 1, ano, receitas, gastos, sobra: receitas - gastos, categorias, metas, nome }),
       })
       const data = await res.json()
