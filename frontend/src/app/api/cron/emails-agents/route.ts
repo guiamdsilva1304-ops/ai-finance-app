@@ -9,7 +9,7 @@ const supabase = createClient(
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
-const FROM = 'iMoney <gui@imoney.ia.br>'
+const FROM = 'Gui da iMoney <gui@imoney.ia.br>'
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '')
