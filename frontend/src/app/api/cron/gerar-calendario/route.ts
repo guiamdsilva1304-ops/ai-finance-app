@@ -14,17 +14,23 @@ function getWeekDates() {
   const now = new Date();
   const day = now.getDay();
   const monday = new Date(now);
-  monday.setDate(now.getDate() - ((day + 6) % 7) + 7); // próxima segunda
-
+  monday.setDate(now.getDate() - ((day + 6) % 7) + 7);
   const days = ['Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
   return days.map((name, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + 1 + i);
-    return {
-      name,
-      date: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-    };
+    return { name, date: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
   });
+}
+
+function cleanJSON(raw: string): string {
+  // Remove markdown code blocks
+  let clean = raw.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+  // Extract first valid JSON object
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
+  if (start !== -1 && end !== -1) clean = clean.slice(start, end + 1);
+  return clean;
 }
 
 export async function GET(request: Request) {
@@ -38,77 +44,88 @@ export async function GET(request: Request) {
     const dates = getWeekDates();
     const weekLabel = `${dates[0].date} a ${dates[5].date}`;
 
-    console.log('[gerar-calendario] Buscando tendências e gerando calendário...');
+    console.log('[gerar-calendario] Buscando tendências...');
 
-    // Uma única chamada com web_search — o modelo faz 1 busca e já gera tudo
-    const message = await anthropic.messages.create({
+    // Passo 1: busca tendências
+    const searchMsg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      tools: [
-        {
-          type: 'web_search_20250305',
-          name: 'web_search',
-        } as any,
-      ],
-      tool_choice: { type: 'auto' },
-      system: `Você é o agente de conteúdo da iMoney, plataforma brasileira de finanças pessoais com IA.
-
-MARCA:
-- Posicionamento: "Seus sonhos têm um plano. A iMoney cuida dele."
-- Eixo: Sonho → Plano → Conquista
-- Persona: Marina, 26 anos, analista de marketing em SP
-- Voz: aspiracional, próxima, nunca fria ou bancária
-- Pilares SEPC: Sonho 30%, Educação 35%, Produto 20%, Conquista 15%
-
-FORMATOS:
-- Carrossel Instagram: 6-8 slides objetivos, fundo branco, ícones clay 3D
-- TikTok/Reels (30-60s): Hook → Problema → Pivot → CTA
-
-REGRA CRÍTICA: Faça APENAS UMA busca para encontrar os trending topics de finanças pessoais no Brasil esta semana. Depois gere o calendário completo em uma única resposta com JSON válido. Sem markdown, sem texto fora do JSON.`,
+      max_tokens: 1024,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' } as any],
+      tool_choice: { type: 'any' },
+      system: 'Você é um analista de tendências de finanças pessoais no Brasil. Faça UMA busca e retorne os 5 principais tópicos em alta. Responda em texto simples, sem JSON.',
       messages: [{
         role: 'user',
-        content: `Faça UMA busca por "finanças pessoais tendências Brasil ${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}" para encontrar os assuntos mais relevantes da semana.
-
-Com base nos resultados, gere o calendário editorial para a semana ${weekLabel}:
-
-- Terça ${dates[0].date}: Carrossel Instagram — pilar Educação
-- Quarta ${dates[1].date}: TikTok/Reels — pilar Sonho
-- Quinta ${dates[2].date}: Carrossel Instagram — pilar Produto
-- Sexta ${dates[3].date}: TikTok/Reels — pilar Educação
-- Sábado ${dates[4].date}: TikTok/Reels — pilar Conquista
-- Domingo ${dates[5].date}: TikTok/Reels — pilar Sonho
-
-Para cada dia retorne:
-{
-  "dia": "Terça",
-  "data": "03/06",
-  "formato": "Carrossel Instagram",
-  "pilar": "Educação",
-  "tema": "título criativo baseado nos trending topics",
-  "angulo": "ângulo específico e atual",
-  "copy_caption": "legenda completa com emojis e CTA (máx 150 palavras)",
-  "conteudo": ["slide 1 ou linha do script", "slide 2..."],
-  "prompt_visual": "prompt detalhado para gerar imagem de capa no Gemini",
-  "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5"]
-}
-
-Retorne APENAS: { "semana": "${weekLabel}", "dias": [...6 objetos...] }`,
+        content: `Busque "finanças pessoais tendências Brasil ${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}" e liste os 5 principais assuntos em alta.`,
       }],
     });
 
-    // Extrai o texto final da resposta (último bloco de texto após tool use)
-    const textBlock = message.content
+    const trendText = searchMsg.content
       .filter((b) => b.type === 'text')
-      .pop();
-    const raw = textBlock?.type === 'text' ? textBlock.text : '';
+      .map((b: any) => b.text)
+      .join('\n');
+
+    console.log('[gerar-calendario] Gerando calendário...');
+
+    // Passo 2: gera calendário com base nas tendências
+    const calMsg = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+      system: `Você é o agente de conteúdo da iMoney, plataforma brasileira de finanças pessoais com IA.
+
+MARCA: "Seus sonhos têm um plano. A iMoney cuida dele." | Persona: Marina, 26 anos, SP | Voz: aspiracional, próxima.
+Pilares SEPC: Sonho 30%, Educação 35%, Produto 20%, Conquista 15%.
+
+REGRAS CRÍTICAS DE JSON:
+1. Retorne APENAS JSON válido, sem markdown, sem texto fora do JSON
+2. NUNCA use aspas duplas dentro de strings — use aspas simples ou reescreva sem aspas
+3. NUNCA use quebras de linha dentro de strings JSON — use \\n se necessário
+4. Mantenha os textos curtos e objetivos`,
+      messages: [{
+        role: 'user',
+        content: `Tendências da semana:
+${trendText}
+
+Gere o calendário para a semana ${weekLabel} com este formato EXATO (6 objetos no array dias):
+
+{
+  "semana": "${weekLabel}",
+  "dias": [
+    {
+      "dia": "Terça",
+      "data": "${dates[0].date}",
+      "formato": "Carrossel Instagram",
+      "pilar": "Educação",
+      "tema": "titulo aqui",
+      "angulo": "angulo aqui",
+      "copy_caption": "legenda aqui sem aspas duplas",
+      "conteudo": ["slide 1", "slide 2", "slide 3", "slide 4", "slide 5"],
+      "prompt_visual": "prompt aqui",
+      "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5"]
+    }
+  ]
+}
+
+Dias a incluir:
+- Terça ${dates[0].date}: Carrossel Instagram, pilar Educação
+- Quarta ${dates[1].date}: TikTok/Reels, pilar Sonho
+- Quinta ${dates[2].date}: Carrossel Instagram, pilar Produto
+- Sexta ${dates[3].date}: TikTok/Reels, pilar Educação
+- Sábado ${dates[4].date}: TikTok/Reels, pilar Conquista
+- Domingo ${dates[5].date}: TikTok/Reels, pilar Sonho`,
+      }],
+    });
+
+    const rawText = calMsg.content
+      .filter((b) => b.type === 'text')
+      .map((b: any) => b.text)
+      .join('');
 
     let calendarData;
     try {
-      calendarData = JSON.parse(raw);
-    } catch {
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) calendarData = JSON.parse(match[0]);
-      else throw new Error('Falha ao parsear JSON do calendário');
+      calendarData = JSON.parse(cleanJSON(rawText));
+    } catch (e) {
+      console.error('[gerar-calendario] JSON inválido:', rawText.slice(0, 500));
+      throw new Error(`JSON inválido: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     // Salva no Supabase
@@ -127,7 +144,7 @@ Retorne APENAS: { "semana": "${weekLabel}", "dias": [...6 objetos...] }`,
 
     if (error) throw error;
 
-    console.log('[gerar-calendario] Calendário salvo no Supabase para semana', weekLabel);
+    console.log('[gerar-calendario] Calendário salvo para semana', weekLabel);
 
     return NextResponse.json({
       ok: true,
