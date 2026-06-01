@@ -1,14 +1,35 @@
 import { NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+function getWeekDates() {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((day + 6) % 7) + 7);
+  const days = ['Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+  return days.map((name, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + 1 + i);
+    return { name, date: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
+
+function cleanJSON(raw: string): string {
+  let clean = raw.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
+  if (start !== -1 && end !== -1) clean = clean.slice(start, end + 1);
+  return clean;
+}
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -18,92 +39,93 @@ export async function GET(request: Request) {
   }
 
   try {
-    console.log('[calendario-semanal] Buscando calendário em agent_memory...');
+    const dates = getWeekDates();
+    const weekLabel = `${dates[0].date} a ${dates[5].date}`;
 
-    const { data, error } = await supabase
-      .from('agent_memory')
-      .select('value, updated_at')
-      .eq('key', 'calendario_semanal')
-      .single();
+    console.log('[gerar-calendario] Buscando tendências...');
 
-    if (error || !data) throw new Error('Calendário não encontrado em agent_memory');
-
-    const calendarData = data.value as any;
-    const weekLabel = calendarData.semana ?? 'semana atual';
-
-    console.log('[calendario-semanal] Enviando email para semana', weekLabel);
-
-    const html = buildEmailHTML(calendarData, weekLabel);
-    const emailResult = await resend.emails.send({
-      from: 'iMoney <gui@imoney.ia.br>',
-      to: 'guiamdsilva1304@gmail.com',
-      subject: `📅 Calendário iMoney — Semana ${weekLabel}`,
-      html,
+    // Passo 1: busca tendências com web search
+    const searchMsg = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' } as any],
+      tool_choice: { type: 'any' },
+      system: 'Analista de tendências de finanças pessoais no Brasil. Faça UMA busca e retorne os 5 principais tópicos em alta. Responda em texto simples.',
+      messages: [{
+        role: 'user',
+        content: `Busque os principais assuntos de finanças pessoais em alta no Brasil em ${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} e liste os 5 mais relevantes.`,
+      }],
     });
 
-    // Marca como enviado dentro do JSON
-    await supabase
+    const trendText = searchMsg.content
+      .filter((b) => b.type === 'text')
+      .map((b: any) => b.text)
+      .join('\n');
+
+    console.log('[gerar-calendario] Gerando calendário...');
+
+    // Passo 2: gera o calendário com base nas tendências
+    const calMsg = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+      system: `Você é o agente de conteúdo da iMoney, plataforma brasileira de finanças pessoais com IA.
+
+MARCA: "Seus sonhos têm um plano. A iMoney cuida dele." | Persona: Marina, 26 anos, SP | Voz: aspiracional, próxima.
+Pilares SEPC: Sonho 30%, Educação 35%, Produto 20%, Conquista 15%.
+
+REGRAS DE JSON:
+1. Retorne APENAS JSON válido, sem markdown, sem texto fora do JSON
+2. NUNCA use aspas duplas dentro de strings — reescreva sem elas
+3. NUNCA use quebras de linha dentro de strings — use espaco normal
+4. Textos curtos e objetivos`,
+      messages: [{
+        role: 'user',
+        content: `Tendências da semana:
+${trendText}
+
+Gere o calendário para a semana ${weekLabel}:
+- Terça ${dates[0].date}: Carrossel Instagram, pilar Educação
+- Quarta ${dates[1].date}: TikTok/Reels, pilar Sonho
+- Quinta ${dates[2].date}: Carrossel Instagram, pilar Produto
+- Sexta ${dates[3].date}: TikTok/Reels, pilar Educação
+- Sábado ${dates[4].date}: TikTok/Reels, pilar Conquista
+- Domingo ${dates[5].date}: TikTok/Reels, pilar Sonho
+
+Retorne APENAS este JSON com 6 objetos em dias:
+{"semana":"${weekLabel}","status":"pending","dias":[{"dia":"Terça","data":"${dates[0].date}","formato":"Carrossel Instagram","pilar":"Educação","tema":"titulo","angulo":"angulo","copy_caption":"legenda","conteudo":["item1","item2","item3","item4","item5"],"prompt_visual":"prompt","hashtags":["#tag1","#tag2","#tag3","#tag4","#tag5"]}]}`,
+      }],
+    });
+
+    const rawText = calMsg.content
+      .filter((b) => b.type === 'text')
+      .map((b: any) => b.text)
+      .join('');
+
+    let calendarData;
+    try {
+      calendarData = JSON.parse(cleanJSON(rawText));
+    } catch (e) {
+      console.error('[gerar-calendario] JSON inválido (primeiros 500 chars):', rawText.slice(0, 500));
+      throw new Error(`JSON inválido: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    // Salva na tabela agent_memory (key-value store)
+    const { error } = await supabase
       .from('agent_memory')
-      .update({ value: { ...calendarData, status: 'sent' }, updated_by: 'cron-calendario-semanal', updated_at: new Date().toISOString() })
-      .eq('key', 'calendario_semanal');
+      .upsert({
+        key: 'calendario_semanal',
+        value: calendarData,
+        updated_by: 'cron-gerar-calendario',
+        updated_at: new Date().toISOString(),
+      });
 
-    console.log('[calendario-semanal] Email enviado:', emailResult.data?.id);
+    if (error) throw error;
 
-    return NextResponse.json({ ok: true, email_id: emailResult.data?.id, week: weekLabel });
+    console.log('[gerar-calendario] Calendário salvo em agent_memory para semana', weekLabel);
+
+    return NextResponse.json({ ok: true, week: weekLabel, days: calendarData.dias?.length ?? 0 });
   } catch (error) {
-    console.error('[calendario-semanal] Erro:', error);
+    console.error('[gerar-calendario] Erro:', error);
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
-}
-
-function buildEmailHTML(data: any, weekLabel: string): string {
-  const pilarColor: Record<string, string> = {
-    Sonho: '#7C3AED', Educação: '#00C853', Produto: '#1a3a1a', Conquista: '#F59E0B',
-  };
-
-  const diasHTML = (data.dias ?? []).map((dia: any) => {
-    const cor = pilarColor[dia.pilar] ?? '#00C853';
-    const isCarrossel = dia.formato?.toLowerCase().includes('carrossel');
-    const conteudoHTML = Array.isArray(dia.conteudo) && dia.conteudo.length
-      ? `<div style="margin-top:14px;"><strong style="color:#1a3a1a;font-size:13px;">${isCarrossel ? '📌 Slides' : '🎬 Script'}:</strong>
-          <ol style="margin:8px 0 0 0;padding-left:20px;color:#374151;font-size:13px;">
-            ${dia.conteudo.map((s: string) => `<li style="margin-bottom:6px;">${s}</li>`).join('')}
-          </ol></div>` : '';
-
-    return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:22px;margin-bottom:18px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-        <span style="background:${cor};color:#fff;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;">${dia.pilar}</span>
-        <span style="background:#f3f4f6;padding:4px 14px;border-radius:20px;font-size:12px;color:#6b7280;">${dia.formato}</span>
-      </div>
-      <h3 style="margin:0 0 4px 0;color:#1a3a1a;font-size:17px;font-weight:800;">${dia.dia} ${dia.data} — ${dia.tema}</h3>
-      <p style="margin:0 0 14px 0;color:#6b7280;font-size:13px;font-style:italic;">${dia.angulo}</p>
-      <div style="background:#f0fdf4;border-left:4px solid #00C853;padding:14px;border-radius:0 10px 10px 0;margin-bottom:14px;">
-        <strong style="color:#1a3a1a;font-size:12px;display:block;margin-bottom:6px;">📝 Caption:</strong>
-        <p style="margin:0;color:#374151;font-size:13px;line-height:1.6;">${dia.copy_caption}</p>
-      </div>
-      ${conteudoHTML}
-      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f3f4f6;">
-        <strong style="color:#1a3a1a;font-size:12px;">🎨 Prompt Visual:</strong>
-        <p style="margin:6px 0 0 0;color:#6b7280;font-size:12px;font-style:italic;">${dia.prompt_visual}</p>
-      </div>
-      <div style="margin-top:12px;">
-        ${(dia.hashtags ?? []).map((h: string) => `<span style="background:#f0fdf4;color:#00C853;padding:3px 10px;border-radius:12px;font-size:11px;margin:2px 4px 2px 0;display:inline-block;">${h}</span>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
-
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:Arial,sans-serif;">
-  <div style="max-width:640px;margin:0 auto;padding:24px 16px;">
-    <div style="background:linear-gradient(135deg,#1a3a1a 0%,#00C853 100%);border-radius:16px;padding:32px;text-align:center;margin-bottom:28px;">
-      <h1 style="margin:0;color:#fff;font-size:26px;font-weight:900;">📅 Calendário iMoney</h1>
-      <p style="margin:8px 0 0 0;color:rgba(255,255,255,0.85);font-size:15px;">Semana ${weekLabel}</p>
-    </div>
-    ${diasHTML}
-    <div style="text-align:center;padding:24px;color:#9ca3af;font-size:12px;border-top:1px solid #e5e7eb;">
-      <p style="margin:0;font-weight:700;color:#1a3a1a;">iMoney · imoney.ia.br</p>
-      <p style="margin:4px 0 0 0;">Gerado automaticamente toda segunda às 8h BRT</p>
-    </div>
-  </div>
-</body></html>`;
 }
