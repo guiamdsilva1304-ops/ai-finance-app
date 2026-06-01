@@ -50,3 +50,4 @@
     }
   ]
 }
+{ "path": "/api/cron/gerar-calendario", "schedule": "0 23 * * 0" }
