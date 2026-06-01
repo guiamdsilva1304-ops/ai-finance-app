@@ -113,7 +113,7 @@ Seja específico com os números desta semana.`,
 
   // @ts-expect-error: web_search_20250305 é uma ferramenta hospedada pela Anthropic
   let response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 2000,
     tools: [{ type: 'web_search_20250305', name: 'web_search' }],
     messages,
