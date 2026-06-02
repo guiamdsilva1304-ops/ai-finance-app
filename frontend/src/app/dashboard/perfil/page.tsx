@@ -82,6 +82,12 @@ export default function PerfilPage() {
   const [estado, setEstado] = useState("");
   const [cidade, setCidade] = useState("");
 
+  // NPS
+  const [npsScore, setNpsScore] = useState<number | null>(null);
+  const [npsComment, setNpsComment] = useState("");
+  const [npsSubmitted, setNpsSubmitted] = useState(false);
+  const [npsSaving, setNpsSaving] = useState(false);
+
   // Modais de ação crítica
   const [showCancelPlan, setShowCancelPlan] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
@@ -115,6 +121,36 @@ export default function PerfilPage() {
   }, [supabase]);
 
   useEffect(() => { setCidade(""); }, [estado]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("imoney_nps");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.score !== undefined) setNpsScore(parsed.score);
+        if (parsed.comment) setNpsComment(parsed.comment);
+        if (parsed.submitted) setNpsSubmitted(true);
+      }
+    } catch {}
+  }, []);
+
+  function submitNPS() {
+    if (npsScore === null) return;
+    setNpsSaving(true);
+    localStorage.setItem("imoney_nps", JSON.stringify({
+      score: npsScore,
+      comment: npsComment,
+      submitted: true,
+      date: new Date().toISOString(),
+    }));
+    setTimeout(() => { setNpsSaving(false); setNpsSubmitted(true); }, 600);
+  }
+
+  function npsScoreColor(score: number): string {
+    if (score <= 6) return "#ef4444";
+    if (score <= 8) return "#f59e0b";
+    return "#00C853";
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -412,6 +448,102 @@ export default function PerfilPage() {
           🔐 Segurança
         </p>
         <TwoFactorSetup />
+      </div>
+
+      {/* NPS + Contato */}
+      <div className="mt-8 card animate-fade-up opacity-0 anim-5">
+        <p className="font-bold text-[#0d2414] mb-1" style={{ fontFamily: "Nunito, sans-serif" }}>
+          ⭐ Avalie a iMoney
+        </p>
+        <p className="text-xs text-[#6b9e80] mb-4 leading-relaxed">
+          Numa escala de 0 a 10, qual a probabilidade de você recomendar a iMoney para um amigo?
+        </p>
+
+        {npsSubmitted ? (
+          <div style={{ background: "#f0fdf4", borderRadius: 14, padding: "16px 18px", marginBottom: 16 }}>
+            <p className="text-sm font-bold text-[#0d2414] mb-1">
+              🎉 Obrigado pelo seu feedback!
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: npsComment ? 8 : 0 }}>
+              <span style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: 36, height: 36, borderRadius: "50%", fontWeight: 900, fontSize: 16,
+                background: npsScore !== null ? npsScoreColor(npsScore) : "#00C853", color: "#fff",
+              }}>
+                {npsScore}
+              </span>
+              <span className="text-xs text-[#6b9e80]">sua nota</span>
+            </div>
+            {npsComment && (
+              <p className="text-xs text-[#4a7a5a] italic">"{npsComment}"</p>
+            )}
+            <button
+              onClick={() => setNpsSubmitted(false)}
+              style={{ marginTop: 10, fontSize: 11, color: "#8db89d", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: 700 }}>
+              Alterar avaliação
+            </button>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+              {Array.from({ length: 11 }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setNpsScore(i)}
+                  style={{
+                    width: 36, height: 36, borderRadius: 10, fontWeight: 900, fontSize: 13,
+                    border: npsScore === i ? "none" : `2px solid ${npsScoreColor(i)}`,
+                    background: npsScore === i ? npsScoreColor(i) : "transparent",
+                    color: npsScore === i ? "#fff" : npsScoreColor(i),
+                    cursor: "pointer", transition: "all 0.15s", flexShrink: 0,
+                  }}>
+                  {i}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+              <span style={{ fontSize: 10, color: "#9ca3af" }}>Pouco provável</span>
+              <span style={{ fontSize: 10, color: "#9ca3af" }}>Muito provável</span>
+            </div>
+
+            {npsScore !== null && (
+              <textarea
+                value={npsComment}
+                onChange={e => setNpsComment(e.target.value)}
+                placeholder="O que motivou sua nota? (opcional)"
+                rows={2}
+                className="input mb-3"
+                style={{ resize: "vertical", fontSize: 13 }}
+              />
+            )}
+
+            <button
+              onClick={submitNPS}
+              disabled={npsScore === null || npsSaving}
+              className="btn-primary w-full disabled:opacity-40"
+              style={{ marginBottom: 0 }}>
+              {npsSaving ? "Enviando..." : "Enviar avaliação"}
+            </button>
+          </>
+        )}
+
+        <div style={{ borderTop: "1px solid #e4f5e9", marginTop: 16, paddingTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: "#0d2414", marginBottom: 2 }}>💬 Fale com a gente</p>
+            <p style={{ fontSize: 11, color: "#6b9e80" }}>Suporte, dúvidas ou sugestões</p>
+          </div>
+          <a
+            href="mailto:imoneyappcontato@gmail.com"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "#f0fdf4", border: "1.5px solid #bbf7d0",
+              color: "#15803d", fontWeight: 800, fontSize: 12,
+              padding: "8px 14px", borderRadius: 10, textDecoration: "none",
+              flexShrink: 0,
+            }}>
+            ✉ Enviar email
+          </a>
+        </div>
       </div>
 
       {/* Zona de perigo */}
