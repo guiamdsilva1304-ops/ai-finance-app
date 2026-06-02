@@ -147,7 +147,7 @@ export default function RendaPage() {
 
   // Buscar média de gastos (Supabase)
   useEffect(() => {
-    if (plano !== "pro") return;
+    if (plano !== "pro" && plano !== "premium") return;
     async function fetchMedia() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -191,7 +191,7 @@ export default function RendaPage() {
   ];
 
   if (plano === null) return null;
-  if (plano !== "pro") return (
+  if (plano !== "pro" && plano !== "premium") return (
     <ProBanner
       feature="Finanças para Autônomos"
       descricao="Calculadora de impostos (MEI, autônomo, CLT), simulador de mês fraco, cofre mensal e reserva de emergência. Ferramentas exclusivas para freelancers e empreendedores."
