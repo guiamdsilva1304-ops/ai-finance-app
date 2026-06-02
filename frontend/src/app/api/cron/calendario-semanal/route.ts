@@ -54,6 +54,32 @@ E = Educação (35%) — SELIC, juros, CDI, como investir, reserva de emergênci
 P = Produto (20%) — demo do Assessor IA, criação de meta, dashboard em uso, features
 C = Conquista (15%) — cases de usuários, milestones, celebrações, "X usuários realizaram Y"
 
+## FEATURES REAIS DA iMONEY — ÚNICO CONTEÚDO PERMITIDO NO PILAR P
+Posts de Produto (P) só podem mencionar o que existe hoje na plataforma.
+PROIBIDO inventar, antecipar ou mencionar features em desenvolvimento.
+
+EXISTE HOJE:
+- Assessor IA: chat em linguagem natural que responde dúvidas financeiras e ajuda a planejar metas
+  → Plano gratuito: 10 mensagens/dia | Plano Pro: ilimitado
+- Dashboard: visão geral da saúde financeira do usuário
+- Transações: registro e categorização de gastos e receitas
+- Metas: criação de objetivos financeiros com acompanhamento de progresso
+- Investimentos: registro da carteira de investimentos do usuário
+- Renda: controle de receitas
+- Plano Pro (R$29,90/mês): Assessor IA ilimitado + análises avançadas + relatórios + suporte prioritário
+
+NÃO EXISTE (nunca mencionar):
+- Open Finance / conexão bancária automática → está em waitlist, não está disponível
+- Crédito, empréstimo ou financiamento de qualquer tipo
+- Score ou análise de perfil Pix para crédito
+- Investimentos automáticos ou recomendações de alocação
+- Geração de vídeos, imagens ou qualquer conteúdo mídia
+- Integração com corretoras ou bancos
+- Pagamento de contas ou transferências
+- Qualquer feature não listada acima
+
+Quando o assunto em alta não se conectar a uma feature real, o post de Produto deve mostrar
+o Assessor IA ou a criação de metas como solução — são as features mais versáteis.
 ## CALENDÁRIO EDITORIAL SEMANAL
 - Terça → Instagram Carrossel — Pilar E ou S — publicar 19h–21h
 - Quarta → TikTok / Reel — Pilar P (demo do app, rosto ou screen record) — qualquer hora
