@@ -246,9 +246,7 @@ Para Carrossel Instagram:
     "Slide 4: insight 3 — texto exato como aparecerá no slide",
     "Slide 5 [CTA — fundo #1a3a1a]: @imoney_app | texto CTA | imoney.ia.br"
   ],
-  "promptVisual": "SISTEMA DE DESIGN iMONEY v3 2026 | ...",
-  "hashtags": ["#EducacaoFinanceira", "#Sonhos", "#iMoney", "#FinancasPessoais", "#DinheiroInteligente"]
-}
+ "promptVisual": "SISTEMA DE DESIGN iMONEY v3 2026 | Estilo: flat design brasileiro. PROIBIDO: clay 3D, gradientes, sombras pesadas, bordas decorativas, texturas. Canvas: 1080x1080px. ZONA SEGURA: margem mínima 100px. Área útil: 880x880px. 150px livres borda direita. Cores: 60% branco | 30% #1a3a1a | 8% #00C853 | 2% #F9A825 (só conquista). Fonte: Nunito Black 900 números | ExtraBold 800 títulos | Bold 700 subtítulos | Regular 400 corpo. Ícones: flat design linha simples (outline), monocromático. SEM volume, SEM 3D, SEM sombra, SEM clay. Número slide: canto superior esquerdo, Nunito Black, #00C853, 48px. Logo iMoney: canto inferior direito, 36px. Máximo 3 elementos por slide.\n\nCARROSSEL 5 SLIDES — [TITULO EXATO DO TEMA]\n\nSLIDE 1 CAPA (fundo escuro): Fundo #1a3a1a. Número 01 #00C853 topo esq Nunito Black 48px. Ícone: [descrição exata do ícone flat outline, cor e tamanho ~240-260px, centralizado]. Título: [texto exato do slide 1] — ExtraBold branco 64px centralizado. Subtítulo: [texto exato do subtítulo] — Regular #E8F5E9 30px. Logo iMoney branca dir inf.\n\nSLIDE 2 [NOME DO CONCEITO]: Fundo #FFFFFF. Número 02 #00C853 topo esq Nunito Black 48px. Ícone: [descrição exata flat outline #1a3a1a ~240px centralizado]. Título: [texto exato do slide 2] — ExtraBold #1a3a1a 58px. Subtítulo: [texto exato do subtítulo] — Regular #555555 28px. Logo escura dir inf.\n\nSLIDE 3 [NOME DO CONCEITO]: Fundo #FFFFFF. Número 03 #00C853 topo esq. Ícone: [descrição exata flat outline #00C853 ~240px centralizado]. Título: [texto exato do slide 3] — ExtraBold #1a3a1a 58px. Subtítulo: [texto exato do subtítulo] — Regular #555555 28px. Logo escura dir inf.\n\nSLIDE 4 [NOME DO CONCEITO]: Fundo #FFFFFF. Número 04 #00C853 topo esq. Ícone: [descrição exata flat outline #1a3a1a ~250px centralizado]. Título: [texto exato do slide 4] — ExtraBold #1a3a1a 52px. Subtítulo: [texto exato do subtítulo] — Regular #555555 30px. Logo escura dir inf.\n\nSLIDE 5 CTA (fundo escuro): Fundo #1a3a1a obrigatório. Número 05 #00C853 topo esq. Ícone: bússola flat outline #00C853 ~200px centralizado. Título: [texto CTA exato alinhado ao sonho] — ExtraBold branco 58px. Subtítulo: imoney.ia.br — Black #00C853 36px. Logo iMoney branca centralizada abaixo.",
 
 Para TikTok / Reel:
 {
@@ -304,7 +302,7 @@ Responda com JSON exato:
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 6000,
+      max_tokens: 8000,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     }),
