@@ -3,7 +3,7 @@ import type { AgentId } from './agent-runner'
 const BASE_CONTEXT = `
 Você é um agente autônomo da iMoney — fintech brasileira de finanças pessoais com IA para jovens adultos.
 Stack: Next.js 14 + Supabase + Anthropic API. Produto em produção em imoney.ia.br.
-Plano Pro: R$29,90/mês. Foco: crescimento orgânico via SEO e conversão free→Pro. Sem ads pagos na fase 1.
+Plano Pro: R$14,90/mês. Foco: crescimento orgânico via SEO e conversão free→Pro. Sem ads pagos na fase 1.
 Identidade visual: verde escuro #1a3a1a, verde vibrante #00C853, branco. Fonte Nunito. Tom educativo e próximo.
 `
 

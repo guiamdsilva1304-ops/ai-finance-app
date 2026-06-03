@@ -102,7 +102,7 @@ export default function PremiumPage() {
           <div style={{ background: 'linear-gradient(135deg, #78350f 0%, #F59E0B 100%)', padding: '24px 28px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4 }}>
               <span style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>R$</span>
-              <span style={{ fontSize: 56, fontWeight: 900, color: '#fff', lineHeight: 1 }}>59,90</span>
+              <span style={{ fontSize: 56, fontWeight: 900, color: '#fff', lineHeight: 1 }}>39,90</span>
               <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>/mês</span>
             </div>
             <div style={{ fontSize: 13, color: '#FDE68A', marginTop: 4 }}>
@@ -141,7 +141,7 @@ export default function PremiumPage() {
                 transition: 'all .2s',
                 animation: loading ? 'pulse 1.5s ease-in-out infinite' : 'none',
               }}>
-              {!userLoaded ? 'Carregando...' : loading ? 'Redirecionando...' : 'Começar Premium — R$ 59,90/mês'}
+              {!userLoaded ? 'Carregando...' : loading ? 'Redirecionando...' : 'Começar Premium — R$ 39,90/mês'}
             </button>
 
             {plano === 'pro' && (

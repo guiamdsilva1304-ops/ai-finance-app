@@ -84,7 +84,7 @@ export default function ProPage() {
     }
   }
 
-  const precoPro = periodo === 'mensal' ? 29.90 : 23.90
+  const precoPro = periodo === 'mensal' ? 14.90 : 11.90
 
   const Check = ({ dark }: { dark?: boolean }) => (
     <div style={{
@@ -174,7 +174,7 @@ export default function ProPage() {
               <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.65)', marginBottom: 6 }}>/mês</span>
             </div>
             {periodo === 'anual'
-              ? <div style={{ fontSize: 12, color: '#9FE1CB', marginBottom: 24 }}>R$ {(precoPro * 12).toFixed(2).replace('.', ',')} cobrado anualmente · economize R$ 72/ano</div>
+              ? <div style={{ fontSize: 12, color: '#9FE1CB', marginBottom: 24 }}>R$ {(precoPro * 12).toFixed(2).replace('.', ',')} cobrado anualmente · economize R$ 36/ano</div>
               : <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 24 }}>menos de R$1/dia</div>
             }
 
@@ -210,7 +210,7 @@ export default function ProPage() {
             <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>Controle total</div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, marginBottom: 4 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 6 }}>R$</span>
-              <span style={{ fontSize: 44, fontWeight: 900, color: '#fff', lineHeight: 1 }}>59,90</span>
+              <span style={{ fontSize: 44, fontWeight: 900, color: '#fff', lineHeight: 1 }}>39,90</span>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 6 }}>/mês</span>
             </div>
             <div style={{ fontSize: 12, color: '#fff', marginBottom: 24 }}>menos de R$2/dia</div>

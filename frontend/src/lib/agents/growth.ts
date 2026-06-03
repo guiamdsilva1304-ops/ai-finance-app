@@ -98,7 +98,7 @@ async function campanhaUpgrade(mission: any): Promise<string> {
     max_tokens: 1024,
     messages: [{
       role: 'user',
-      content: `Você é o agente Growth da iMoney. Crie um email de upgrade para o plano Pro (R$29,90/mês).
+      content: `Você é o agente Growth da iMoney. Crie um email de upgrade para o plano Pro (R$14,90/mês).
 
 O usuário já está usando ativamente o app e o assessor de IA. Foque no valor, não na pressão.
 Mencione: assessor ilimitado, análise financeira profunda, relatórios personalizados.

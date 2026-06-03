@@ -213,7 +213,7 @@ export default function AgenteReceita() {
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#0d2414' }}>{u.nome} <span style={{ fontWeight: 400, color: '#9ca3af' }}>· {u.email}</span></div>
                 <div style={{ fontSize: 11, color: '#6b9e80', marginTop: 1 }}>{u.totalMsgs} msgs · plano {u.plan}</div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', background: '#DCFCE7', padding: '2px 8px', borderRadius: 6, flexShrink: 0 }}>R$ 29,90/mês</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', background: '#DCFCE7', padding: '2px 8px', borderRadius: 6, flexShrink: 0 }}>R$ 14,90/mês</span>
             </div>
           ))}
         </div>

@@ -265,7 +265,7 @@ export function PlanUpgradeCard() {
         <div style={{ fontSize: 11, fontWeight: 800, color: '#8a5c00', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>✨ Pro</div>
         <div style={{ fontSize: 21, fontWeight: 800, color: '#2a1a00', letterSpacing: '-0.02em', marginBottom: 12 }}>Invista no seu sonho</div>
         <div style={{ fontSize: 34, fontWeight: 900, color: '#2a1a00', marginBottom: 8 }}>
-          R$ 29,90<span style={{ fontSize: 15, fontWeight: 700 }}>/mês</span>
+          R$ 14,90<span style={{ fontSize: 15, fontWeight: 700 }}>/mês</span>
         </div>
         <div style={{ fontSize: 13, color: '#7a4f00', lineHeight: 1.5, marginBottom: 22 }}>
           Menos de R$1/dia — o preço de um café

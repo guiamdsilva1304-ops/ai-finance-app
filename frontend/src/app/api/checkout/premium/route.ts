@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Pagamento temporariamente indisponivel' }, { status: 503 })
     }
 
-    const amount = 59.90
+    const amount = 39.90
 
     console.log('[MP Premium] Criando plano para:', email, 'amount:', amount)
 

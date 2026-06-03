@@ -76,7 +76,7 @@ async function coletarMetricas() {
     ? Math.round(((novosSemana ?? 0) - novosSemanaPassada) / novosSemanaPassada * 100)
     : null
 
-  const mrr = (pagantes ?? 0) * 29.90
+  const mrr = (pagantes ?? 0) * 14.90
   const taxaAtivacao = totalUsuarios && totalUsuarios > 0
     ? Math.round(((ativos7d ?? 0) / totalUsuarios) * 100)
     : 0

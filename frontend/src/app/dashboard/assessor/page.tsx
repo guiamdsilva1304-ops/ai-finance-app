@@ -1007,7 +1007,7 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
                     </div>
                   </div>
                   <a href="/dashboard/pro" style={{ background: '#fff', color: '#1D9E75', fontWeight: 800, fontSize: 13, padding: '10px 20px', borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                    Assinar Pro — R$ 29,90/mês
+                    Assinar Pro — R$ 14,90/mês
                   </a>
                 </div>
               </div>

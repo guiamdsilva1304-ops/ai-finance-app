@@ -72,7 +72,7 @@ export default function MonthlySummaryCard({ isPro }: MonthlySummaryCardProps) {
           className="block w-full text-center bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
         >
           <Lock size={13} className="inline mr-1.5 mb-0.5" />
-          Assinar Pro — R$29,90/mês
+          Assinar Pro — R$14,90/mês
         </a>
       </div>
     )

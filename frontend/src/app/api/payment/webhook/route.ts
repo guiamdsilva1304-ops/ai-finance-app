@@ -23,7 +23,7 @@ async function ativarPro(user_id: string, mp_preapproval_id: string, next_paymen
     mp_preapproval_id,
     status: 'active',
     plan: 'pro',
-    amount: 29.90,
+    amount: 14.90,
     next_payment_date,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' })
@@ -40,7 +40,7 @@ async function ativarPremium(user_id: string, mp_preapproval_id: string, next_pa
     mp_preapproval_id,
     status: 'active',
     plan: 'premium',
-    amount: 59.90,
+    amount: 39.90,
     next_payment_date,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' })

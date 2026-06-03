@@ -39,7 +39,7 @@ export function ProBanner({ feature, descricao }: ProBannerProps) {
           padding: '16px 32px', borderRadius: 14, textDecoration: 'none',
           boxShadow: '0 4px 20px rgba(29,158,117,0.35)', marginBottom: 12,
         }}>
-          Assinar Pro — R$ 29,90/mês →
+          Assinar Pro — R$ 14,90/mês →
         </Link>
         <Link href="/dashboard" style={{
           fontSize: 13, color: '#aaa', textDecoration: 'none', fontWeight: 600,

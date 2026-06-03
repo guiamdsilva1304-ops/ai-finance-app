@@ -107,7 +107,7 @@ EVITAR (frio/bancário) vs USAR (humano/aspiracional):
 ❌ "Suas despesas superaram o orçamento em 23%." ✅ "Ei! Você gastou um pouco mais — quer ajustar sua meta?"
 ❌ "Recomendamos diversificação do portfólio." ✅ "Que tal começar a investir? Com R$100/mês você já dá um passo enorme."
 ❌ "Faça upgrade para ter acesso ilimitado" ✅ "Com o Pro, seu Assessor IA trabalha 24h pelo seu projeto de vida"
-❌ "R$29,90/mês" ✅ "Menos de R$1/dia — o preço de um café — para ter um plano financeiro personalizado"
+❌ "R$14,90/mês" ✅ "Menos de R$1/dia — o preço de um café — para ter um plano financeiro personalizado"
 ❌ "Assine agora" ✅ "Invista no seu sonho"
 
 ## PERSONA PRIMÁRIA — MARINA, 26 ANOS
@@ -135,7 +135,7 @@ EXISTE HOJE:
 - Metas: criação de objetivos financeiros com acompanhamento de progresso
 - Investimentos: registro da carteira de investimentos do usuário
 - Renda: controle de receitas
-- Plano Pro (R$29,90/mês): Assessor IA ilimitado + análises avançadas + relatórios + suporte prioritário
+- Plano Pro (R$14,90/mês): Assessor IA ilimitado + análises avançadas + relatórios + suporte prioritário
 
 NÃO EXISTE (nunca mencionar):
 - Open Finance / conexão bancária automática → está em waitlist, não está disponível

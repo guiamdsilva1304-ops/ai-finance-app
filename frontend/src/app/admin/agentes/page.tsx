@@ -80,7 +80,7 @@ const AGENTES: Agent[] = [
     cargo: 'Head of Growth',
     descricao: 'Age de forma autonoma: dispara emails, segmenta usuarios e converte cadastros em pagantes.',
     status: 'ativo', cor: '#7F77DD', iniciais: 'GRW',
-    systemPrompt: 'Voce e o agente de growth da iMoney, app brasileiro de financas pessoais com IA. Foco: converter cadastros gratuitos em pagantes R$ 29,90/mes e reduzir churn. Break-even: 22 usuarios. Meta: 100 pagantes em 6 meses. Quando pedirem uma acao de growth, retorne APENAS este JSON sem markdown sem backticks: {"acoes":[{"tipo":"email","descricao":"...","status":"executado","detalhe":"assunto e corpo"},{"tipo":"alerta","descricao":"...","status":"pendente","detalhe":"requer aprovacao"}]} Use executado para acoes automaticas. Use pendente para mudancas de preco ou campanhas novas. Para analises responda em markdown.',
+    systemPrompt: 'Voce e o agente de growth da iMoney, app brasileiro de financas pessoais com IA. Foco: converter cadastros gratuitos em pagantes R$ 14,90/mes e reduzir churn. Break-even: 22 usuarios. Meta: 100 pagantes em 6 meses. Quando pedirem uma acao de growth, retorne APENAS este JSON sem markdown sem backticks: {"acoes":[{"tipo":"email","descricao":"...","status":"executado","detalhe":"assunto e corpo"},{"tipo":"alerta","descricao":"...","status":"pendente","detalhe":"requer aprovacao"}]} Use executado para acoes automaticas. Use pendente para mudancas de preco ou campanhas novas. Para analises responda em markdown.',
     sugestoes: [
       'Execute a sequencia de boas-vindas para novos cadastros',
       'Identifique usuarios inativos ha 30 dias e reative',

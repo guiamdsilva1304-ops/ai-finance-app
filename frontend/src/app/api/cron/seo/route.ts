@@ -196,7 +196,7 @@ export async function GET(req: NextRequest) {
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: `Você é o estrategista SEO da iMoney (SaaS finanças pessoais, Brasil, 20–35 anos).
-PRODUTO: iMoney une metas de vida + gestão financeira + assessor IA. Preço R$29,90/mês.
+PRODUTO: iMoney une metas de vida + gestão financeira + assessor IA. Preço R$14,90/mês.
 PERSONA: Marina, 26 anos, SP, R$4k/mês.
 TIPO DE ARTIGO DO DIA: ${dayType.type} — ${dayType.format}
 TOM: próximo, encorajador, use "você". PROIBIDO: crypto, day-trade, promessa de retorno.
@@ -232,7 +232,7 @@ Regras:
       model: 'claude-sonnet-4-6',
       max_tokens: 2500,
       system: `Você é o redator SEO sênior da iMoney (SaaS finanças pessoais, Brasil, 20–35 anos).
-PRODUTO: iMoney une metas de vida + gestão financeira + assessor IA. Preço R$29,90/mês.
+PRODUTO: iMoney une metas de vida + gestão financeira + assessor IA. Preço R$14,90/mês.
 PERSONA: Marina, 26 anos, SP, R$4k/mês, quer organizar finanças mas odeia planilha.
 TOM: próximo, encorajador, exemplos com R$, use "você". Nunca frio ou paternalista.
 VOCABULÁRIO OK: sonho, meta, conquista, jornada, plano. PROIBIDO: erro, falhou, culpa, jargão técnico, crypto, day-trade, promessa de retorno.

@@ -180,7 +180,7 @@ export default function TransacoesPage() {
         </p>
         <Link href="/dashboard/premium"
           style={{ display: "block", background: "linear-gradient(135deg, #78350f 0%, #F59E0B 100%)", color: "#fff", padding: "14px 0", borderRadius: 12, textDecoration: "none", fontWeight: 800, fontSize: 15, marginBottom: 12, fontFamily: "Nunito, sans-serif" }}>
-          Ver plano Premium — R$59,90/mês
+          Ver plano Premium — R$39,90/mês
         </Link>
         <button onClick={() => setShowPremiumModal(false)}
           style={{ background: "none", border: "none", color: "#aaa", fontSize: 13, cursor: "pointer" }}>

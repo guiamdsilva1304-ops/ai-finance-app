@@ -61,7 +61,7 @@ async function campanhaQuaseLa(users: { id: string; email: string; nome: string 
             </div>
             <div style="text-align:center;margin:24px 0">
               <a href="https://imoney.ia.br/dashboard/pro" style="background:linear-gradient(135deg,#0a3d28,#1D9E75);color:#fff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:800;font-size:16px">
-                Assinar Pro — R$ 29,90/mês →
+                Assinar Pro — R$ 14,90/mês →
               </a>
             </div>
             <p style="font-size:12px;color:#aaa;text-align:center">Cancele quando quiser · Garantia de 7 dias</p>
@@ -145,7 +145,7 @@ async function campanhaMetaAmbiciosa(users: { id: string; email: string; nome: s
             <p style="font-size:15px;color:#444;line-height:1.7">Oi${user.nome ? ` ${user.nome}` : ''}! Você tem uma meta de <strong>R$ ${Number(meta.valor_alvo).toLocaleString('pt-BR')}</strong> — "${meta.nome}".</p>
             <p style="font-size:15px;color:#444;line-height:1.7">Para uma meta nesse valor, o Assessor IA ilimitado faz uma diferença enorme. Ele pode te dizer exatamente quanto guardar por mês, onde investir esse dinheiro e quando você vai chegar lá.</p>
             <div style="background:#fff8e6;border-left:4px solid #EF9F27;padding:16px;border-radius:0 8px 8px 0;margin:20px 0">
-              <p style="font-size:14px;color:#633806;margin:0">💡 Com R$ 29,90/mês no Pro, o Assessor IA pode te ajudar a chegar na sua meta <strong>meses antes</strong> do previsto com a estratégia certa.</p>
+              <p style="font-size:14px;color:#633806;margin:0">💡 Com R$ 14,90/mês no Pro, o Assessor IA pode te ajudar a chegar na sua meta <strong>meses antes</strong> do previsto com a estratégia certa.</p>
             </div>
             <div style="text-align:center;margin:24px 0">
               <a href="https://imoney.ia.br/dashboard/pro" style="background:linear-gradient(135deg,#0a3d28,#1D9E75);color:#fff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:800;font-size:16px">

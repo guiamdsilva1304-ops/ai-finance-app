@@ -36,7 +36,7 @@ export async function GET() {
     ])
 
     // MRR
-    const mrr = (pagantes ?? 0) * 29.90
+    const mrr = (pagantes ?? 0) * 14.90
     const break_even = 22
     const progresso_break_even = Math.min(100, Math.round(((pagantes ?? 0) / break_even) * 100))
 

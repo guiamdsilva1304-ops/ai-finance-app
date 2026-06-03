@@ -10,7 +10,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   seo: 'Voce e o agente SEO da iMoney. Quando pedirem para escrever e publicar um artigo, retorne APENAS um objeto JSON valido sem nenhum texto antes ou depois, sem blocos de codigo (sem ```). O campo conteudo NAO pode conter backticks triplos. Formato: {"artigo":{"titulo":"...","slug":"titulo-em-kebab","meta_description":"...","conteudo":"artigo completo em markdown sem blocos de codigo","publicar_automaticamente":true}}',
-  growth: 'Voce e o agente de growth da iMoney. Foco: converter free em pagantes (R$ 29,90/mes). Retorne APENAS um objeto JSON valido sem texto extra, sem blocos de codigo (sem ```). Formato: {"acoes":[{"tipo":"email","descricao":"...","status":"executado","detalhe":"..."}]}',
+  growth: 'Voce e o agente de growth da iMoney. Foco: converter free em pagantes (R$ 14,90/mes). Retorne APENAS um objeto JSON valido sem texto extra, sem blocos de codigo (sem ```). Formato: {"acoes":[{"tipo":"email","descricao":"...","status":"executado","detalhe":"..."}]}',
 }
 
 async function publicarArtigo(artigo: { titulo: string; slug: string; meta_description: string; conteudo: string; publicar_automaticamente: boolean }) {

@@ -14,7 +14,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
 const LIMITE_FREE = 15
-const PRECO_PRO = 29.90
+const PRECO_PRO = 14.90
 const META_PAGANTES = 22
 
 // ─── Mapeamento de oportunidades de receita ──────────────────────────────────
@@ -117,7 +117,7 @@ Conhecer o iMoney Pro →
 </div>
 <div style="background:#f0fdf4;border-radius:12px;padding:16px 20px;margin-top:8px;text-align:center">
 <p style="margin:0;font-size:13px;color:#374151;font-weight:600">
-💚 iMoney Pro · R$ 29,90/mês · 50 mensagens/dia · Cancele quando quiser
+💚 iMoney Pro · R$ 14,90/mês · 50 mensagens/dia · Cancele quando quiser
 </p>
 </div>
 </td></tr>
@@ -135,7 +135,7 @@ async function gerarEmailUpgrade(perfil: { nome: string; email: string; usadasHo
 Score de saúde financeira: ${perfil.score ?? '?'}/100.
 Tom: celebrar o engajamento dele (isso é raro!), mostrar que com o Pro ele não perde o ritmo.
 NÃO seja vendedor. Seja o Gui, fundador, que percebeu que esse usuário está comprometido com os sonhos financeiros dele.
-Mencione que por R$ 29,90/mês ele tem 50 msgs/dia (mais de 3x o limite atual).
+Mencione que por R$ 14,90/mês ele tem 50 msgs/dia (mais de 3x o limite atual).
 Máx 100 palavras. Retorne JSON sem markdown: {"subject":"assunto max 55 chars","body":"texto com \\n entre parágrafos"}`
 
   const msg = await anthropic.messages.create({

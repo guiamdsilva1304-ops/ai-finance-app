@@ -15,8 +15,8 @@ export function freeEngajadoEmail1({ nome, userId }: FreeEngajadoParams): EmailR
   <p style="margin:0 0 14px;color:#374151;font-size:15px;font-family:Nunito,-apple-system,system-ui,sans-serif;line-height:1.7">Isso significa que você já viu como a iMoney pode mudar sua relação com o dinheiro. Agora imagina sem nenhum limite.</p>
   ${card(`<p style="margin:0;color:#1a3a1a;font-size:14px;font-family:Nunito,-apple-system,system-ui,sans-serif;font-weight:700;line-height:1.5">✨ iMoney Pro — menos de R$ 1/dia</p>
   <p style="margin:8px 0 0;color:#374151;font-size:14px;font-family:Nunito,-apple-system,system-ui,sans-serif;line-height:1.6">• Assessor IA ilimitado, sem interruções<br>• Metas e planos personalizados<br>• Relatórios mensais automáticos<br>• Controle completo de investimentos</p>
-  <p style="margin:8px 0 0;color:#1a3a1a;font-size:13px;font-family:Nunito,-apple-system,system-ui,sans-serif;line-height:1.5">R$ 29,90/mês. Cancele quando quiser. Garantia de 7 dias.</p>`)}
-  ${ctaButton('Investir no meu sonho por R$ 29,90/mês →', 'https://imoney.ia.br/dashboard/pro')}
+  <p style="margin:8px 0 0;color:#1a3a1a;font-size:13px;font-family:Nunito,-apple-system,system-ui,sans-serif;line-height:1.5">R$ 14,90/mês. Cancele quando quiser. Garantia de 7 dias.</p>`)}
+  ${ctaButton('Investir no meu sonho por R$ 14,90/mês →', 'https://imoney.ia.br/dashboard/pro')}
   <p style="margin:24px 0 0;color:#6b7280;font-size:13px;font-family:Nunito,-apple-system,system-ui,sans-serif;line-height:1.6">Dúvidas? Responde esse email. Eu mesmo respondo.</p>
   <p style="margin:12px 0 0;color:#374151;font-size:14px;font-family:Nunito,-apple-system,system-ui,sans-serif;font-weight:700">Gui<br><span style="font-weight:400;color:#6b7280">Fundador da iMoney</span></p>
 </td></tr>`
