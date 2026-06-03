@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_APIh_KEY! })
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -170,7 +170,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Pesquisa ─────────────────────────────────────────────────────────────
-    const research = await fetchResearch()
+    let research = await fetchResearch()
 
     // ── Guarda 2: keyword já usada nos últimos 7 dias? ───────────────────────
     if (!dryRun && research?.keyword_principal) {
@@ -182,11 +182,11 @@ export async function GET(req: NextRequest) {
         .gte('created_at', seteDiasAtras.toISOString())
         .eq('keyword_principal', research.keyword_principal)
       if ((kwCount ?? 0) >= 1)
-        return NextResponse.json({ msg: 'Keyword já publicada recentemente', keyword: research.keyword_principal, skipped: true })
+                    research = null // keyword stale: usa fallback generico
     }
 
     const dateStr = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    const researchContext = research
+                        const researchContext = research
       ? `keyword="${research.keyword_principal}" | tipo=${research.article_type ?? 'informacional'} | intent=${research.intent ?? 'informacional'} | gaps=${JSON.stringify(research.coverage_gaps ?? [])} | diferencial="${research.our_differentiation ?? ''}" | lsi=${JSON.stringify(research.lsi_keywords ?? [])} | dados=${JSON.stringify(research.financial_data ?? {})}`
       : `Sem pesquisa. Use tema relevante para jovens brasileiros. Dados: SELIC 14,75%, IPCA ~5,5%, salário mínimo R$1.518.`
 
