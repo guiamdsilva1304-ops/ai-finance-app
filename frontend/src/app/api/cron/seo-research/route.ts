@@ -37,7 +37,7 @@ const RESEARCH_SYSTEM_PROMPT = `Você é o pesquisador de SEO da iMoney, SaaS br
 ## Concorrentes a monitorar
 Mobills, Organizze, Nubank blog, Serasa blog, InfoMoney, Exame Invest, Monerama
 
-## Sua tarefa (máximo 3 web_searches — seja eficiente):
+## Sua tarefa (máximo 1 web_searches — seja eficiente):
 1. Identifique o tipo de artigo do dia baseado no dia da semana informado
 2. Use 1 web_search para encontrar a keyword ideal (volume alto, concorrência atacável)
 3. Use 1 web_search para analisar os 3 primeiros resultados do Google para essa keyword
