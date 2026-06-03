@@ -319,7 +319,7 @@ export function PricingTable() {
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.75 }}>✨ Pro</div>
             <h3 style={{ fontSize: 24, fontWeight: 800, margin: '6px 0 14px', letterSpacing: '-0.02em' }}>Executor completo</h3>
             <div>
-              <Money value="29" cents="90" size={32} color="#fff"/>
+              <Money value="14" cents="90" size={32} color="#fff"/>
               <span style={{ fontSize: 14, fontWeight: 800, marginLeft: 4, opacity: 0.85 }}>/mês</span>
             </div>
             <div style={{ fontSize: 13, opacity: 0.65, marginTop: 4 }}>menos de R$1/dia</div>
@@ -349,7 +349,7 @@ export function PricingTable() {
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.75 }}>⭐ Premium</div>
             <h3 style={{ fontSize: 24, fontWeight: 800, margin: '6px 0 14px', letterSpacing: '-0.02em' }}>Controle total</h3>
             <div>
-              <Money value="59" cents="90" size={32} color="#2a1a00"/>
+              <Money value="39" cents="90" size={32} color="#2a1a00"/>
               <span style={{ fontSize: 14, fontWeight: 800, marginLeft: 4, opacity: 0.75 }}>/mês</span>
             </div>
             <div style={{ fontSize: 13, opacity: 0.65, marginTop: 4 }}>menos de R$2/dia</div>
