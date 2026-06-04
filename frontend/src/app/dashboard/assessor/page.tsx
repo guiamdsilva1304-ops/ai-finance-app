@@ -761,6 +761,7 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
           messages: messagesParaApi,
           context: {
             renda, gastos, sobra: renda - gastos,
+            monthly_available: perfil.monthly_available ?? (renda - gastos),
             selic: eco.selic_anual,
             ipca: eco.ipca_mensal,
             ipca_anual: eco.ipca_anual,

@@ -6,8 +6,9 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 const STEPS = [
   { id: 1, titulo: "Qual é o seu grande sonho? 🌟", subtitulo: "Vamos começar pelo que mais importa pra você" },
   { id: 2, titulo: "Agora, vamos te conhecer", subtitulo: "Para o plano ser feito pra você" },
-  { id: 3, titulo: "Vamos montar seu plano", subtitulo: "A iMoney já calcula quanto você precisa guardar" },
-  { id: 4, titulo: "Radiografia Financeira 🩻", subtitulo: "5 perguntas rápidas para seu diagnóstico personalizado" },
+  { id: 3, titulo: "Sua renda e gastos 💰", subtitulo: "Calcula quanto sobra por mês pra você" },
+  { id: 4, titulo: "Vamos montar seu plano", subtitulo: "A iMoney já calcula quanto você precisa guardar" },
+  { id: 5, titulo: "Radiografia Financeira 🩻", subtitulo: "5 perguntas rápidas para seu diagnóstico personalizado" },
 ];
 
 const SONHOS = [
@@ -48,6 +49,7 @@ export default function OnboardingPage() {
   const [nome, setNome] = useState("");
   const [ocupacao, setOcupacao] = useState("");
   const [renda, setRenda] = useState("");
+  const [gastos, setGastos] = useState("");
   const [metaValor, setMetaValor] = useState("");
   const [metaMeses, setMetaMeses] = useState("12");
   const [respostas, setRespostas] = useState<Record<number, string>>({});
@@ -57,26 +59,36 @@ export default function OnboardingPage() {
   const sonhoEhOutro = sonhoSelecionado === "✨ Outro sonho";
   const metaNome = sonhoEhOutro ? sonhoCustom : sonhoSelecionado;
 
-  // ── Cálculo em tempo real ────────────────────────────────────────────────
+  const rendaNum = parseFloat(renda) || 0;
+  const gastosNum = parseFloat(gastos) || 0;
+  const monthlyAvailable = rendaNum - gastosNum;
+
+  // ── Cálculo da meta em tempo real ────────────────────────────────────────
   const calculo = useMemo(() => {
     const v = parseFloat(metaValor);
     const m = parseInt(metaMeses);
-    const r = parseFloat(renda);
     if (!v || !m) return null;
     const porMes = v / m;
-    const pctRenda = r > 0 ? (porMes / r) * 100 : null;
+    const pctRenda = rendaNum > 0 ? (porMes / rendaNum) * 100 : null;
     return { porMes, pctRenda, viavel: pctRenda === null || pctRenda <= 50 };
-  }, [metaValor, metaMeses, renda]);
+  }, [metaValor, metaMeses, rendaNum]);
 
   async function salvarPerfil(userId: string) {
+    const monthly = rendaNum - gastosNum;
     await supabase.from("user_profiles").upsert({
-      id: userId, user_id: userId, nome, ocupacao,
-      renda_mensal: parseFloat(renda) || 0,
+      id: userId,
+      user_id: userId,
+      nome,
+      ocupacao,
+      renda_mensal: rendaNum,
+      gastos_mensais: gastosNum,
+      monthly_available: monthly,
       updated_at: new Date().toISOString(),
     });
     if (metaNome && metaValor) {
       await supabase.from("metas").insert({
-        user_id: userId, nome: metaNome,
+        user_id: userId,
+        nome: metaNome,
         valor_alvo: parseFloat(metaValor) || 0,
         valor_atual: 0,
         prazo_meses: parseInt(metaMeses) || 12,
@@ -87,7 +99,7 @@ export default function OnboardingPage() {
   }
 
   async function avancar() {
-    if (step < 4) { setStep(step + 1); return; }
+    if (step < 5) { setStep(step + 1); return; }
     await gerarRadiografia();
   }
 
@@ -101,7 +113,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/onboarding/diagnostico", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ respostas, nome, ocupacao, renda: parseFloat(renda) || 0, meta: metaNome }),
+        body: JSON.stringify({ respostas, nome, ocupacao, renda: rendaNum, gastos: gastosNum, monthly_available: monthlyAvailable, meta: metaNome }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao gerar diagnóstico");
@@ -152,10 +164,11 @@ export default function OnboardingPage() {
   const podeContinuar =
     (step === 1 && sonhoSelecionado && (!sonhoEhOutro || sonhoCustom.trim().length > 1)) ||
     (step === 2 && nome.trim().length > 1) ||
-    (step === 3) ||
-    (step === 4 && todasRespondidas);
+    (step === 3 && renda.trim().length > 0) ||
+    (step === 4) ||
+    (step === 5 && todasRespondidas);
 
-  // ── Tela de resultado (Radiografia) ─────────────────────────────────────
+  // ── Tela de resultado (Radiografia) ────────────────────────────────────
   if (diagnostico) {
     const scorePct = Math.min(100, (diagnostico.score / 1000) * 100);
     const scoreColor = diagnostico.score < 400 ? "#ef4444" : diagnostico.score < 650 ? "#f59e0b" : "#1D9E75";
@@ -210,12 +223,12 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── Tela principal ───────────────────────────────────────────────────────
+  // ── Tela principal ──────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f0fdf4 0%, #fff 60%)", fontFamily: "'Nunito',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: step === 4 ? "flex-start" : "center", padding: "24px" }}>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f0fdf4 0%, #fff 60%)", fontFamily: "'Nunito',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: step === 5 ? "flex-start" : "center", padding: "24px" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap'); @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}} @keyframes pulse-green{0%,100%{box-shadow:0 0 0 0 rgba(29,158,117,0.3)}50%{box-shadow:0 0 0 8px rgba(29,158,117,0)}} @keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}} .step{animation:fadeIn 0.3s ease} .sonho-btn{transition:all 0.2s ease;cursor:pointer} .sonho-btn:hover{transform:translateY(-2px)} .sonho-btn.selected{animation:pulse-green 1s ease 1} .calculo-box{animation:slideIn 0.3s ease} input,select{outline:none} input:focus,select:focus{border-color:#1D9E75 !important;box-shadow:0 0 0 3px rgba(29,158,117,0.1)}`}</style>
 
-      <div style={{ marginBottom: 24, textAlign: "center", marginTop: step === 4 ? 24 : 0 }}>
+      <div style={{ marginBottom: 24, textAlign: "center", marginTop: step === 5 ? 24 : 0 }}>
         <div style={{ fontSize: 28, marginBottom: 4 }}>🧭</div>
         <div style={{ fontSize: 18, fontWeight: 900, color: "#0a3d28" }}>iMoney</div>
       </div>
@@ -287,8 +300,71 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* ── Step 3: Plano ── */}
+          {/* ── Step 3: Renda e Gastos ── */}
           {step === 3 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Renda mensal */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>RENDA MENSAL (salário + freelas + extras)</label>
+                <div style={{ position: "relative" }}>
+                  <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 15, fontWeight: 700, color: "#aaa" }}>R$</span>
+                  <input value={renda} onChange={e => setRenda(e.target.value.replace(/\D/g, ""))} placeholder="0" autoFocus type="number" min="0" style={{ width: "100%", border: "2px solid #e8ede8", borderRadius: 12, padding: "12px 16px 12px 44px", fontSize: 15, fontFamily: "'Nunito',sans-serif", color: "#1a1a1a", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 8 }}>
+                  {["1500", "3000", "5000", "8000", "12000", "20000"].map(v => (
+                    <button key={v} onClick={() => setRenda(v)} style={{ padding: "8px 0", borderRadius: 8, border: `1.5px solid ${renda === v ? "#1D9E75" : "#e8ede8"}`, background: renda === v ? "#E1F5EE" : "#fff", color: renda === v ? "#085041" : "#666", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Nunito',sans-serif", transition: "all 0.15s" }}>
+                      R${parseInt(v).toLocaleString("pt-BR")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Gastos mensais */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>GASTOS MENSAIS ESTIMADOS (aluguel + contas + comida…)</label>
+                <div style={{ position: "relative" }}>
+                  <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 15, fontWeight: 700, color: "#aaa" }}>R$</span>
+                  <input value={gastos} onChange={e => setGastos(e.target.value.replace(/\D/g, ""))} placeholder="0" type="number" min="0" style={{ width: "100%", border: "2px solid #e8ede8", borderRadius: 12, padding: "12px 16px 12px 44px", fontSize: 15, fontFamily: "'Nunito',sans-serif", color: "#1a1a1a", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 8 }}>
+                  {["800", "1500", "2500", "4000", "6000", "10000"].map(v => (
+                    <button key={v} onClick={() => setGastos(v)} style={{ padding: "8px 0", borderRadius: 8, border: `1.5px solid ${gastos === v ? "#ef4444" : "#e8ede8"}`, background: gastos === v ? "#fef2f2" : "#fff", color: gastos === v ? "#b91c1c" : "#666", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Nunito',sans-serif", transition: "all 0.15s" }}>
+                      R${parseInt(v).toLocaleString("pt-BR")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Monthly available indicator */}
+              {rendaNum > 0 && (
+                <div className="calculo-box" style={{ borderRadius: 14, padding: "16px 18px", border: `2px solid ${monthlyAvailable >= 0 ? "#1D9E75" : "#ef4444"}`, background: monthlyAvailable >= 0 ? "#E1F5EE" : "#fef2f2" }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: monthlyAvailable >= 0 ? "#085041" : "#b91c1c", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+                    {monthlyAvailable >= 0 ? "✅ Você tem sobra todo mês" : "⚠️ Gastos acima da renda"}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: monthlyAvailable >= 0 ? "#085041" : "#b91c1c" }}>
+                        R$ {Math.abs(monthlyAvailable).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}<span style={{ fontSize: 13, fontWeight: 700 }}>/mês</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: monthlyAvailable >= 0 ? "#1D9E75" : "#ef4444", fontWeight: 600, marginTop: 2 }}>
+                        {monthlyAvailable >= 0
+                          ? `${rendaNum > 0 ? ((monthlyAvailable / rendaNum) * 100).toFixed(0) : 0}% da renda disponível para investir`
+                          : "Vamos equilibrar isso juntos no dashboard"}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right", fontSize: 11, color: "#6b9e80" }}>
+                      <div>Renda: R$ {rendaNum.toLocaleString("pt-BR")}</div>
+                      <div>Gastos: R$ {gastosNum.toLocaleString("pt-BR")}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <p style={{ fontSize: 12, color: "#aaa", margin: 0, textAlign: "center" }}>Pode aproximar — você ajusta isso depois no dashboard.</p>
+            </div>
+          )}
+
+          {/* ── Step 4: Plano ── */}
+          {step === 4 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ background: "#f0fdf4", borderRadius: 12, padding: "10px 14px", border: "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 20 }}>{sonhoSelecionado.split(" ")[0]}</span>
@@ -298,23 +374,6 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {/* Renda */}
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>SUA RENDA MENSAL APROXIMADA</label>
-                <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 15, fontWeight: 700, color: "#aaa" }}>R$</span>
-                  <input value={renda} onChange={e => setRenda(e.target.value.replace(/\D/g, ""))} placeholder="0" autoFocus type="number" min="0" style={{ width: "100%", border: "2px solid #e8ede8", borderRadius: 12, padding: "12px 16px 12px 44px", fontSize: 15, fontFamily: "'Nunito',sans-serif", color: "#1a1a1a", boxSizing: "border-box", transition: "border 0.2s" }} />
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                  {["1500", "3000", "5000", "8000", "12000", "20000"].map(v => (
-                    <button key={v} onClick={() => setRenda(v)} style={{ padding: "10px 0", borderRadius: 10, border: `2px solid ${renda === v ? "#1D9E75" : "#e8ede8"}`, background: renda === v ? "#E1F5EE" : "#fff", color: renda === v ? "#085041" : "#666", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Nunito',sans-serif", transition: "all 0.2s" }}>
-                      R$ {parseInt(v).toLocaleString("pt-BR")}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Meta + Prazo */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: "#666", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>QUANTO VALE ESSE SONHO? (R$)</label>
@@ -333,7 +392,6 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {/* ── Cálculo em tempo real ── */}
               {calculo && (
                 <div className="calculo-box" style={{ background: calculo.viavel ? "#E1F5EE" : "#fff8e1", border: `2px solid ${calculo.viavel ? "#1D9E75" : "#f59e0b"}`, borderRadius: 14, padding: "16px 18px" }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: calculo.viavel ? "#085041" : "#92400e", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
@@ -357,8 +415,8 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* ── Step 4: Radiografia ── */}
-          {step === 4 && (
+          {/* ── Step 5: Radiografia ── */}
+          {step === 5 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
               {PERGUNTAS.map(p => (
                 <div key={p.id}>
@@ -377,10 +435,10 @@ export default function OnboardingPage() {
           )}
 
           <button onClick={avancar} disabled={!podeContinuar || loading} style={{ width: "100%", marginTop: 28, padding: "16px 0", borderRadius: 14, border: "none", background: podeContinuar && !loading ? "#1D9E75" : "#e8ede8", color: podeContinuar && !loading ? "#fff" : "#aaa", fontSize: 16, fontWeight: 800, cursor: podeContinuar && !loading ? "pointer" : "not-allowed", fontFamily: "'Nunito',sans-serif", transition: "all 0.2s", boxShadow: podeContinuar && !loading ? "0 4px 20px rgba(29,158,117,0.3)" : "none" }}>
-            {loading ? "Gerando sua radiografia... 🩻" : step === 4 ? "Gerar minha Radiografia 🩻" : step === 3 ? "Montar meu plano →" : "Continuar →"}
+            {loading ? "Gerando sua radiografia... 🩻" : step === 5 ? "Gerar minha Radiografia 🩻" : step === 4 ? "Montar meu plano →" : "Continuar →"}
           </button>
-          {step === 3 && <button onClick={() => setStep(4)} style={{ width: "100%", marginTop: 10, padding: "10px 0", borderRadius: 12, border: "none", background: "transparent", color: "#aaa", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Nunito',sans-serif" }}>Pular por agora →</button>}
-          {step === 4 && <button onClick={pularRadiografia} disabled={loading} style={{ width: "100%", marginTop: 10, padding: "10px 0", borderRadius: 12, border: "none", background: "transparent", color: "#aaa", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Nunito',sans-serif" }}>Pular por agora</button>}
+          {step === 4 && <button onClick={() => setStep(5)} style={{ width: "100%", marginTop: 10, padding: "10px 0", borderRadius: 12, border: "none", background: "transparent", color: "#aaa", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Nunito',sans-serif" }}>Pular por agora →</button>}
+          {step === 5 && <button onClick={pularRadiografia} disabled={loading} style={{ width: "100%", marginTop: 10, padding: "10px 0", borderRadius: 12, border: "none", background: "transparent", color: "#aaa", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Nunito',sans-serif" }}>Pular por agora</button>}
         </div>
       </div>
       <p style={{ marginTop: 20, fontSize: 12, color: "#aaa" }}>Seus dados são privados e protegidos 🔒</p>

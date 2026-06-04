@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     const [limiteResult, diagnosticoResult] = await Promise.allSettled([
       verificarLimite(user.id),
-      supabase.from('user_profiles').select('perfil_financeiro, score_saude, diagnostico_json').eq('id', user.id).maybeSingle(),
+      supabase.from('user_profiles').select('perfil_financeiro, score_saude, diagnostico_json, renda_mensal, gastos_mensais, monthly_available').eq('id', user.id).maybeSingle(),
     ])
 
     const { permitido, usadas, limite, plano } = limiteResult.status === 'fulfilled' ? limiteResult.value : { permitido: true, usadas: 0, limite: 10, plano: 'free' }
@@ -151,12 +151,19 @@ DADOS COMPLETOS DO USUÁRIO:
 - Idade: ${context?.idade ?? "não informada"}
 - Ocupação: ${context?.ocupacao ?? "não informada"}
 - Cidade: ${context?.cidade ?? ""}/${context?.estado ?? ""}
-- Renda mensal: R$ ${Number(context?.renda ?? 0).toFixed(2)}
-- Gastos mensais: R$ ${Number(context?.gastos ?? 0).toFixed(2)}
-- Sobra mensal: R$ ${Number(context?.sobra ?? 0).toFixed(2)}
+- Renda mensal declarada: R$ ${Number(context?.renda ?? perfilDiagnostico?.renda_mensal ?? 0).toFixed(2)}
+- Gastos mensais declarados: R$ ${Number(context?.gastos ?? perfilDiagnostico?.gastos_mensais ?? 0).toFixed(2)}
+- Sobra mensal (transações reais): R$ ${Number(context?.sobra ?? 0).toFixed(2)}
+- Disponível por mês (renda − gastos declarados): R$ ${Number(context?.monthly_available ?? perfilDiagnostico?.monthly_available ?? 0).toFixed(2)}
 - Gastos por categoria: ${JSON.stringify(context?.gastosCat ?? {})}
 - Metas: ${JSON.stringify(context?.metas ?? [])}
 - Plano: Pro ✨
+
+RACIOCÍNIO FINANCEIRO — use para personalizar cada resposta:
+- Se "Disponível por mês" > 0: o usuário TEM margem. Sugira onde alocar essa margem de forma concreta (reserva, meta, investimento) com valor real.
+- Se "Disponível por mês" ≤ 0: priorize equilíbrio antes de qualquer meta. Pergunte onde está o maior gasto e proponha 1 corte específico.
+- Use sempre o menor valor entre "Sobra real" e "Disponível declarado" ao calcular aportes sugeridos — seja conservador.
+- Nunca sugira aportes acima de 30% da renda sem o usuário pedir explicitamente.
 
 DETECÇÃO DE PADRÕES — use os dados para agir, não para explicar:
 - Se houver categoria com gasto acima do esperado, mencione de forma acolhedora e proponha ajuste
