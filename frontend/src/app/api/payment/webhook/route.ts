@@ -31,7 +31,7 @@ async function ativarPro(user_id: string, mp_preapproval_id: string, next_paymen
   await supabase.from('user_profiles').update({
     plan: 'pro',
     plan_expires_at: next_payment_date,
-  }).eq('id', user_id)
+  }).or(`id.eq.${user_id},user_id.eq.${user_id}`)
 }
 
 async function ativarPremium(user_id: string, mp_preapproval_id: string, next_payment_date: string) {
@@ -48,7 +48,7 @@ async function ativarPremium(user_id: string, mp_preapproval_id: string, next_pa
   await supabase.from('user_profiles').update({
     plan: 'premium',
     premium_expires_at: next_payment_date,
-  }).eq('id', user_id)
+  }).or(`id.eq.${user_id},user_id.eq.${user_id}`)
 }
 
 async function cancelarPlano(user_id: string, mp_preapproval_id: string) {
@@ -61,7 +61,7 @@ async function cancelarPlano(user_id: string, mp_preapproval_id: string) {
     plan: 'free',
     plan_expires_at: null,
     premium_expires_at: null,
-  }).eq('id', user_id)
+  }).or(`id.eq.${user_id},user_id.eq.${user_id}`)
 }
 
 // Mantém para compatibilidade retroativa
