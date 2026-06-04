@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "@/components/imoney/primitives";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
+import { useTheme } from "@/lib/theme";
 
 // ─── Perfis que veem Renda Variável ──────────────────────────────────────────
 
@@ -67,6 +68,7 @@ export function Sidebar({ email, plan = 'free', ocupacao }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const supabase = createSupabaseBrowser();
+  const { isDark, toggle } = useTheme();
 
   const navItems = buildNavItems(ocupacao);
 
@@ -78,14 +80,14 @@ export function Sidebar({ email, plan = 'free', ocupacao }: SidebarProps) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className={cn("px-4 py-5 border-b border-[#e4f5e9]", collapsed && "px-3")}>
+      <div className={cn("px-4 py-5 border-b", collapsed && "px-3")} style={{ borderColor: 'var(--border)' }}>
         <Logo size={collapsed ? 48 : 200} showText={false} showTagline={false} />
       </div>
 
       {/* Email */}
       {!collapsed && email && (
-        <div className="px-4 py-2.5 border-b border-[#e4f5e9]">
-          <p className="text-[11px] text-[#8db89d] truncate">{email}</p>
+        <div className="px-4 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
+          <p className="text-[11px] truncate" style={{ color: 'var(--text-3)' }}>{email}</p>
         </div>
       )}
 
@@ -143,7 +145,7 @@ export function Sidebar({ email, plan = 'free', ocupacao }: SidebarProps) {
       )}
 
       {/* Bottom — Open Finance, Perfil, Sair */}
-      <div className="px-3 pb-5 border-t border-[#e4f5e9] pt-3 space-y-1">
+      <div className="px-3 pb-5 border-t pt-3 space-y-1" style={{ borderColor: 'var(--border)' }}>
         {/* Open Finance */}
         <Link
           href="/dashboard/relatorio"
@@ -190,6 +192,17 @@ export function Sidebar({ email, plan = 'free', ocupacao }: SidebarProps) {
           {!collapsed && <span>Meu Perfil</span>}
         </Link>
 
+        {/* Dark mode toggle */}
+        <button
+          onClick={toggle}
+          className={cn("nav-link w-full text-left", collapsed && "justify-center px-2")}
+          title={isDark ? "Modo claro" : "Modo escuro"}
+          style={{ color: 'var(--text-2)' }}
+        >
+          <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{isDark ? '☀️' : '🌙'}</span>
+          {!collapsed && <span>{isDark ? 'Modo claro' : 'Modo escuro'}</span>}
+        </button>
+
         {/* Sair */}
         <button
           onClick={logout}
@@ -210,9 +223,9 @@ export function Sidebar({ email, plan = 'free', ocupacao }: SidebarProps) {
     <>
       {/* Desktop sidebar */}
       <aside className={cn(
-        "hidden md:flex flex-col h-screen sticky top-0 border-r border-[#e4f5e9] bg-white transition-all duration-300",
+        "hidden md:flex flex-col h-screen sticky top-0 border-r transition-all duration-300",
         collapsed ? "w-16" : "w-56"
-      )}>
+      )} style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}>
         <SidebarContent />
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -224,8 +237,8 @@ export function Sidebar({ email, plan = 'free', ocupacao }: SidebarProps) {
 
       {/* Mobile bottom navigation */}
       <div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e4f5e9] flex items-end justify-around px-2"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 72 }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-end justify-around px-2"
+        style={{ background: 'var(--bg-mobilenav)', borderColor: 'var(--border)', paddingBottom: 'env(safe-area-inset-bottom)', height: 72 }}
       >
         {MOBILE_NAV_LEFT.map(({ href, icon, label }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));

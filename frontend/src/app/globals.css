@@ -3,24 +3,60 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme tokens ─────────────────────────────────────── */
+:root {
+  --bg-page:     #f8fdf9;
+  --bg-card:     #ffffff;
+  --bg-card2:    #f8fdf9;
+  --bg-hover:    #f0fdf4;
+  --bg-input:    #f8fdf9;
+  --bg-sidebar:  #ffffff;
+  --bg-mobilenav:#ffffff;
+  --border:      #e4f5e9;
+  --text-1:      #0d2414;
+  --text-2:      #6b9e80;
+  --text-3:      #8db89d;
+  --scrollbar-track: #f0fdf4;
+  --scrollbar-thumb: #bbf7d0;
+}
+
+[data-theme="dark"] {
+  --bg-page:     #0d1f17;
+  --bg-card:     #1a2e22;
+  --bg-card2:    #162a1e;
+  --bg-hover:    #243b2e;
+  --bg-input:    #162a1e;
+  --bg-sidebar:  #0f2418;
+  --bg-mobilenav:#0f2418;
+  --border:      #2d4a38;
+  --text-1:      #e8f5ee;
+  --text-2:      #9fc9b0;
+  --text-3:      #6b9a7c;
+  --scrollbar-track: #0d1f17;
+  --scrollbar-thumb: #2d4a38;
+}
+
 @layer base {
   html { scroll-behavior: smooth; }
   body {
     font-family: 'Nunito Sans', sans-serif;
-    background: #f8fdf9;
-    color: #0d2414;
+    background: var(--bg-page);
+    color: var(--text-1);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   * { box-sizing: border-box; }
   ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: #f0fdf4; }
-  ::-webkit-scrollbar-thumb { background: #bbf7d0; border-radius: 99px; }
+  ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 99px; }
 }
 
 @layer components {
   .card {
-    @apply bg-white rounded-2xl border border-[#e4f5e9] shadow-[0_1px_4px_rgba(20,83,45,0.06),0_4px_16px_rgba(20,83,45,0.08)] p-5 transition-all duration-200;
+    background: var(--bg-card);
+    border-color: var(--border);
+    color: var(--text-1);
+    @apply rounded-2xl border shadow-[0_1px_4px_rgba(20,83,45,0.06),0_4px_16px_rgba(20,83,45,0.08)] p-5 transition-all duration-200;
   }
   .card-hover {
     @apply hover:shadow-[0_4px_12px_rgba(20,83,45,0.10),0_12px_32px_rgba(20,83,45,0.12)] hover:-translate-y-0.5;
@@ -43,8 +79,10 @@
     box-shadow: 0 6px 20px rgba(22,163,74,0.4);
   }
   .btn-secondary {
+    background: var(--bg-hover);
+    border-color: var(--border);
     @apply inline-flex items-center justify-center gap-2
-           bg-[#f0fdf4] hover:bg-[#dcfce7] border border-[#bbf7d0]
+           border hover:opacity-80
            text-[#15803d] font-bold rounded-xl px-6 py-3 text-sm
            active:scale-95 transition-all duration-150;
     font-family: 'Nunito', sans-serif;
@@ -56,8 +94,11 @@
     font-family: 'Nunito', sans-serif;
   }
   .input {
-    @apply w-full bg-[#f8fdf9] border border-[#e4f5e9] rounded-xl px-4 py-3
-           text-[#0d2414] text-sm placeholder:text-[#8db89d]
+    background: var(--bg-input);
+    border-color: var(--border);
+    color: var(--text-1);
+    @apply w-full rounded-xl px-4 py-3 border
+           text-sm placeholder:text-[#8db89d]
            focus:outline-none focus:ring-2 focus:ring-[#4ade80] focus:border-[#22c55e]
            transition-all duration-150;
   }
@@ -71,11 +112,13 @@
   /* Metric card parts */
   .metric-val {
     font-family: 'Nunito', sans-serif;
-    @apply font-black text-[#0d2414] leading-none;
+    color: var(--text-1);
+    @apply font-black leading-none;
     font-size: clamp(1.3rem, 2.8vw, 1.7rem);
   }
   .metric-label {
-    @apply text-[11px] font-bold text-[#8db89d] uppercase tracking-wider;
+    color: var(--text-3);
+    @apply text-[11px] font-bold uppercase tracking-wider;
     font-family: 'Nunito', sans-serif;
   }
   .metric-sub {
@@ -103,7 +146,7 @@
 
 /* Shimmer loading */
 .shimmer {
-  background: linear-gradient(90deg, #f0fdf4 25%, #dcfce7 50%, #f0fdf4 75%);
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border) 50%, var(--bg-hover) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease infinite;
 }
@@ -124,9 +167,14 @@
 
 /* Sidebar active link */
 .nav-link {
-  @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-[#4a7a5a]
-         hover:bg-[#f0fdf4] hover:text-[#15803d] transition-all duration-150;
+  color: var(--text-2);
+  @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold
+         transition-all duration-150;
   font-family: 'Nunito', sans-serif;
+}
+.nav-link:hover:not(.active) {
+  background: var(--bg-hover);
+  color: #15803d;
 }
 .nav-link.active {
   @apply bg-gradient-to-r from-[#16a34a] to-[#22c55e] text-white shadow-[0_4px_14px_rgba(22,163,74,0.3)];
@@ -138,9 +186,34 @@
          text-white rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed;
 }
 .chat-ai {
-  @apply mr-auto max-w-[90%] bg-white border border-[#e4f5e9]
-         text-[#0d2414] rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--text-1);
+  @apply mr-auto max-w-[90%] border
+         rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed
          shadow-[0_1px_4px_rgba(20,83,45,0.06)];
+}
+
+/* ── Dark mode: override inline-styled backgrounds ──────── */
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] [class*="bg-white"] {
+  background-color: var(--bg-card) !important;
+}
+[data-theme="dark"] .bg-\[\#f8fdf9\],
+[data-theme="dark"] .bg-\[\#f0fdf4\] {
+  background-color: var(--bg-card2) !important;
+}
+[data-theme="dark"] .border-\[\#e4f5e9\] {
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .text-\[\#0d2414\],
+[data-theme="dark"] .text-\[\#1a3a1a\] {
+  color: var(--text-1) !important;
+}
+[data-theme="dark"] .text-\[\#6b9e80\],
+[data-theme="dark"] .text-\[\#8db89d\],
+[data-theme="dark"] .text-\[\#4a7a5a\] {
+  color: var(--text-2) !important;
 }
 
 /* Badge */

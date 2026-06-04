@@ -5,8 +5,10 @@ import { Icon } from "@/components/imoney/primitives";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
+import { ThemeProvider, useTheme } from "@/lib/theme";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
+  const { isDark } = useTheme();
   const [email, setEmail] = useState<string>();
   const [plan, setPlan] = useState<string>('free');
   const [ocupacao, setOcupacao] = useState<string>();
@@ -43,15 +45,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!mounted) return (
-    <div className="flex min-h-screen bg-[#f8fdf9] items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center" style={{ background: 'var(--bg-page)' }}>
       <div className="w-8 h-8 rounded-full border-2 border-[#16a34a] border-t-transparent animate-spin"/>
     </div>
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8fdf9]">
+    <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg-page)' }}>
       {/* Mobile header */}
-      <div className="md:hidden bg-white border-b border-[#e4f5e9] px-4 py-3 flex items-center justify-between">
+      <div className="md:hidden border-b px-4 py-3 flex items-center justify-between" style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}>
         <Logo size={100} showText={false} showTagline={false} />
         <div className="flex items-center gap-2">
           {plan === 'free' && (
@@ -66,9 +68,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {(plan === 'pro' || plan === 'premium') && (
             <span
               className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
-              style={{ background: '#E1F5EE', color: '#085041' }}
+              style={{ background: isDark ? '#1a3a22' : '#E1F5EE', color: isDark ? '#4ade80' : '#085041' }}
             >
-              <Icon name="sparkles" size={12} color="#085041" /> Pro
+              <Icon name="sparkles" size={12} color={isDark ? '#4ade80' : '#085041'} /> Pro
             </span>
           )}
           {/* Botão Sair — mobile */}
@@ -91,5 +93,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main className="flex-1 min-w-0 pb-24 md:pb-0">{children}</main>
       </div>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </ThemeProvider>
   );
 }

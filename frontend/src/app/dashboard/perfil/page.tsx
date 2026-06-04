@@ -7,6 +7,7 @@ import TwoFactorSetup from "@/components/TwoFactorSetup";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/imoney/primitives";
+import { useTheme } from "@/lib/theme";
 
 const ESTADOS: Record<string, string> = {
   AC:"Acre",AL:"Alagoas",AP:"Amapá",AM:"Amazonas",BA:"Bahia",CE:"Ceará",
@@ -96,6 +97,7 @@ export default function PerfilPage() {
   const [actionMsg, setActionMsg] = useState("");
 
   const supabase = createSupabaseBrowser();
+  const { isDark, toggle } = useTheme();
 
   useEffect(() => {
     async function load() {
@@ -441,6 +443,61 @@ export default function PerfilPage() {
           )}
         </div>
       )}
+
+      {/* Aparência */}
+      <div className="card mt-5 animate-fade-up opacity-0 anim-4">
+        <p className="font-bold mb-4" style={{ fontFamily: "Nunito, sans-serif", color: 'var(--text-1)' }}>
+          🎨 Aparência
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>
+              {isDark ? '🌙 Modo escuro ativo' : '☀️ Modo claro ativo'}
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-2)' }}>
+              {isDark ? 'Paleta verde escura — fácil para os olhos.' : 'Paleta branca padrão da iMoney.'}
+            </p>
+          </div>
+          {/* Toggle switch */}
+          <button
+            onClick={toggle}
+            aria-label="Alternar modo escuro"
+            style={{
+              position: 'relative', width: 52, height: 28, borderRadius: 99,
+              background: isDark ? '#00C853' : '#d1d5db',
+              border: 'none', cursor: 'pointer', flexShrink: 0,
+              transition: 'background 0.25s',
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 3, left: isDark ? 26 : 3,
+              width: 22, height: 22, borderRadius: '50%',
+              background: '#fff', transition: 'left 0.25s',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12,
+            }}>
+              {isDark ? '🌙' : '☀️'}
+            </span>
+          </button>
+        </div>
+
+        {/* Preview das cores */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Fundo', color: isDark ? '#0d1f17' : '#f8fdf9' },
+            { label: 'Card', color: isDark ? '#1a2e22' : '#ffffff' },
+            { label: 'Borda', color: isDark ? '#2d4a38' : '#e4f5e9' },
+            { label: 'Texto', color: isDark ? '#e8f5ee' : '#0d2414' },
+            { label: 'Acento', color: '#00C853' },
+          ].map(({ label, color }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: color, border: '1.5px solid var(--border)', flexShrink: 0 }} />
+              <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 700 }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Segurança */}
       <div className="mt-5">
