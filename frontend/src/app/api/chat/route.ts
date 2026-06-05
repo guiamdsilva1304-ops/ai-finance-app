@@ -79,9 +79,15 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser(token)
     if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 })
 
-    const [limiteResult, diagnosticoResult] = await Promise.allSettled([
+    const [limiteResult, diagnosticoResult, categoriasResult] = await Promise.allSettled([
       verificarLimite(user.id),
       supabase.from('user_profiles').select('perfil_financeiro, score_saude, diagnostico_json, renda_mensal, gastos_mensais, monthly_available').eq('id', user.id).maybeSingle(),
+      supabase
+        .from('transactions')
+        .select('categoria, valor')
+        .eq('user_id', user.id)
+        .eq('tipo', 'gasto')
+        .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
     ])
 
     const { permitido, usadas, limite, plano } = limiteResult.status === 'fulfilled' ? limiteResult.value : { permitido: true, usadas: 0, limite: 10, plano: 'free' }
@@ -102,6 +108,37 @@ export async function POST(req: NextRequest) {
     const { messages, context } = body;
 
     const isPro = plano === 'pro' || plano === 'premium'
+
+    type CategoriaItem = { categoria: string; total: number; percentual: number }
+    let categorias: CategoriaItem[] = []
+    if (isPro && categoriasResult.status === 'fulfilled') {
+      const txs = categoriasResult.value.data
+      const mapaCategoria: Record<string, number> = {}
+      for (const tx of txs ?? []) {
+        mapaCategoria[tx.categoria] = (mapaCategoria[tx.categoria] ?? 0) + Number(tx.valor)
+      }
+      const totalGastos = Object.values(mapaCategoria).reduce((a, b) => a + b, 0)
+      categorias = Object.entries(mapaCategoria)
+        .sort(([, a], [, b]) => b - a)
+        .map(([categoria, total]) => ({
+          categoria,
+          total,
+          percentual: totalGastos > 0 ? Math.round((total / totalGastos) * 100) : 0,
+        }))
+    }
+
+    let categoriasBlock = ''
+    if (isPro && categorias.length > 0) {
+      const linhas: string[] = ['\n### Gastos por categoria (últimos 30 dias):']
+      categorias.forEach(c => {
+        linhas.push(`  • ${c.categoria}: R$ ${c.total.toFixed(0)} (${c.percentual}% dos gastos)`)
+      })
+      const top = categorias[0]
+      if (top.percentual >= 30) {
+        linhas.push(`\n> ⚠️ "${top.categoria}" representa ${top.percentual}% dos gastos. Sugira proativamente redução nessa categoria.`)
+      }
+      categoriasBlock = linhas.join('\n')
+    }
 
     // ─── FREE ────────────────────────────────────────────────────────────────
     const systemPromptFree = `Você é a iMoney — a plataforma que transforma sonhos financeiros em planos executáveis. Fale como um parceiro próximo: direto, humano, sem enrolação.
@@ -157,6 +194,7 @@ DADOS COMPLETOS DO USUÁRIO:
 - Disponível por mês (renda − gastos declarados): R$ ${Number(context?.monthly_available ?? perfilDiagnostico?.monthly_available ?? 0).toFixed(2)}
 - Gastos por categoria: ${JSON.stringify(context?.gastosCat ?? {})}
 - Metas: ${JSON.stringify(context?.metas ?? [])}
+${categoriasBlock}
 - Plano: Pro ✨
 
 RACIOCÍNIO FINANCEIRO — use para personalizar cada resposta:
@@ -271,6 +309,7 @@ Regras do plano:
       usadas: plano === 'premium' ? 0 : usadas + 1,
       limite,
       plano,
+      gastos_categorias: isPro ? categorias : undefined,
     })
   } catch (err: unknown) {
     console.error("Chat error:", err);
