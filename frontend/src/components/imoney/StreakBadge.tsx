@@ -33,8 +33,8 @@ export function StreakBadge() {
   if (loading) {
     return (
       <div style={{
-        background: "#fff", borderRadius: 16, padding: "14px 16px",
-        border: "1.5px solid #e4f5e9", marginBottom: 14,
+        background: "var(--bg-card)", borderRadius: 16, padding: "14px 16px",
+        border: "1.5px solid var(--border)", marginBottom: 14,
         height: 64, animation: "pulse 1.5s infinite"
       }} />
     )
@@ -48,15 +48,15 @@ export function StreakBadge() {
     return (
       <a href="/dashboard/transacoes" style={{ textDecoration: "none", display: "block", marginBottom: 14 }}>
         <div style={{
-          background: "#fff", borderRadius: 16, padding: "14px 16px",
-          border: "1.5px dashed #d1fae5", display: "flex", alignItems: "center", gap: 12
+          background: "var(--bg-card)", borderRadius: 16, padding: "14px 16px",
+          border: "1.5px dashed var(--border)", display: "flex", alignItems: "center", gap: 12
         }}>
           <span style={{ fontSize: 28, flexShrink: 0 }}>🔥</span>
           <div>
-            <p style={{ fontSize: 13, fontWeight: 800, color: "#0d2414", margin: "0 0 2px", fontFamily: "Nunito, sans-serif" }}>
+            <p style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", margin: "0 0 2px", fontFamily: "Nunito, sans-serif" }}>
               Comece sua sequência hoje
             </p>
-            <p style={{ fontSize: 12, color: "#6b9e80", margin: 0 }}>
+            <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0 }}>
               Registre uma transação para iniciar seu streak
             </p>
           </div>
@@ -68,11 +68,11 @@ export function StreakBadge() {
   const isDestaque = dias >= 7
   const bgColor = isDestaque
     ? "linear-gradient(135deg, #ff6b00 0%, #ff9500 100%)"
-    : "#fff"
-  const borderColor = isDestaque ? "transparent" : "#e4f5e9"
-  const textColor = isDestaque ? "#fff" : "#0d2414"
-  const subColor = isDestaque ? "rgba(255,255,255,0.8)" : "#6b9e80"
-  const labelColor = isDestaque ? "rgba(255,255,255,0.7)" : "#8db89d"
+    : "var(--bg-card)"
+  const borderColor = isDestaque ? "transparent" : "var(--border)"
+  const textColor = isDestaque ? "#fff" : "var(--text-1)"
+  const subColor = isDestaque ? "rgba(255,255,255,0.8)" : "var(--text-2)"
+  const labelColor = isDestaque ? "rgba(255,255,255,0.7)" : "var(--text-3)"
 
   return (
     <a href="/dashboard/transacoes" style={{ textDecoration: "none", display: "block", marginBottom: 14 }}>

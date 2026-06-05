@@ -146,11 +146,11 @@ function SonhoHero({ meta, loading }: { meta: Meta | null; loading: boolean }) {
 
 function AssessorCard({ insight }: { insight: string }) {
   return (
-    <a href="/dashboard/assessor" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", marginBottom: 24, border: "1.5px solid #e4f5e9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+    <a href="/dashboard/assessor" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "var(--bg-card)", borderRadius: 16, padding: "14px 16px", marginBottom: 24, border: "1.5px solid var(--border)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
       <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #0a3d28, #1D9E75)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0, boxShadow: "0 0 0 3px rgba(0,200,83,0.15)" }}>🧭</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 11, fontWeight: 700, color: "#00C853", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 3px" }}>Assessor IA · online</p>
-        <p style={{ fontSize: 13, color: "#0d2414", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600, fontFamily: "Nunito, sans-serif" }}>
+        <p style={{ fontSize: 13, color: "var(--text-1)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600, fontFamily: "Nunito, sans-serif" }}>
           {insight}
         </p>
       </div>
@@ -264,13 +264,13 @@ export default function DashboardPage() {
   return (
     <>
     {/* ── Mobile ───────────────────────────────────────── */}
-    <div className="md:hidden" style={{ minHeight: "100vh", background: "#f7fdf9", paddingBottom: 100 }}>
+    <div className="md:hidden" style={{ minHeight: "100vh", background: "var(--bg-page)", paddingBottom: 100 }}>
       <div style={{ padding: "20px 20px 0", fontFamily: "Nunito, sans-serif" }}>
         <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: "#0d2414", margin: "0 0 2px" }}>
+          <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-1)", margin: "0 0 2px" }}>
             {userName ? `${saudacao}, ${userName}! ${saudacaoEmoji}` : `${saudacao}! ${saudacaoEmoji}`}
           </h1>
-          <p style={{ fontSize: 13, color: "#6b9e80", margin: 0 }}>
+          <p style={{ fontSize: 13, color: "var(--text-2)", margin: 0 }}>
             {!loading && dash && dash.sobra < 0
               ? "⚠️ Gastos acima da renda este mês"
               : !loading && allMetas.length === 0
@@ -286,12 +286,12 @@ export default function DashboardPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
             {[
               { label: "Renda", value: `R$ ${fmtInt(dash.renda)}`, color: "#1D9E75", icon: "💰" },
-              { label: "Gastos", value: `R$ ${fmtInt(dash.gastos)}`, color: dash.gastos > dash.renda * 0.8 ? "#ef4444" : "#0d2414", icon: "📤" },
+              { label: "Gastos", value: `R$ ${fmtInt(dash.gastos)}`, color: dash.gastos > dash.renda * 0.8 ? "#ef4444" : "var(--text-1)", icon: "📤" },
               { label: "Sobra", value: `R$ ${fmtInt(Math.abs(dash.sobra))}`, color: dash.sobra >= 0 ? "#1D9E75" : "#ef4444", icon: dash.sobra >= 0 ? "✅" : "❌" },
-              { label: "SELIC", value: eco ? `${eco.selic_anual}%` : "—", color: "#0d2414", icon: "📈" },
+              { label: "SELIC", value: eco ? `${eco.selic_anual}%` : "—", color: "var(--text-1)", icon: "📈" },
             ].map(({ label, value, color, icon }) => (
-              <div key={label} style={{ background: "#fff", borderRadius: 14, padding: "12px 14px", border: "1.5px solid #e4f5e9" }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>{icon} {label}</p>
+              <div key={label} style={{ background: "var(--bg-card)", borderRadius: 14, padding: "12px 14px", border: "1.5px solid var(--border)" }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>{icon} {label}</p>
                 <p style={{ fontSize: 16, fontWeight: 900, color, margin: 0, fontFamily: "Nunito, sans-serif" }}>{value}</p>
               </div>
             ))}
@@ -301,25 +301,25 @@ export default function DashboardPage() {
         {allMetas.length > 1 && (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <p style={{ fontSize: 16, fontWeight: 800, color: "#0d2414", margin: 0, fontFamily: "Nunito, sans-serif" }}>Outras metas</p>
+              <p style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)", margin: 0, fontFamily: "Nunito, sans-serif" }}>Outras metas</p>
               <a href="/dashboard/metas" style={{ fontSize: 13, fontWeight: 700, color: "#1D9E75", textDecoration: "none" }}>Ver todas →</a>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
               {allMetas.slice(1, 3).map(meta => {
                 const pct = meta.valor_alvo > 0 ? Math.min(100, Math.round((meta.valor_atual / meta.valor_alvo) * 100)) : 0;
                 return (
-                  <a key={meta.id} href={`/dashboard/metas/${meta.id}`} style={{ textDecoration: "none", background: "#fff", borderRadius: 16, padding: "14px 16px", border: "1.5px solid #e4f5e9", display: "block" }}>
+                  <a key={meta.id} href={`/dashboard/metas/${meta.id}`} style={{ textDecoration: "none", background: "var(--bg-card)", borderRadius: 16, padding: "14px 16px", border: "1.5px solid var(--border)", display: "block" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 22 }}>{metaEmoji(meta.nome)}</span>
                         <div>
-                          <p style={{ fontSize: 13, fontWeight: 800, color: "#0d2414", margin: 0, fontFamily: "Nunito, sans-serif" }}>{meta.nome}</p>
-                          <p style={{ fontSize: 12, color: "#6b9e80", margin: 0 }}>R$ {fmtInt(meta.valor_atual)} de {fmtInt(meta.valor_alvo)}</p>
+                          <p style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", margin: 0, fontFamily: "Nunito, sans-serif" }}>{meta.nome}</p>
+                          <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0 }}>R$ {fmtInt(meta.valor_atual)} de {fmtInt(meta.valor_alvo)}</p>
                         </div>
                       </div>
                       <span style={{ fontSize: 14, fontWeight: 900, color: "#1D9E75" }}>{pct}%</span>
                     </div>
-                    <div style={{ background: "#e8f5e9", height: 6, borderRadius: 999, overflow: "hidden" }}>
+                    <div style={{ background: "var(--bg-hover)", height: 6, borderRadius: 999, overflow: "hidden" }}>
                       <div style={{ background: "linear-gradient(90deg, #1D9E75, #00C853)", height: "100%", borderRadius: 999, width: `${pct}%` }} />
                     </div>
                   </a>
@@ -335,8 +335,8 @@ export default function DashboardPage() {
           const nivel = scoreNivelLabel(sc);
           return (
             <a href="/dashboard/score" style={{ display: "block", textDecoration: "none", marginBottom: 14 }}>
-              <div style={{ background: "#fff", borderRadius: 16, padding: "16px", border: `1.5px solid ${cor}30`, boxShadow: `0 2px 12px ${cor}14` }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 6px" }}>Saúde Financeira</p>
+              <div style={{ background: "var(--bg-card)", borderRadius: 16, padding: "16px", border: `1.5px solid ${cor}30`, boxShadow: `0 2px 12px ${cor}14` }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 6px" }}>Saúde Financeira</p>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                     <span style={{ fontSize: 40, fontWeight: 900, color: cor, lineHeight: 1, fontFamily: "Nunito, sans-serif" }}>{sc}</span>
@@ -344,10 +344,10 @@ export default function DashboardPage() {
                   </div>
                   <span style={{ fontSize: 12, fontWeight: 800, color: cor, background: `${cor}18`, borderRadius: 8, padding: "3px 10px" }}>{nivel}</span>
                 </div>
-                <div style={{ height: 6, background: "#f0f7f2", borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ height: 6, background: "var(--bg-hover)", borderRadius: 999, overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${Math.min(100, sc)}%`, background: `linear-gradient(90deg, ${cor}99, ${cor})`, borderRadius: 999 }} />
                 </div>
-                <p style={{ fontSize: 11, color: "#8db89d", margin: "6px 0 0", fontWeight: 600 }}>Toque para ver diagnóstico completo →</p>
+                <p style={{ fontSize: 11, color: "var(--text-3)", margin: "6px 0 0", fontWeight: 600 }}>Toque para ver diagnóstico completo →</p>
               </div>
             </a>
           );
@@ -361,10 +361,10 @@ export default function DashboardPage() {
     <div className="hidden md:block p-5 lg:p-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0d2414", margin: "0 0 4px", fontFamily: "Nunito, sans-serif" }}>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: "var(--text-1)", margin: "0 0 4px", fontFamily: "Nunito, sans-serif" }}>
             {`${saudacao}${userName ? `, ${userName}` : ""}! ${saudacaoEmoji}`}
           </h1>
-          <p style={{ fontSize: 13, color: "#6b9e80", margin: 0 }}>
+          <p style={{ fontSize: 13, color: "var(--text-2)", margin: 0 }}>
             {!loading && dash && dash.sobra < 0
               ? "⚠️ Seus gastos estão acima da renda este mês"
               : "Veja como seus sonhos estão evoluindo"}
@@ -390,10 +390,10 @@ export default function DashboardPage() {
           const pctBarra = Math.min(100, sc);
           return (
             <a href="/dashboard/score" style={{ display: "block", textDecoration: "none", marginBottom: 20 }}>
-              <div style={{ background: "#fff", border: `1.5px solid ${cor}30`, borderRadius: 20, padding: "20px 22px", boxShadow: `0 4px 20px ${cor}18`, cursor: "pointer", transition: "box-shadow 0.2s" }}>
+              <div style={{ background: "var(--bg-card)", border: `1.5px solid ${cor}30`, borderRadius: 20, padding: "20px 22px", boxShadow: `0 4px 20px ${cor}18`, cursor: "pointer", transition: "box-shadow 0.2s" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                   <div>
-                    <p style={{ fontSize: 10, fontWeight: 700, color: "#8db89d", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>Saúde Financeira</p>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>Saúde Financeira</p>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                       <span style={{ fontSize: 48, fontWeight: 900, color: cor, lineHeight: 1, fontFamily: "Nunito, sans-serif" }}>{sc}</span>
                       <span style={{ fontSize: 16, color: "#c4d8c8", fontWeight: 700 }}>/100</span>
@@ -402,18 +402,18 @@ export default function DashboardPage() {
                   </div>
                   <div style={{ textAlign: "right" }}>
                     {proxNivel && (
-                      <p style={{ fontSize: 11, color: "#8db89d", margin: "0 0 4px", fontWeight: 600 }}>Próximo nível</p>
+                      <p style={{ fontSize: 11, color: "var(--text-3)", margin: "0 0 4px", fontWeight: 600 }}>Próximo nível</p>
                     )}
                     {proxNivel && (
-                      <p style={{ fontSize: 13, fontWeight: 800, color: "#0d2414", margin: 0 }}>{proxNivel} →</p>
+                      <p style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", margin: 0 }}>{proxNivel} →</p>
                     )}
                     {!proxNivel && <span style={{ fontSize: 22 }}>🏆</span>}
                   </div>
                 </div>
-                <div style={{ height: 8, background: "#f0f7f2", borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ height: 8, background: "var(--bg-hover)", borderRadius: 999, overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${pctBarra}%`, background: `linear-gradient(90deg, ${cor}99, ${cor})`, borderRadius: 999, transition: "width 1s ease" }} />
                 </div>
-                <p style={{ fontSize: 11, color: "#8db89d", margin: "8px 0 0", fontWeight: 600 }}>
+                <p style={{ fontSize: 11, color: "var(--text-3)", margin: "8px 0 0", fontWeight: 600 }}>
                   Use o Assessor IA para melhorar seu score → ver diagnóstico completo
                 </p>
               </div>
@@ -440,8 +440,8 @@ export default function DashboardPage() {
         {[
           { label: "SELIC Efetiva", value: eco ? `${eco.selic_anual}% a.a.` : "…", color: "#16a34a" },
           { label: "Meta SELIC", value: eco ? `${eco.selic_meta}% a.a.` : "…", color: "#15803d" },
-          { label: "IPCA Mensal", value: eco ? `${eco.ipca_mensal}%` : "…", color: "#0d2414" },
-          { label: "IPCA 12m", value: eco ? `${eco.ipca_anual}%` : "…", color: "#0d2414" },
+          { label: "IPCA Mensal", value: eco ? `${eco.ipca_mensal}%` : "…", color: "var(--text-1)" },
+          { label: "IPCA 12m", value: eco ? `${eco.ipca_anual}%` : "…", color: "var(--text-1)" },
           { label: "Juro Real", value: eco ? `${jurosReais}% a.a.` : "…", color: Number(jurosReais) > 6 ? "#16a34a" : "#f59e0b" },
         ].map(({ label, value, color }, i) => (
           <div key={label}
