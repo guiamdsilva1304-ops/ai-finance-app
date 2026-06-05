@@ -192,7 +192,7 @@ export default function DashboardPage() {
 
     const [metasRes, profileRes] = await Promise.all([
       supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).order("created_at", { ascending: false }),
-     supabase.from("user_profiles").select("plan,full_name,nome,nome_preferido").or(`id.eq.${session.user.id},user_id.eq.${session.user.id}`).limit(1).single(),
+     supabase.from("user_profiles").select("plan,full_name,nome,nome_preferido").eq("user_id", session.user.id).maybeSingle(),
     ]);
     const metas: Meta[] = metasRes.data ?? [];
     setAllMetas(metas);
