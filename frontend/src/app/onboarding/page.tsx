@@ -119,7 +119,6 @@ export default function OnboardingPage() {
       if (!res.ok) throw new Error(data.error ?? "Erro ao gerar diagnóstico");
       setDiagnostico(data.diagnostico);
     } catch (e) {
-      console.error("[RADIOGRAFIA]", e);
       const { data: { user } } = await supabase.auth.getUser();
       if (user) await supabase.from("user_profiles").update({ onboarding_completo: true }).eq("id", user.id);
       router.push("/dashboard?onboarding=1");
@@ -135,7 +134,7 @@ export default function OnboardingPage() {
       await supabase.from("user_profiles").update({ onboarding_completo: true }).eq("id", user.id);
       const { data: profile } = await supabase.from("user_profiles").select("diagnostico_json").eq("id", user.id).maybeSingle();
       router.push(profile?.diagnostico_json?.score_imoney ? "/dashboard?onboarding=1" : "/dashboard/diagnostico");
-    } catch (e) { console.error(e); router.push("/dashboard/diagnostico"); }
+    } catch { router.push("/dashboard/diagnostico"); }
     finally { setLoading(false); }
   }
 

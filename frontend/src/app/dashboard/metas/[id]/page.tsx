@@ -6,6 +6,7 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 import { C, FONT } from "@/components/imoney/tokens";
 import type { Meta } from "@/types";
 import { Trash2, CheckCircle2, Star } from "lucide-react";
+import { fmtInt, metaEmoji } from "@/lib/utils";
 
 type MetaExt = Meta & { principal?: boolean };
 
@@ -20,24 +21,6 @@ function fmtBRL(n: number): string {
   return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function fmtInt(n: number): string {
-  return Math.round(n).toLocaleString("pt-BR");
-}
-
-function metaEmoji(nome: string): string {
-  const n = nome.toLowerCase();
-  if (n.includes("reserva") || n.includes("emergên") || n.includes("emergenc")) return "🏦";
-  if (n.includes("viagem") || n.includes("férias") || n.includes("ferias") || n.includes("europa")) return "✈️";
-  if (n.includes("carro") || n.includes("auto") || n.includes("moto")) return "🚗";
-  if (n.includes("casa") || n.includes("apto") || n.includes("imóv") || n.includes("entrada")) return "🏡";
-  if (n.includes("casamento") || n.includes("noivado") || n.includes("anel")) return "💍";
-  if (n.includes("estud") || n.includes("curso") || n.includes("faculd") || n.includes("mba")) return "📚";
-  if (n.includes("invest") || n.includes("bolsa")) return "📈";
-  if (n.includes("celular") || n.includes("iphone") || n.includes("notebook")) return "📱";
-  if (n.includes("filho") || n.includes("bebê") || n.includes("filhos")) return "👶";
-  if (n.includes("aposent") || n.includes("reform")) return "🌴";
-  return "🎯";
-}
 
 export default function MetaDetailPage() {
   const params = useParams();

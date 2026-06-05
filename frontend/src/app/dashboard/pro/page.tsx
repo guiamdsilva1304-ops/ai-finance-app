@@ -57,7 +57,6 @@ export default function ProPage() {
           if (data?.plan) setPlano(data.plan)
         }
       } catch (e) {
-        console.error('[Pro] Erro ao carregar usuario:', e)
       } finally {
         setUserLoaded(true)
       }

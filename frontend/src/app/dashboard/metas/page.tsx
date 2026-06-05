@@ -8,6 +8,7 @@ import { GoalCard } from "@/components/imoney/primitives";
 import { C, FONT } from "@/components/imoney/tokens";
 import { MetaCompletion, MilestoneToast, useMilestoneDetector } from "@/components/imoney/celebration";
 import type { Meta } from "@/types";
+import { fmtInt, metaEmoji } from "@/lib/utils";
 
 type MetaExt = Meta & { principal?: boolean };
 
@@ -22,24 +23,6 @@ const CATEGORIES = [
   { label: "Aposentadoria", emoji: "🌴" },
 ];
 
-function metaEmoji(nome: string): string {
-  const n = nome.toLowerCase();
-  if (n.includes("reserva") || n.includes("emergên") || n.includes("emergenc")) return "🏦";
-  if (n.includes("viagem") || n.includes("férias") || n.includes("ferias") || n.includes("europa") || n.includes("eua")) return "✈️";
-  if (n.includes("carro") || n.includes("auto") || n.includes("moto") || n.includes("trocar")) return "🚗";
-  if (n.includes("casa") || n.includes("apto") || n.includes("imóv") || n.includes("entrada")) return "🏡";
-  if (n.includes("casamento") || n.includes("noivado") || n.includes("anel")) return "💍";
-  if (n.includes("estud") || n.includes("curso") || n.includes("faculd") || n.includes("mba")) return "📚";
-  if (n.includes("invest") || n.includes("bolsa") || n.includes("ação")) return "📈";
-  if (n.includes("celular") || n.includes("iphone") || n.includes("notebook")) return "📱";
-  if (n.includes("filho") || n.includes("bebê") || n.includes("filhos")) return "👶";
-  if (n.includes("aposent") || n.includes("reform")) return "🌴";
-  return "🎯";
-}
-
-function fmtInt(n: number): string {
-  return Math.round(n).toLocaleString("pt-BR");
-}
 
 function fmtDate(iso: string): string {
   const d = new Date(iso);

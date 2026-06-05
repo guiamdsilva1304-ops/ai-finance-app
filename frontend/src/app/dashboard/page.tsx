@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { MetricCard, MetricCardSkeleton } from "@/components/ui/MetricCard";
-import { formatBRL, getScoreColor, getScoreLabel } from "@/lib/utils";
+import { formatBRL, getScoreColor, getScoreLabel, fmtInt, metaEmoji } from "@/lib/utils";
 import { RefreshCw } from "lucide-react";
 import { GoalCard, Icon } from "@/components/imoney/primitives";
 import {
@@ -33,21 +33,6 @@ function scoreNivelLabel(score: number) {
   return "Excelente";
 }
 
-function fmtInt(n: number): string {
-  return Math.round(n).toLocaleString("pt-BR");
-}
-
-function metaEmoji(nome: string): string {
-  const n = nome.toLowerCase();
-  if (n.includes("reserva") || n.includes("emergên") || n.includes("emergenc")) return "🏦";
-  if (n.includes("viagem") || n.includes("férias") || n.includes("ferias")) return "✈️";
-  if (n.includes("carro") || n.includes("auto")) return "🚗";
-  if (n.includes("casa") || n.includes("apto")) return "🏡";
-  if (n.includes("casamento") || n.includes("noivado")) return "💍";
-  if (n.includes("estud") || n.includes("curso")) return "📚";
-  if (n.includes("div") || n.includes("empréstimo")) return "💳";
-  return "🎯";
-}
 
 function gerarInsight(nome: string, dash: DashData | null, meta: Meta | null, hora: number): string {
   const firstName = nome || "você";

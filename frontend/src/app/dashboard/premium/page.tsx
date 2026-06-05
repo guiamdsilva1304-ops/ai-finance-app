@@ -35,7 +35,6 @@ export default function PremiumPage() {
           if (data?.plan) setPlano(data.plan)
         }
       } catch (e) {
-        console.error('[Premium] Erro ao carregar usuario:', e)
       } finally {
         setUserLoaded(true)
       }
