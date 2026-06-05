@@ -76,6 +76,7 @@ export default function PerfilPage() {
   const [plan, setPlan] = useState("free");
 
   const [nome, setNome] = useState("");
+  const [nomePreferido, setNomePreferido] = useState("");
   const [dataNascimento, setDataNascimento] = useState("");
   const [idade, setIdade] = useState("");
   const [filhos, setFilhos] = useState("0");
@@ -109,6 +110,7 @@ export default function PerfilPage() {
       if (data) {
         setProfile(data);
         setNome(data.nome ?? "");
+        setNomePreferido(data.nome_preferido ?? "");
         setDataNascimento(data.data_nascimento ?? "");
         setIdade(data.idade?.toString() ?? "");
         setFilhos(data.filhos?.toString() ?? "0");
@@ -175,6 +177,7 @@ export default function PerfilPage() {
       user_id: user!.id,
       filhos: parseInt(filhos) || 0,
       ocupacao,
+      nome_preferido: nomePreferido.trim() || null,
       updated_at: new Date().toISOString(),
     };
     if (idadeN) upsertData.idade = idadeN;
@@ -308,7 +311,7 @@ export default function PerfilPage() {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-bold text-[#8db89d] uppercase tracking-wider">Como te chamar</p>
-            <p className="font-bold text-[#0d2414] truncate">{nome || email}</p>
+            <p className="font-bold text-[#0d2414] truncate">{nomePreferido || nome || email}</p>
           </div>
         </div>
         <div className="flex-shrink-0">
@@ -353,9 +356,29 @@ export default function PerfilPage() {
 
       {/* Profile form */}
       <form onSubmit={save} className="card animate-fade-up opacity-0 anim-3">
-        <p className="font-bold text-[#0d2414] mb-5" style={{ fontFamily: "Nunito, sans-serif" }}>
-          📋 Informações Pessoais
+        <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
+          😊 Como quer ser chamado?
         </p>
+        <div className="mb-5">
+          <label className="label">Nome preferido</label>
+          <input
+            type="text"
+            value={nomePreferido}
+            onChange={e => setNomePreferido(e.target.value)}
+            placeholder={nome ? nome.split(" ")[0] : "Ex: Gui, Rafa, Duda..."}
+            maxLength={30}
+            className="input"
+          />
+          <p className="text-xs text-[#8db89d] mt-1">
+            É assim que a iMoney vai te chamar em todo o app.
+          </p>
+        </div>
+
+        <div className="border-t border-[#e4f5e9] pt-5 mb-1">
+          <p className="font-bold text-[#0d2414] mb-5" style={{ fontFamily: "Nunito, sans-serif" }}>
+            📋 Informações Pessoais
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
           <div>

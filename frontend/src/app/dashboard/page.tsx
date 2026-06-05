@@ -192,7 +192,7 @@ export default function DashboardPage() {
 
     const [metasRes, profileRes] = await Promise.all([
       supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).order("created_at", { ascending: false }),
-     supabase.from("user_profiles").select("plan,full_name,nome").or(`id.eq.${session.user.id},user_id.eq.${session.user.id}`).limit(1).single(),
+     supabase.from("user_profiles").select("plan,full_name,nome,nome_preferido").or(`id.eq.${session.user.id},user_id.eq.${session.user.id}`).limit(1).single(),
     ]);
     const metas: Meta[] = metasRes.data ?? [];
     setAllMetas(metas);
@@ -201,13 +201,17 @@ export default function DashboardPage() {
 
     if (profileRes.data) {
       setIsPro(profileRes.data.plan === "pro" || profileRes.data.plan === "premium");
-      const name = profileRes.data.full_name || profileRes.data.nome || "";
-      if (name) {
-        setUserName(name.split(" ")[0]);
+      const displayName =
+        profileRes.data.nome_preferido ||
+        (profileRes.data.full_name || profileRes.data.nome || "").split(" ")[0];
+      if (displayName) {
+        setUserName(displayName);
+      } else {
+        const email = session.user.email || "";
+        const emailName = email.split("@")[0].replace(/[._\-0-9]/g, " ").trim().split(" ").filter(Boolean)[0] || "";
+        if (emailName) setUserName(emailName.charAt(0).toUpperCase() + emailName.slice(1).toLowerCase());
       }
-    }
-    // fallback sempre: se ainda não tem nome, usa email
-    if (!profileRes.data?.full_name && !profileRes.data?.nome) {
+    } else {
       const email = session.user.email || "";
       const emailName = email.split("@")[0].replace(/[._\-0-9]/g, " ").trim().split(" ").filter(Boolean)[0] || "";
       if (emailName) setUserName(emailName.charAt(0).toUpperCase() + emailName.slice(1).toLowerCase());

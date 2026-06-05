@@ -280,8 +280,10 @@ function MemorySidebar({
   mem: Record<string, unknown>
   metas: Array<{ nome: string; valor_alvo: number; valor_atual: number }>
 }) {
-  const nome = (perfil.full_name as string) || (perfil.nome as string) || "Você"
-  const primeiroNome = nome.split(" ")[0]
+  const primeiroNome =
+    (perfil.nome_preferido as string) ||
+    ((perfil.full_name as string) || (perfil.nome as string) || "Você").split(" ")[0]
+  const nome = primeiroNome
 
   const items: Array<{ icon: React.ReactNode; label: string; value: string }> = []
 
@@ -650,7 +652,7 @@ export default function AssessorPage() {
         const score = diag?.score ?? perfil?.score_saude ?? null;
         const titulo = diag?.titulo ?? "";
         const plano = Array.isArray(diag?.plano_30_dias) ? (diag.plano_30_dias as string[]) : [];
-        const nome = (perfil?.nome as string)?.split(" ")[0] ?? "você";
+        const nome = (perfil?.nome_preferido as string) || (perfil?.nome as string)?.split(" ")[0] || "você";
         const objetivo = mem?.objetivo ?? perfil?.perfil_financeiro ?? "";
 
         const contexto = [
