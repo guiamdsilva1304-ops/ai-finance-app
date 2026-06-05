@@ -9,7 +9,8 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
 } from "recharts";
-import MonthlySummaryCard from "@/components/MonthlySummaryCard";
+import MonthlySummaryCard from "@/components/MonthlySummaryCard"
+import { StreakBadge } from "@/components/imoney/StreakBadge";
 
 const CATEGORY_COLORS = [
   "#16a34a","#22c55e","#4ade80","#86efac",
@@ -366,6 +367,8 @@ export default function DashboardPage() {
             </a>
           );
         })()}
+
+        <StreakBadge />
       </div>
     </div>
 
@@ -445,6 +448,8 @@ export default function DashboardPage() {
           </a>
         )
       )}
+
+      <StreakBadge />
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-6">
         {[
