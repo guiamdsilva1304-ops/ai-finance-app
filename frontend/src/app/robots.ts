@@ -2,7 +2,13 @@ import { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: "*", allow: ["/", "/login", "/blog"], disallow: ["/dashboard/", "/admin/"] }],
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: ["/admin", "/api"],
+      },
+    ],
     sitemap: "https://imoney.ia.br/sitemap.xml",
   };
 }
