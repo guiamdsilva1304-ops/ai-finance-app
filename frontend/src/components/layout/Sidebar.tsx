@@ -60,11 +60,12 @@ interface SidebarProps {
   email?: string;
   plan?: string;
   ocupacao?: string;
+  displayName?: string;
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-export function Sidebar({ email, plan = 'free', ocupacao }: SidebarProps) {
+export function Sidebar({ email, plan = 'free', ocupacao, displayName }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const supabase = createSupabaseBrowser();
@@ -84,10 +85,15 @@ export function Sidebar({ email, plan = 'free', ocupacao }: SidebarProps) {
         <Logo size={collapsed ? 48 : 200} showText={false} showTagline={false} />
       </div>
 
-      {/* Email */}
-      {!collapsed && email && (
+      {/* Nome + Email */}
+      {!collapsed && (displayName || email) && (
         <div className="px-4 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
-          <p className="text-[11px] truncate" style={{ color: 'var(--text-3)' }}>{email}</p>
+          {displayName && (
+            <p className="text-sm font-bold truncate" style={{ color: 'var(--text-1)', fontFamily: 'Nunito, sans-serif' }}>{displayName}</p>
+          )}
+          {email && (
+            <p className="text-[11px] truncate" style={{ color: 'var(--text-3)' }}>{email}</p>
+          )}
         </div>
       )}
 

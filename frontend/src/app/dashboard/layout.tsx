@@ -12,6 +12,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState<string>();
   const [plan, setPlan] = useState<string>('free');
   const [ocupacao, setOcupacao] = useState<string>();
+  const [displayName, setDisplayName] = useState<string>('');
   const [mounted, setMounted] = useState(false);
   const supabase = createSupabaseBrowser();
 
@@ -19,14 +20,20 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     setMounted(true);
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { window.location.href = "/"; return; }
-      setEmail(data.user.email ?? undefined);
+      const userEmail = data.user.email ?? '';
+      setEmail(userEmail);
       const { data: perfil } = await supabase
         .from('user_profiles')
-        .select('plan, ocupacao')
+        .select('plan, ocupacao, nome_preferido, nome, full_name')
         .eq('user_id', data.user.id)
         .maybeSingle();
       setPlan(perfil?.plan ?? 'free');
       setOcupacao(perfil?.ocupacao ?? undefined);
+      const dn =
+        perfil?.nome_preferido ||
+        ((perfil?.full_name || perfil?.nome || '') as string).split(' ')[0] ||
+        userEmail.split('@')[0].replace(/[._\-0-9]/g, ' ').trim().split(' ').filter(Boolean)[0] || '';
+      setDisplayName(dn ? dn.charAt(0).toUpperCase() + dn.slice(1) : '');
       // Dispara email de boas-vindas no primeiro acesso (fire-and-forget)
       supabase.auth.getSession().then(({ data: s }) => {
         if (s.session?.access_token) {
@@ -54,7 +61,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg-page)' }}>
       {/* Mobile header */}
       <div className="md:hidden border-b px-4 py-3 flex items-center justify-between" style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}>
-        <Logo size={100} showText={false} showTagline={false} />
+        <div className="flex items-center gap-2">
+          <Logo size={100} showText={false} showTagline={false} />
+          {displayName && (
+            <span className="text-sm font-bold truncate max-w-[120px]" style={{ color: 'var(--text-1)', fontFamily: 'Nunito, sans-serif' }}>
+              {displayName}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {plan === 'free' && (
             <Link
@@ -89,7 +103,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       </div>
 
       <div className="flex flex-1 min-h-0">
-        <Sidebar email={email} plan={plan} ocupacao={ocupacao} />
+        <Sidebar email={email} plan={plan} ocupacao={ocupacao} displayName={displayName} />
         <main className="flex-1 min-w-0 pb-24 md:pb-0">{children}</main>
       </div>
     </div>
