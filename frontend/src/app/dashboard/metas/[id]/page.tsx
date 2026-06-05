@@ -55,10 +55,10 @@ export default function MetaDetailPage() {
       if (!user) return;
       const [metaRes, profileRes] = await Promise.all([
         supabase.from("metas").select("*").eq("id", params.id as string).eq("user_id", user.id).single(),
-        supabase.from("user_profiles").select("full_name").eq("user_id", user.id).single(),
+        supabase.from("user_profiles").select("nome_preferido,nome").eq("user_id", user.id).maybeSingle(),
       ]);
       if (metaRes.data) setMeta(metaRes.data as MetaExt);
-      if (profileRes.data?.full_name) setUserName(profileRes.data.full_name.split(" ")[0]);
+      if (profileRes.data) setUserName(profileRes.data.nome_preferido || (profileRes.data.nome || "").split(" ")[0]);
       setLoading(false);
     }
     load();

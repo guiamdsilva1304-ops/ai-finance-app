@@ -192,7 +192,7 @@ export default function DashboardPage() {
 
     const [metasRes, profileRes] = await Promise.all([
       supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).order("created_at", { ascending: false }),
-     supabase.from("user_profiles").select("plan,full_name,nome,nome_preferido").eq("user_id", session.user.id).maybeSingle(),
+     supabase.from("user_profiles").select("plan,nome,nome_preferido").eq("user_id", session.user.id).maybeSingle(),
     ]);
     const metas: Meta[] = metasRes.data ?? [];
     setAllMetas(metas);
@@ -203,7 +203,7 @@ export default function DashboardPage() {
       setIsPro(profileRes.data.plan === "pro" || profileRes.data.plan === "premium");
       const displayName =
         profileRes.data.nome_preferido ||
-        (profileRes.data.full_name || profileRes.data.nome || "").split(" ")[0];
+        (profileRes.data.nome || "").split(" ")[0];
       if (displayName) {
         setUserName(displayName);
       } else {

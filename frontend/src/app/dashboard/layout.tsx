@@ -24,14 +24,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       setEmail(userEmail);
       const { data: perfil } = await supabase
         .from('user_profiles')
-        .select('plan, ocupacao, nome_preferido, nome, full_name')
+        .select('plan, ocupacao, nome_preferido, nome')
         .eq('user_id', data.user.id)
         .maybeSingle();
       setPlan(perfil?.plan ?? 'free');
       setOcupacao(perfil?.ocupacao ?? undefined);
       const dn =
         perfil?.nome_preferido ||
-        ((perfil?.full_name || perfil?.nome || '') as string).split(' ')[0] ||
+        ((perfil?.nome || '') as string).split(' ')[0] ||
         userEmail.split('@')[0].replace(/[._\-0-9]/g, ' ').trim().split(' ').filter(Boolean)[0] || '';
       setDisplayName(dn ? dn.charAt(0).toUpperCase() + dn.slice(1) : '');
       // Dispara email de boas-vindas no primeiro acesso (fire-and-forget)

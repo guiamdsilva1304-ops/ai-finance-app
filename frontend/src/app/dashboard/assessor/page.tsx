@@ -282,7 +282,7 @@ function MemorySidebar({
 }) {
   const primeiroNome =
     (perfil.nome_preferido as string) ||
-    ((perfil.full_name as string) || (perfil.nome as string) || "Você").split(" ")[0]
+    ((perfil.nome as string) || "Você").split(" ")[0]
   const nome = primeiroNome
 
   const items: Array<{ icon: React.ReactNode; label: string; value: string }> = []

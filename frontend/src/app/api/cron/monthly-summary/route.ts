@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   const { data: proUsers, error: usersError } = await supabase
     .from('user_profiles')
-    .select('user_id, full_name, email')
+    .select('user_id, nome_preferido, nome, email')
     .in('plan', ['pro', 'premium'])
 
   if (usersError || !proUsers?.length) {
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 }
 
 async function generateSummaryForUser(
-  user: { user_id: string; full_name: string; email: string },
+  user: { user_id: string; nome_preferido: string | null; nome: string | null; email: string },
   year: number,
   month: number
 ) {
@@ -106,7 +106,7 @@ async function generateSummaryForUser(
 
   const prompt = `Você é o Assessor Financeiro da iMoney, um app de finanças para jovens brasileiros.
 
-Gere um resumo financeiro mensal para o usuário ${user.full_name || 'usuário'} referente a ${monthName}/${year}.
+Gere um resumo financeiro mensal para o usuário ${user.nome_preferido || user.nome || 'usuário'} referente a ${monthName}/${year}.
 
 Dados:
 - Total gasto: R$ ${totalSpent.toFixed(2)}
@@ -157,12 +157,12 @@ Seja humano, não robótico. Use linguagem de jovem adulto, sem ser informal dem
 }
 
 async function sendSummaryEmail(
-  user: { email: string; full_name: string; user_id: string },
+  user: { email: string; nome_preferido: string | null; nome: string | null; user_id: string },
   summary: any,
   monthName: string,
   year: number
 ) {
-  const firstName = user.full_name?.split(' ')[0] || 'você'
+  const firstName = user.nome_preferido || (user.nome || '').split(' ')[0] || 'você'
   const saldoColor = summary.total_income >= summary.total_spent ? '#00C853' : '#e53935'
   const saldo = summary.total_income - summary.total_spent
   const diffSign = summary.vs_previous_month.diff_percent > 0 ? '+' : ''

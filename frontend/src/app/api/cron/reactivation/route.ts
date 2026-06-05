@@ -199,7 +199,7 @@ async function advanceActiveCampaigns(): Promise<{ advanced: number; exited: num
 
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('nome, full_name, email')
+      .select('nome_preferido, nome, email')
       .eq('user_id', userId)
       .maybeSingle()
 
@@ -207,7 +207,7 @@ async function advanceActiveCampaigns(): Promise<{ advanced: number; exited: num
     const email: string = profile?.email ?? authUser?.user?.email ?? ''
     if (!email) continue
 
-    const nome: string = profile?.nome ?? profile?.full_name ?? email.split('@')[0]
+    const nome: string = profile?.nome_preferido ?? profile?.nome ?? email.split('@')[0]
 
     const template = buildEmail(trail, nextEmailNumber, { nome, userId, eligible: true })
     if (!template) continue
@@ -235,20 +235,20 @@ async function enrollNewCampaigns(): Promise<{ enrolled: number }> {
 
   const { data: profiles } = await supabase
     .from('user_profiles')
-    .select('user_id, nome, full_name, email')
+    .select('user_id, nome_preferido, nome, email')
 
   if (!profiles?.length) return { enrolled: 0 }
 
   let enrolled = 0
 
-  for (const profile of profiles as { user_id: string; nome: string | null; full_name: string | null; email: string | null }[]) {
+  for (const profile of profiles as { user_id: string; nome_preferido: string | null; nome: string | null; email: string | null }[]) {
     if (activeUserIds.has(profile.user_id)) continue
 
     const { data: authUser } = await supabase.auth.admin.getUserById(profile.user_id)
     const email: string = profile.email ?? authUser?.user?.email ?? ''
     if (!email) continue
 
-    const nome: string = profile.nome ?? profile.full_name ?? email.split('@')[0]
+    const nome: string = profile.nome_preferido ?? profile.nome ?? email.split('@')[0]
 
     // Evaluate triggers in priority order (highest first)
     let matched: { trail: TrailSlug; result: TriggerResult } | null = null
