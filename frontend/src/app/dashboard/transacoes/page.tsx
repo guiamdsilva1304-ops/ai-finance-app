@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { formatBRL, formatDate } from "@/lib/utils";
-import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Search, Tag, Download } from "lucide-react";
+import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Search, Tag, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORIAS, type Categoria, type Transaction } from "@/types";
 import Link from "next/link";
@@ -25,6 +25,15 @@ function addMonths(dateStr: string, months: number): string {
   return d.toISOString().split("T")[0];
 }
 
+function fmtMesAno(dateStr: string) {
+  const d = new Date(dateStr + "T12:00:00");
+  return d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(". de ", "/").replace(".", "");
+}
+
+type DisplayItem =
+  | { kind: "single"; transaction: Transaction }
+  | { kind: "group"; parcelamentoId: string; transactions: Transaction[] };
+
 export default function TransacoesPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +49,7 @@ export default function TransacoesPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [streakToast, setStreakToast] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // Form state
   const [desc, setDesc] = useState("");
@@ -48,8 +58,6 @@ export default function TransacoesPage() {
   const [cat, setCat] = useState<Categoria>("Outros");
   const [dataT, setDataT] = useState(new Date().toISOString().split("T")[0]);
   const [formError, setFormError] = useState("");
-
-  // Parcelamento state
   const [isParcelado, setIsParcelado] = useState(false);
   const [numParcelas, setNumParcelas] = useState(2);
 
@@ -57,6 +65,7 @@ export default function TransacoesPage() {
   const valorParcela = isParcelado && numParcelas >= 2 ? valorNum / numParcelas : valorNum;
 
   const supabase = createSupabaseBrowser();
+  const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -140,7 +149,6 @@ export default function TransacoesPage() {
 
     if (isParcelado) {
       const parcela = parseFloat((v / numParcelas).toFixed(2));
-      // Cria o grupo de parcelamento
       const { data: grupo } = await supabase.from("parcelamentos").insert({
         user_id: user.id,
         descricao: desc.trim().slice(0, 200),
@@ -152,7 +160,6 @@ export default function TransacoesPage() {
       }).select("id").single();
 
       if (grupo) {
-        // Cria N transações, uma por mês
         const rows = Array.from({ length: numParcelas }, (_, i) => ({
           user_id: user.id,
           descricao: desc.trim().slice(0, 200),
@@ -183,29 +190,41 @@ export default function TransacoesPage() {
     load();
   }
 
-  async function remove(t: Transaction) {
-    if (t.parcelamento_id) {
-      const today = new Date().toISOString().split("T")[0];
-      const opcao = window.confirm(
-        `"${t.descricao}" é uma compra parcelada (${t.parcela_numero}/${t.parcela_total}).\n\nOK → excluir apenas esta parcela\nCancelar → excluir esta e todas as futuras`
-      );
-      const { data: { user } } = await supabase.auth.getUser();
-      if (opcao) {
-        await supabase.from("transactions").delete().eq("id", t.id).eq("user_id", user!.id);
-      } else {
-        // Exclui esta e todas as futuras do mesmo parcelamento
-        await supabase.from("transactions")
-          .delete()
-          .eq("parcelamento_id", t.parcelamento_id)
-          .eq("user_id", user!.id)
-          .gte("date", today);
-      }
-    } else {
-      if (!confirm("Excluir transação?")) return;
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from("transactions").delete().eq("id", t.id).eq("user_id", user!.id);
-    }
+  async function removeSingle(t: Transaction) {
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("transactions").delete().eq("id", t.id).eq("user_id", user!.id);
     load();
+  }
+
+  async function removeGroup(parcelamentoId: string, fromDate?: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    let q = supabase.from("transactions").delete()
+      .eq("parcelamento_id", parcelamentoId)
+      .eq("user_id", user!.id);
+    if (fromDate) q = q.gte("date", fromDate);
+    await q;
+    load();
+  }
+
+  async function handleRemoveTransaction(t: Transaction) {
+    if (!t.parcelamento_id) {
+      if (!confirm("Excluir transação?")) return;
+      await removeSingle(t);
+    } else {
+      const ok = confirm(
+        `"${t.descricao}" (${t.parcela_numero}/${t.parcela_total})\n\nOK → excluir apenas esta parcela\nCancelar → excluir esta e todas as futuras`
+      );
+      if (ok) {
+        await removeSingle(t);
+      } else {
+        await removeGroup(t.parcelamento_id, t.date);
+      }
+    }
+  }
+
+  async function handleRemoveAllGroup(parcelamentoId: string, descricao: string, total: number) {
+    if (!confirm(`Excluir todas as ${total} parcelas de "${descricao}"?`)) return;
+    await removeGroup(parcelamentoId);
   }
 
   const filtered = transactions.filter(t => {
@@ -215,10 +234,42 @@ export default function TransacoesPage() {
     return true;
   });
 
+  // Build display list: group parcelamento transactions into one item
+  const displayList: DisplayItem[] = (() => {
+    const parcelamentoMap = new Map<string, Transaction[]>();
+    for (const t of filtered) {
+      if (t.parcelamento_id) {
+        const arr = parcelamentoMap.get(t.parcelamento_id) ?? [];
+        arr.push(t);
+        parcelamentoMap.set(t.parcelamento_id, arr);
+      }
+    }
+    const seen = new Set<string>();
+    const result: DisplayItem[] = [];
+    for (const t of filtered) {
+      if (!t.parcelamento_id) {
+        result.push({ kind: "single", transaction: t });
+      } else if (!seen.has(t.parcelamento_id)) {
+        seen.add(t.parcelamento_id);
+        const txs = (parcelamentoMap.get(t.parcelamento_id) ?? [])
+          .slice()
+          .sort((a, b) => a.date.localeCompare(b.date));
+        result.push({ kind: "group", parcelamentoId: t.parcelamento_id, transactions: txs });
+      }
+    }
+    return result;
+  })();
+
   const totalGastos = filtered.filter(t => t.tipo === "gasto").reduce((s, t) => s + t.valor, 0);
   const totalReceitas = filtered.filter(t => t.tipo === "receita").reduce((s, t) => s + t.valor, 0);
 
-  const today = new Date().toISOString().split("T")[0];
+  function toggleGroup(id: string) {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   const modalImportar = (
     <div
@@ -359,7 +410,6 @@ export default function TransacoesPage() {
               </select>
             </div>
 
-            {/* Parcelamento toggle — só para gastos */}
             {tipo === "gasto" && (
               <div className="sm:col-span-2">
                 <button
@@ -378,7 +428,6 @@ export default function TransacoesPage() {
               </div>
             )}
 
-            {/* Campos de parcelamento */}
             {isParcelado && (
               <>
                 <div>
@@ -411,7 +460,6 @@ export default function TransacoesPage() {
 
           {formError && <p className="text-xs text-red-500 mb-3">⚠ {formError}</p>}
 
-          {/* Resumo do parcelamento */}
           {isParcelado && valorNum > 0 && (
             <div className="mb-3 p-3 rounded-xl bg-orange-50 border border-orange-200 text-xs text-orange-800">
               <p className="font-bold mb-1">📅 Serão criadas {numParcelas} transações mensais</p>
@@ -454,7 +502,7 @@ export default function TransacoesPage() {
         <div className="space-y-2">
           {[0,1,2,3].map(i => <div key={i} className="card h-16 shimmer"/>)}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : displayList.length === 0 ? (
         <div className="card text-center py-12 bg-[#f8fdf9]">
           <p className="text-3xl mb-2">📋</p>
           <p className="font-bold text-[#0d2414]">Nenhuma transação encontrada</p>
@@ -462,53 +510,138 @@ export default function TransacoesPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((t, i) => {
-            const isFutura = t.date > today;
-            const isParc = !!t.parcelamento_id;
-            return (
-              <div key={t.id}
-                className="card card-hover py-3 px-4 flex items-center gap-3 animate-fade-up opacity-0"
-                style={{
-                  animationDelay: `${i * 30}ms`,
-                  opacity: isFutura ? undefined : undefined,
-                  borderLeft: isParc ? "3px solid #fb923c" : undefined,
-                }}>
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                  t.tipo === "gasto" ? "bg-red-50" : "bg-[#f0fdf4]")}>
-                  {t.tipo === "gasto"
-                    ? <TrendingDown size={15} className="text-red-500"/>
-                    : <TrendingUp size={15} className="text-[#16a34a]"/>}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
+          {displayList.map((item, i) => {
+            if (item.kind === "single") {
+              const t = item.transaction;
+              return (
+                <div key={t.id}
+                  className="card card-hover py-3 px-4 flex items-center gap-3 animate-fade-up opacity-0"
+                  style={{ animationDelay: `${i * 30}ms` }}>
+                  <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                    t.tipo === "gasto" ? "bg-red-50" : "bg-[#f0fdf4]")}>
+                    {t.tipo === "gasto"
+                      ? <TrendingDown size={15} className="text-red-500"/>
+                      : <TrendingUp size={15} className="text-[#16a34a]"/>}
+                  </div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-[#0d2414] truncate">{t.descricao}</p>
-                    {isParc && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 shrink-0">
-                        💳 {t.parcela_numero}/{t.parcela_total}
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className={cn("badge text-[10px] px-1.5 py-0.5", CAT_COLORS[t.categoria] ?? "badge-green")}>
+                        {t.categoria}
                       </span>
-                    )}
+                      <span className="text-[11px] text-[#8db89d]">{formatDate(t.date)}</span>
+                      {t.importado_via && t.importado_via !== "manual" && (
+                        <span className="badge bg-purple-50 text-purple-600 text-[10px] px-1.5 py-0.5">📂 Importado</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className={cn("badge text-[10px] px-1.5 py-0.5", CAT_COLORS[t.categoria] ?? "badge-green")}>
-                      {t.categoria}
-                    </span>
-                    <span className="text-[11px] text-[#8db89d]">{formatDate(t.date)}</span>
-                    {isFutura && (
-                      <span className="badge bg-blue-50 text-blue-600 text-[10px] px-1.5 py-0.5">📅 Agendado</span>
-                    )}
-                    {t.importado_via && t.importado_via !== "manual" && (
-                      <span className="badge bg-purple-50 text-purple-600 text-[10px] px-1.5 py-0.5">📂 Importado</span>
-                    )}
+                  <p className={cn("font-black text-sm shrink-0", t.tipo === "gasto" ? "text-red-500" : "text-[#16a34a]")}
+                    style={{ fontFamily: "Nunito, sans-serif" }}>
+                    {t.tipo === "gasto" ? "-" : "+"}{formatBRL(t.valor)}
+                  </p>
+                  <button onClick={() => handleRemoveTransaction(t)}
+                    className="p-1.5 rounded-lg hover:bg-red-50 text-[#8db89d] hover:text-red-500 transition-colors shrink-0">
+                    <Trash2 size={13}/>
+                  </button>
+                </div>
+              );
+            }
+
+            // Grouped parcelamento item
+            const { parcelamentoId, transactions: txs } = item;
+            const expanded = expandedGroups.has(parcelamentoId);
+            const pagas = txs.filter(t => t.date <= today).length;
+            const pendentes = txs.filter(t => t.date > today).length;
+            const proxima = txs.find(t => t.date > today);
+            const primeira = txs[0];
+            const ultima = txs[txs.length - 1];
+            const total = txs.length;
+            const valorParc = primeira?.valor ?? 0;
+
+            return (
+              <div key={parcelamentoId} className="animate-fade-up opacity-0" style={{ animationDelay: `${i * 30}ms` }}>
+                {/* Card principal do parcelamento */}
+                <div
+                  className="card py-3 px-4 cursor-pointer select-none"
+                  style={{ borderLeft: "3px solid #fb923c" }}
+                  onClick={() => toggleGroup(parcelamentoId)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-orange-50">
+                      <span style={{ fontSize: 15 }}>💳</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-[#0d2414] truncate">{primeira?.descricao}</p>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 shrink-0">
+                          {total}×
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className={cn("badge text-[10px] px-1.5 py-0.5", CAT_COLORS[primeira?.categoria] ?? "badge-green")}>
+                          {primeira?.categoria}
+                        </span>
+                        <span className="text-[11px] text-[#8db89d]">
+                          {fmtMesAno(primeira?.date)} → {fmtMesAno(ultima?.date)}
+                        </span>
+                        {pagas > 0 && (
+                          <span className="text-[10px] text-[#16a34a] font-semibold">{pagas} paga{pagas > 1 ? "s" : ""}</span>
+                        )}
+                        {pendentes > 0 && (
+                          <span className="badge bg-blue-50 text-blue-600 text-[10px] px-1.5 py-0.5">
+                            📅 {pendentes} pendente{pendentes > 1 ? "s" : ""}
+                            {proxima && ` · próx. ${fmtMesAno(proxima.date)}`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <p className="font-black text-sm text-red-500" style={{ fontFamily: "Nunito, sans-serif" }}>
+                        -{formatBRL(valorParc)}<span className="text-[10px] font-normal text-[#8db89d]">/mês</span>
+                      </p>
+                      <button
+                        onClick={e => { e.stopPropagation(); handleRemoveAllGroup(parcelamentoId, primeira?.descricao ?? "", total); }}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-[#8db89d] hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={13}/>
+                      </button>
+                      <div className="text-[#8db89d]">
+                        {expanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <p className={cn("font-black text-sm shrink-0", t.tipo === "gasto" ? "text-red-500" : "text-[#16a34a]")}
-                  style={{ fontFamily: "Nunito, sans-serif" }}>
-                  {t.tipo === "gasto" ? "-" : "+"}{formatBRL(t.valor)}
-                </p>
-                <button onClick={() => remove(t)}
-                  className="p-1.5 rounded-lg hover:bg-red-50 text-[#8db89d] hover:text-red-500 transition-colors shrink-0">
-                  <Trash2 size={13}/>
-                </button>
+
+                {/* Parcelas expandidas */}
+                {expanded && (
+                  <div className="ml-4 mt-1 space-y-1 border-l-2 border-orange-200 pl-3">
+                    {txs.map(t => {
+                      const isFutura = t.date > today;
+                      return (
+                        <div key={t.id} className="card py-2 px-3 flex items-center gap-2"
+                          style={{ background: isFutura ? "var(--bg-hover)" : undefined }}>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[11px] font-bold text-[#8db89d]">{t.parcela_numero}/{t.parcela_total}</span>
+                              <span className="text-[11px] text-[#0d2414]">{formatDate(t.date)}</span>
+                              {isFutura
+                                ? <span className="badge bg-blue-50 text-blue-600 text-[10px] px-1.5 py-0.5">📅 Agendado</span>
+                                : <span className="badge bg-green-50 text-green-700 text-[10px] px-1.5 py-0.5">✓ Paga</span>
+                              }
+                            </div>
+                          </div>
+                          <p className="font-bold text-sm text-red-500 shrink-0" style={{ fontFamily: "Nunito, sans-serif" }}>
+                            -{formatBRL(t.valor)}
+                          </p>
+                          <button onClick={() => handleRemoveTransaction(t)}
+                            className="p-1 rounded-lg hover:bg-red-50 text-[#8db89d] hover:text-red-500 transition-colors shrink-0">
+                            <Trash2 size={12}/>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -521,7 +654,6 @@ export default function TransacoesPage() {
 
       <VoiceTransactionButton onSuccess={load} isPro={plan === 'pro' || plan === 'premium'} />
 
-      {/* Portals para modais */}
       {mounted && showImportModal && createPortal(modalImportar, document.body)}
       {mounted && showPremiumModal && createPortal(modalPremium, document.body)}
     </div>
