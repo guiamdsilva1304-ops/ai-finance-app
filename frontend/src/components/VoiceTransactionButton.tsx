@@ -62,9 +62,14 @@ export default function VoiceTransactionButton({ onSuccess, isPro }: Props) {
       setState('processing')
 
       try {
+        const supabase = createSupabaseBrowser()
+        const { data: { session } } = await supabase.auth.getSession()
         const res = await fetch('/api/voice-transaction', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token ?? ''}`,
+          },
           body: JSON.stringify({ transcript: text }),
         })
         const data = await res.json()

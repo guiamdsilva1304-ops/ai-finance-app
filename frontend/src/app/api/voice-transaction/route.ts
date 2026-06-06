@@ -1,7 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { createClient } from '@supabase/supabase-js'
 
 const client = new Anthropic()
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 const CATEGORIAS = [
   'Alimentação', 'Transporte', 'Saúde', 'Educação',
@@ -9,8 +15,22 @@ const CATEGORIAS = [
   'Salário', 'Freelance', 'Investimentos', 'Outros',
 ]
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const token = req.headers.get('authorization')?.replace('Bearer ', '') ?? ''
+    const { data: { user } } = await supabase.auth.getUser(token)
+    if (!user) return NextResponse.json({ erro: 'Não autenticado' }, { status: 401 })
+
+    const { data: perfil } = await supabase
+      .from('user_profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .single()
+
+    if (perfil?.plan !== 'pro' && perfil?.plan !== 'premium') {
+      return NextResponse.json({ erro: 'Disponível apenas nos planos Pro e Premium' }, { status: 403 })
+    }
+
     const { transcript } = await req.json()
     if (!transcript || transcript.trim().length < 3) {
       return NextResponse.json({ erro: 'Transcrição muito curta' }, { status: 400 })
@@ -32,8 +52,8 @@ Fala: "${transcript}"
 - "confianca": 0 a 1
 
 Retorne: {"tipo":"gasto","valor":45.90,"descricao":"descrição","categoria":"Alimentação","confianca":0.95}
-Se não entender: {"erro":"Não entendi. Tente: 'Gastei 50 reais no mercado'"}`
-      }]
+Se não entender: {"erro":"Não entendi. Tente: 'Gastei 50 reais no mercado'"}`,
+      }],
     })
 
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
