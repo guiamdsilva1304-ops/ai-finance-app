@@ -433,7 +433,7 @@ export default function RendaPage() {
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#444" }}>
                     <span>Rendimento atual (SELIC)</span>
-                    <strong style={{ color: "#16a34a" }}>~14,75% a.a.</strong>
+                    <strong style={{ color: "#16a34a" }}>~14,50% a.a.</strong>
                   </div>
                 </div>
                 <div style={{ marginTop: 12, fontSize: 12, color: "#6b9e80", background: "#fff", borderRadius: 8, padding: "10px 14px" }}>

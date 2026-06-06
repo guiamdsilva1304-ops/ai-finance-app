@@ -191,7 +191,7 @@ export async function POST(req: NextRequest) {
         const pctRenda = rendaMediaMensal > 0 ? Math.round((sugestaoFinal / rendaMediaMensal) * 100) : 0
 
         // Projeção com Tesouro Selic
-        const selic = Number(context?.selic ?? 14.75)
+        const selic = Number(context?.selic ?? 14.50)
         const r = selic / 100 / 12
 
         const linhas: string[] = ['\n### Análise de receitas reais (últimos 90 dias):']
@@ -240,7 +240,7 @@ COMO RESPONDER:
 - Quando análise mais profunda realmente ajudaria, adicione de forma natural (não em toda resposta): "💡 No Pro, eu analiso isso com os seus dados reais e te mostro exatamente o que fazer."
 
 ECONOMIA:
-- SELIC: ${context?.selic ?? 14.75}% a.a.
+- SELIC: ${context?.selic ?? 14.50}% a.a.
 - IPCA: ${context?.ipca_anual ?? 5.48}%`
 
     // ─── PRO ─────────────────────────────────────────────────────────────────
@@ -336,7 +336,7 @@ MEMÓRIA FINANCEIRA DO USUÁRIO — use para personalizar cada resposta:
 A iMoney conhece este usuário. Use essa memória para personalizar TODAS as respostas desde a primeira mensagem. Se o usuário mencionar algo que contradiz o diagnóstico, pergunte o que mudou — a memória evolui com ele.` : ''}
 
 ECONOMIA:
-- SELIC: ${context?.selic ?? 14.75}% a.a.
+- SELIC: ${context?.selic ?? 14.50}% a.a.
 - IPCA anual: ${context?.ipca_anual ?? 5.48}%
 
 COMO RESPONDER:

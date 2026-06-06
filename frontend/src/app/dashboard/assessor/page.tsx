@@ -724,7 +724,7 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
       const mem = memRes.status === "fulfilled" ? memRes.value.data ?? {} : {};
       const metas = metasRes.status === "fulfilled" ? metasRes.value.data ?? [] : [];
       const perfil = perfilRes.status === "fulfilled" ? perfilRes.value.data ?? {} : {};
-      const eco = ecoRes.status === "fulfilled" && ecoRes.value.ok ? await ecoRes.value.json() : { selic_anual: 14.75, ipca_mensal: 0.56 };
+      const eco = ecoRes.status === "fulfilled" && ecoRes.value.ok ? await ecoRes.value.json() : { selic_anual: 14.50, ipca_mensal: 0.56 };
       const summary = summaryRes.status === "fulfilled" && summaryRes.value.ok ? await summaryRes.value.json() : null;
 
       const renda = summary?.renda ?? mem.last_renda ?? 0;

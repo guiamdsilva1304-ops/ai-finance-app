@@ -32,7 +32,7 @@ async function enviarResumoSemanal(email: string, nome: string) {
               Ver meu dashboard →
             </a>
           </div>
-          <p style="font-size:13px;color:#888">Dica da semana: mantenha sua reserva de emergência em investimentos de liquidez diária como Tesouro Selic ou CDB liquidez diária. Com a SELIC em 14,75%, seu dinheiro rende mesmo parado.</p>
+          <p style="font-size:13px;color:#888">Dica da semana: mantenha sua reserva de emergência em investimentos de liquidez diária como Tesouro Selic ou CDB liquidez diária. Com a SELIC em 14,50%, seu dinheiro rende mesmo parado.</p>
         </div>
         <div style="background:#f8f9f8;padding:16px;text-align:center;border-radius:0 0 12px 12px">
           <p style="font-size:12px;color:#aaa;margin:0">iMoney · <a href="https://imoney.ia.br" style="color:#1D9E75;">imoney.ia.br</a></p>
@@ -58,7 +58,7 @@ async function enviarDicaSemanal(email: string, nome: string, ocupacao: string) 
     },
     estudante: {
       titulo: '💡 Dica para estudantes: comece pequeno, mas comece',
-      corpo: 'R$ 50 por mês investidos no Tesouro Selic a 14,75% ao ano por 5 anos viram mais de R$ 4.200. O segredo não é o valor — é a consistência. Automatize a transferência todo dia de pagamento.'
+      corpo: 'R$ 50 por mês investidos no Tesouro Selic a 14,50% ao ano por 5 anos viram mais de R$ 4.200. O segredo não é o valor — é a consistência. Automatize a transferência todo dia de pagamento.'
     },
     default: {
       titulo: '💡 Dica financeira da semana',

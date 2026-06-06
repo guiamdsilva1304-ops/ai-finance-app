@@ -12,7 +12,7 @@ export async function GET() {
     const ipcaMensalData = ipcaMensalRes.ok ? await ipcaMensalRes.json() : null;
     const ipca12mData = ipca12mRes.ok ? await ipca12mRes.json() : null;
 
-    const selic_meta = selicMetaData?.[0]?.valor ? parseFloat(selicMetaData[0].valor) : 14.75;
+    const selic_meta = selicMetaData?.[0]?.valor ? parseFloat(selicMetaData[0].valor) : 14.50;
     const ipca_mensal = ipcaMensalData?.[0]?.valor ? parseFloat(ipcaMensalData[0].valor) : 0.56;
 
     const ipca_anual = ipca12mData
@@ -39,8 +39,8 @@ export async function GET() {
   } catch {
     return NextResponse.json({
       selic_mensal: 1.15,
-      selic_anual: 14.75,
-      selic_meta: 14.75,
+      selic_anual: 14.50,
+      selic_meta: 14.50,
       ipca_mensal: 0.56,
       ipca_anual: 5.48,
       juro_real: 8.79,

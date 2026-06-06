@@ -188,7 +188,7 @@ export async function GET(req: NextRequest) {
     const dateStr = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
                         const researchContext = research
       ? `keyword="${research.keyword_principal}" | tipo=${research.article_type ?? 'informacional'} | intent=${research.intent ?? 'informacional'} | gaps=${JSON.stringify(research.coverage_gaps ?? [])} | diferencial="${research.our_differentiation ?? ''}" | lsi=${JSON.stringify(research.lsi_keywords ?? [])} | dados=${JSON.stringify(research.financial_data ?? {})}`
-      : `Sem pesquisa. Use tema relevante para jovens brasileiros. Dados: SELIC 14,75%, IPCA ~5,5%, salário mínimo R$1.518.`
+      : `Sem pesquisa. Use tema relevante para jovens brasileiros. Dados: SELIC 14,50%, IPCA ~5,5%, salário mínimo R$1.518.`
 
     // ── CHAMADA 1: apenas metadados + estrutura (sem body) ───────────────────
     console.log('[SEO v2] Chamada 1: metadados... | dia:', dayType.type)

@@ -8,7 +8,7 @@ export const maxDuration = 60;
 const TEST_QUESTIONS = [
   "Tenho R$500 sobrando esse mês. O que faço com esse dinheiro?",
   "Estou no rotativo do cartão há 3 meses. Como saio disso?",
-  "Vale a pena investir no Tesouro Direto com a SELIC a 14,75%?",
+  "Vale a pena investir no Tesouro Direto com a SELIC a 14,50%?",
   "Como montar uma reserva de emergência? Quanto preciso guardar?",
   "Meu score está 450. O que faço para subir rápido?",
 ];
@@ -21,7 +21,7 @@ const PROMPT_VARIANTS = [
   },
   {
     name: "Contextual — com dados BR",
-    prompt: `Você é o assessor financeiro do iMoney. Contexto do Brasil em 2026: SELIC 14,75%, inflação ~5%, 70% dos brasileiros endividados, salário mínimo R$1.518. Use esses dados para contextualizar suas respostas. Seja direto e prático. Dê sempre um próximo passo concreto que o usuário pode fazer hoje.`
+    prompt: `Você é o assessor financeiro do iMoney. Contexto do Brasil em 2026: SELIC 14,50%, inflação ~5%, 70% dos brasileiros endividados, salário mínimo R$1.518. Use esses dados para contextualizar suas respostas. Seja direto e prático. Dê sempre um próximo passo concreto que o usuário pode fazer hoje.`
   },
   {
     name: "Coach — empático e acionável",
@@ -38,7 +38,7 @@ Seja direto. Máximo 150 palavras.`
   },
   {
     name: "Personalizado — baseado em dados",
-    prompt: `Você é o assessor de IA do iMoney com acesso aos dados financeiros do usuário. Quando o usuário perguntar algo, use o contexto das transações e metas dele se disponível. Se não houver dados, pergunte brevemente para personalizar. SELIC atual: 14,75%. Sempre termine com uma pergunta que aprofunda o entendimento da situação do usuário.`
+    prompt: `Você é o assessor de IA do iMoney com acesso aos dados financeiros do usuário. Quando o usuário perguntar algo, use o contexto das transações e metas dele se disponível. Se não houver dados, pergunte brevemente para personalizar. SELIC atual: 14,50%. Sempre termine com uma pergunta que aprofunda o entendimento da situação do usuário.`
   },
 ];
 
