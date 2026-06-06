@@ -16,7 +16,7 @@ async function verificarLimite(userId: string): Promise<{ permitido: boolean; us
   const { data: perfil } = await supabase
     .from('user_profiles')
     .select('plan, daily_messages_count, daily_messages_date')
-    .eq('id', userId)
+    .eq('user_id', userId)
     .single()
 
   const plano = perfil?.plan ?? 'free'
@@ -38,7 +38,7 @@ async function incrementarContador(userId: string): Promise<void> {
   const { data: perfil } = await supabase
     .from('user_profiles')
     .select('daily_messages_count, daily_messages_date')
-    .eq('id', userId)
+    .eq('user_id', userId)
     .single()
 
   const dataUltimo = perfil?.daily_messages_date ?? null
@@ -50,7 +50,7 @@ async function incrementarContador(userId: string): Promise<void> {
       daily_messages_count: countAtual + 1,
       daily_messages_date: hoje,
     })
-    .eq('id', userId)
+    .eq('user_id', userId)
 }
 
 async function callAnthropicWithRetry(client: any, params: any, maxRetries = 3) {
@@ -71,6 +71,11 @@ async function callAnthropicWithRetry(client: any, params: any, maxRetries = 3) 
   }
 }
 
+function fvMensal(pmt: number, r: number, n: number): number {
+  if (r <= 0) return pmt * n
+  return pmt * ((Math.pow(1 + r, n) - 1) / r)
+}
+
 export async function POST(req: NextRequest) {
   try {
     const auth = req.headers.get("authorization");
@@ -79,18 +84,34 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser(token)
     if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 })
 
-    const [limiteResult, diagnosticoResult, categoriasResult] = await Promise.allSettled([
+    // Parseia o body antes das queries para ter context disponível
+    const body = await req.json();
+    const { messages, context } = body;
+
+    const noventa_dias = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const trinta_dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+    const [limiteResult, diagnosticoResult, categoriasResult, receitasResult] = await Promise.allSettled([
       verificarLimite(user.id),
-      supabase.from('user_profiles').select('perfil_financeiro, score_saude, diagnostico_json, renda_mensal, gastos_mensais, monthly_available').eq('user_id', user.id).maybeSingle(),
-      supabase
-        .from('transactions')
+      supabase.from('user_profiles')
+        .select('perfil_financeiro, score_saude, diagnostico_json, renda_mensal, gastos_mensais, monthly_available')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase.from('transactions')
         .select('categoria, valor')
         .eq('user_id', user.id)
         .eq('tipo', 'gasto')
-        .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
+        .gte('date', trinta_dias),
+      supabase.from('transactions')
+        .select('descricao, valor, date, categoria')
+        .eq('user_id', user.id)
+        .eq('tipo', 'receita')
+        .gte('date', noventa_dias),
     ])
 
-    const { permitido, usadas, limite, plano } = limiteResult.status === 'fulfilled' ? limiteResult.value : { permitido: true, usadas: 0, limite: 10, plano: 'free' }
+    const { permitido, usadas, limite, plano } = limiteResult.status === 'fulfilled'
+      ? limiteResult.value
+      : { permitido: true, usadas: 0, limite: 10, plano: 'free' }
     const perfilDiagnostico = diagnosticoResult.status === 'fulfilled' ? diagnosticoResult.value.data : null
 
     if (!permitido) {
@@ -104,11 +125,9 @@ export async function POST(req: NextRequest) {
       }, { status: 429 })
     }
 
-    const body = await req.json();
-    const { messages, context } = body;
-
     const isPro = plano === 'pro' || plano === 'premium'
 
+    // ─── Gastos por categoria (Pro/Premium) ───────────────────────────────────
     type CategoriaItem = { categoria: string; total: number; percentual: number }
     let categorias: CategoriaItem[] = []
     if (isPro && categoriasResult.status === 'fulfilled') {
@@ -138,6 +157,64 @@ export async function POST(req: NextRequest) {
         linhas.push(`\n> ⚠️ "${top.categoria}" representa ${top.percentual}% dos gastos. Sugira proativamente redução nessa categoria.`)
       }
       categoriasBlock = linhas.join('\n')
+    }
+
+    // ─── Análise de receitas reais (Pro/Premium) ──────────────────────────────
+    let receitasBlock = ''
+    if (isPro && receitasResult.status === 'fulfilled') {
+      const rxs = receitasResult.value.data ?? []
+
+      // Agrupa por mês (YYYY-MM) e por fonte (descrição)
+      const porMes: Record<string, number> = {}
+      const porFonte: Record<string, number> = {}
+      for (const rx of rxs) {
+        const mes = rx.date.substring(0, 7)
+        porMes[mes] = (porMes[mes] ?? 0) + Number(rx.valor)
+        const fonte = rx.descricao?.trim() || rx.categoria || 'Receita'
+        porFonte[fonte] = (porFonte[fonte] ?? 0) + Number(rx.valor)
+      }
+
+      const meses = Object.keys(porMes)
+      const totalReceitas = Object.values(porMes).reduce((a, b) => a + b, 0)
+      const rendaMediaMensal = meses.length > 0 ? totalReceitas / meses.length : 0
+
+      const topFontes = Object.entries(porFonte)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+
+      if (rendaMediaMensal > 0) {
+        // Cálculo de sugestão de investimento
+        const sobra = Number(context?.sobra ?? 0)
+        const sugestaoBase = rendaMediaMensal * 0.20           // 20% da renda
+        const capSobra = sobra > 0 ? sobra * 0.50 : 0         // máx 50% da sobra
+        const sugestaoFinal = sobra > 0 ? Math.min(sugestaoBase, capSobra) : 0
+        const pctRenda = rendaMediaMensal > 0 ? Math.round((sugestaoFinal / rendaMediaMensal) * 100) : 0
+
+        // Projeção com Tesouro Selic
+        const selic = Number(context?.selic ?? 14.75)
+        const r = selic / 100 / 12
+
+        const linhas: string[] = ['\n### Análise de receitas reais (últimos 90 dias):']
+        linhas.push(`  • Renda média mensal: R$ ${rendaMediaMensal.toFixed(0)}`)
+        if (topFontes.length > 0) {
+          const fontesStr = topFontes.map(([d, v]) => `${d} (R$ ${v.toFixed(0)})`).join(', ')
+          linhas.push(`  • Fontes identificadas: ${fontesStr}`)
+        }
+
+        if (sugestaoFinal > 0) {
+          linhas.push(`  • Sugestão de investimento mensal: R$ ${sugestaoFinal.toFixed(0)} (${pctRenda}% da renda)`)
+          linhas.push(`  • Projeção acumulada investindo R$ ${sugestaoFinal.toFixed(0)}/mês (Tesouro Selic ${selic}%):`)
+          linhas.push(`    - 1 ano:  R$ ${fvMensal(sugestaoFinal, r, 12).toFixed(0)}`)
+          linhas.push(`    - 5 anos: R$ ${fvMensal(sugestaoFinal, r, 60).toFixed(0)}`)
+          linhas.push(`    - 10 anos: R$ ${fvMensal(sugestaoFinal, r, 120).toFixed(0)}`)
+          linhas.push(`\n> Use estes valores quando o usuário perguntar quanto deve investir ou como aplicar a renda dele. Cite a fonte de renda identificada pelo nome (ex: "${topFontes[0]?.[0] ?? 'salário'}").`)
+        } else if (sobra <= 0) {
+          linhas.push(`\n> ⚠️ Sobra negativa ou zero. Foque em equilibrar antes de sugerir investimentos. Não insista em poupar se o usuário está no negativo.`)
+        } else {
+          linhas.push(`\n> Há renda registrada mas sobra insuficiente para sugestão segura. Valide os gastos antes de recomendar aportes.`)
+        }
+        receitasBlock = linhas.join('\n')
+      }
     }
 
     // ─── FREE ────────────────────────────────────────────────────────────────
@@ -195,6 +272,7 @@ DADOS COMPLETOS DO USUÁRIO:
 - Gastos por categoria: ${JSON.stringify(context?.gastosCat ?? {})}
 - Metas: ${JSON.stringify(context?.metas ?? [])}
 ${categoriasBlock}
+${receitasBlock}
 - Plano: Pro ✨
 
 RACIOCÍNIO FINANCEIRO — use para personalizar cada resposta:
@@ -202,6 +280,13 @@ RACIOCÍNIO FINANCEIRO — use para personalizar cada resposta:
 - Se "Disponível por mês" ≤ 0: priorize equilíbrio antes de qualquer meta. Pergunte onde está o maior gasto e proponha 1 corte específico.
 - Use sempre o menor valor entre "Sobra real" e "Disponível declarado" ao calcular aportes sugeridos — seja conservador.
 - Nunca sugira aportes acima de 30% da renda sem o usuário pedir explicitamente.
+
+INVESTIMENTO — como responder perguntas sobre quanto investir:
+- Use a "Sugestão de investimento mensal" da análise de receitas reais quando disponível
+- Cite a fonte de renda pelo nome identificado nas transações (ex: "com seu salário de R$1.000")
+- Sempre mostre o que o valor vira em 1, 5 e 10 anos com Tesouro Selic
+- Se sobra for negativa: não force investimento — foque no equilíbrio primeiro
+- Primeiro destino da sobra: reserva de emergência (3-4 meses de gastos). Depois investimentos.
 
 DETECÇÃO DE PADRÕES — use os dados para agir, não para explicar:
 - Se houver categoria com gasto acima do esperado, mencione de forma acolhedora e proponha ajuste
@@ -292,7 +377,6 @@ Regras do plano:
 
     const reply = response.content[0].type === "text" ? response.content[0].text : "";
 
-    // Salva histórico e incrementa contador em paralelo
     const ultimaMensagem = messages[messages.length - 1]
     await Promise.allSettled([
       ultimaMensagem?.role === 'user'
