@@ -11,12 +11,19 @@ import Link from "next/link";
 import ImportarExtrato from "@/components/ImportarExtrato";
 import { StreakToast } from "@/components/imoney/celebration";
 import VoiceTransactionButton from "@/components/VoiceTransactionButton";
+
 const CAT_COLORS: Record<string, string> = {
   Moradia:"bg-blue-100 text-blue-700", Alimentação:"bg-orange-100 text-orange-700",
   Transporte:"bg-yellow-100 text-yellow-700", Saúde:"bg-red-100 text-red-700",
   Educação:"bg-purple-100 text-purple-700", Lazer:"bg-pink-100 text-pink-700",
   Vestuário:"bg-indigo-100 text-indigo-700", Outros:"bg-gray-100 text-gray-600",
 };
+
+function addMonths(dateStr: string, months: number): string {
+  const d = new Date(dateStr + "T12:00:00");
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().split("T")[0];
+}
 
 export default function TransacoesPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -31,14 +38,23 @@ export default function TransacoesPage() {
   const [exportando, setExportando] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [mounted, setMounted] = useState(false); const [streakToast, setStreakToast] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [streakToast, setStreakToast] = useState<string | null>(null);
 
+  // Form state
   const [desc, setDesc] = useState("");
   const [valor, setValor] = useState("");
   const [tipo, setTipo] = useState<"gasto"|"receita">("gasto");
   const [cat, setCat] = useState<Categoria>("Outros");
   const [dataT, setDataT] = useState(new Date().toISOString().split("T")[0]);
   const [formError, setFormError] = useState("");
+
+  // Parcelamento state
+  const [isParcelado, setIsParcelado] = useState(false);
+  const [numParcelas, setNumParcelas] = useState(2);
+
+  const valorNum = parseFloat(valor) || 0;
+  const valorParcela = isParcelado && numParcelas >= 2 ? valorNum / numParcelas : valorNum;
 
   const supabase = createSupabaseBrowser();
 
@@ -102,6 +118,12 @@ export default function TransacoesPage() {
     setCategorizando(false);
   }
 
+  function resetForm() {
+    setDesc(""); setValor(""); setTipo("gasto"); setCat("Outros");
+    setDataT(new Date().toISOString().split("T")[0]);
+    setIsParcelado(false); setNumParcelas(2); setFormError("");
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setFormError("");
@@ -109,26 +131,80 @@ export default function TransacoesPage() {
     const v = parseFloat(valor);
     if (isNaN(v) || v <= 0) { setFormError("Valor inválido."); return; }
     if (v > 10_000_000) { setFormError("Valor muito alto."); return; }
+    if (isParcelado && tipo !== "gasto") { setFormError("Parcelamento é só para gastos."); return; }
+    if (isParcelado && (numParcelas < 2 || numParcelas > 60)) { setFormError("Parcelas: entre 2 e 60."); return; }
+
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("transactions").insert({
-      user_id: user!.id,
-      descricao: desc.trim().slice(0, 200),
-      valor: v, categoria: cat, tipo, date: dataT, source: "manual",
-    });
-  const waReceita = tipo === "receita";
-    setDesc(""); setValor(""); setTipo("gasto"); setCat("Outros");
-    setDataT(new Date().toISOString().split("T")[0]);
+    if (!user) { setSaving(false); return; }
+
+    if (isParcelado) {
+      const parcela = parseFloat((v / numParcelas).toFixed(2));
+      // Cria o grupo de parcelamento
+      const { data: grupo } = await supabase.from("parcelamentos").insert({
+        user_id: user.id,
+        descricao: desc.trim().slice(0, 200),
+        valor_total: v,
+        valor_parcela: parcela,
+        num_parcelas: numParcelas,
+        categoria: cat,
+        data_inicio: dataT,
+      }).select("id").single();
+
+      if (grupo) {
+        // Cria N transações, uma por mês
+        const rows = Array.from({ length: numParcelas }, (_, i) => ({
+          user_id: user.id,
+          descricao: desc.trim().slice(0, 200),
+          valor: parcela,
+          categoria: cat,
+          tipo: "gasto" as const,
+          date: addMonths(dataT, i),
+          source: "parcelamento" as const,
+          parcelamento_id: grupo.id,
+          parcela_numero: i + 1,
+          parcela_total: numParcelas,
+        }));
+        await supabase.from("transactions").insert(rows);
+      }
+    } else {
+      await supabase.from("transactions").insert({
+        user_id: user.id,
+        descricao: desc.trim().slice(0, 200),
+        valor: v, categoria: cat, tipo, date: dataT, source: "manual",
+      });
+    }
+
+    const waReceita = tipo === "receita";
+    resetForm();
     setShowForm(false);
     setSaving(false);
     if (waReceita) setStreakToast(`R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} registrados! Continue assim 💪`);
     load();
   }
 
-  async function remove(id: string) {
-    if (!confirm("Excluir transação?")) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("transactions").delete().eq("id", id).eq("user_id", user!.id);
+  async function remove(t: Transaction) {
+    if (t.parcelamento_id) {
+      const today = new Date().toISOString().split("T")[0];
+      const opcao = window.confirm(
+        `"${t.descricao}" é uma compra parcelada (${t.parcela_numero}/${t.parcela_total}).\n\nOK → excluir apenas esta parcela\nCancelar → excluir esta e todas as futuras`
+      );
+      const { data: { user } } = await supabase.auth.getUser();
+      if (opcao) {
+        await supabase.from("transactions").delete().eq("id", t.id).eq("user_id", user!.id);
+      } else {
+        // Exclui esta e todas as futuras do mesmo parcelamento
+        await supabase.from("transactions")
+          .delete()
+          .eq("parcelamento_id", t.parcelamento_id)
+          .eq("user_id", user!.id)
+          .gte("date", today);
+      }
+    } else {
+      if (!confirm("Excluir transação?")) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("transactions").delete().eq("id", t.id).eq("user_id", user!.id);
+    }
     load();
   }
 
@@ -141,6 +217,8 @@ export default function TransacoesPage() {
 
   const totalGastos = filtered.filter(t => t.tipo === "gasto").reduce((s, t) => s + t.valor, 0);
   const totalReceitas = filtered.filter(t => t.tipo === "receita").reduce((s, t) => s + t.valor, 0);
+
+  const today = new Date().toISOString().split("T")[0];
 
   const modalImportar = (
     <div
@@ -192,7 +270,7 @@ export default function TransacoesPage() {
 
   return (
     <div className="p-5 lg:p-8 max-w-4xl mx-auto">
-        {streakToast && (
+      {streakToast && (
         <StreakToast
           mensagem={streakToast}
           emoji="💰"
@@ -215,7 +293,7 @@ export default function TransacoesPage() {
           <button onClick={() => setShowImportModal(true)} className="btn-ghost p-2.5" title="Importar extrato">
             📂
           </button>
-          <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+          <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="btn-primary">
             <Plus size={16}/> Nova
           </button>
         </div>
@@ -251,19 +329,19 @@ export default function TransacoesPage() {
               </div>
             </div>
             <div>
-              <label className="label">Valor (R$)</label>
+              <label className="label">{isParcelado ? "Valor total (R$)" : "Valor (R$)"}</label>
               <input type="number" value={valor} onChange={e => setValor(e.target.value)}
                 placeholder="0,00" min="0.01" step="0.01" className="input"/>
             </div>
             <div>
-              <label className="label">Data</label>
+              <label className="label">{isParcelado ? "Data da 1ª parcela" : "Data"}</label>
               <input type="date" value={dataT} onChange={e => setDataT(e.target.value)} className="input"/>
             </div>
             <div>
               <label className="label">Tipo</label>
               <div className="flex gap-2">
                 {(["gasto","receita"] as const).map(t => (
-                  <button key={t} type="button" onClick={() => setTipo(t)}
+                  <button key={t} type="button" onClick={() => { setTipo(t); if (t === "receita") setIsParcelado(false); }}
                     className={cn("flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all",
                       tipo === t
                         ? t === "gasto" ? "bg-red-50 border-red-300 text-red-700" : "bg-[#f0fdf4] border-[#86efac] text-[#15803d]"
@@ -280,13 +358,73 @@ export default function TransacoesPage() {
                 {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
+
+            {/* Parcelamento toggle — só para gastos */}
+            {tipo === "gasto" && (
+              <div className="sm:col-span-2">
+                <button
+                  type="button"
+                  onClick={() => setIsParcelado(p => !p)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold border transition-all w-full",
+                    isParcelado
+                      ? "bg-orange-50 border-orange-300 text-orange-700"
+                      : "bg-white border-[#e4f5e9] text-[#8db89d] hover:bg-[#f8fdf9]"
+                  )}
+                >
+                  <span style={{ fontSize: 16 }}>💳</span>
+                  {isParcelado ? "Parcelado ✓" : "É parcelado?"}
+                </button>
+              </div>
+            )}
+
+            {/* Campos de parcelamento */}
+            {isParcelado && (
+              <>
+                <div>
+                  <label className="label">Número de parcelas</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={numParcelas}
+                      onChange={e => setNumParcelas(Math.min(60, Math.max(2, parseInt(e.target.value) || 2)))}
+                      min={2} max={60}
+                      className="input w-24 text-center font-bold"
+                    />
+                    <span className="text-sm text-[#6b9e80]">vezes</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Valor de cada parcela</label>
+                  <div
+                    className="input flex items-center"
+                    style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", color: "#15803d", fontWeight: 800 }}
+                  >
+                    {valorNum > 0 && numParcelas >= 2
+                      ? `${numParcelas}x de ${formatBRL(valorParcela)}`
+                      : "—"}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
+
           {formError && <p className="text-xs text-red-500 mb-3">⚠ {formError}</p>}
+
+          {/* Resumo do parcelamento */}
+          {isParcelado && valorNum > 0 && (
+            <div className="mb-3 p-3 rounded-xl bg-orange-50 border border-orange-200 text-xs text-orange-800">
+              <p className="font-bold mb-1">📅 Serão criadas {numParcelas} transações mensais</p>
+              <p>1ª parcela em {formatDate(dataT)} · última em {formatDate(addMonths(dataT, numParcelas - 1))}</p>
+              <p className="mt-1 font-semibold">Total: {formatBRL(valorNum)} · {numParcelas}x {formatBRL(valorParcela)}</p>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <button type="submit" disabled={saving} className="btn-primary flex-1">
-              {saving ? "Salvando..." : "💾 Salvar"}
+              {saving ? "Salvando..." : isParcelado ? `💾 Criar ${numParcelas} parcelas` : "💾 Salvar"}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-4">Cancelar</button>
+            <button type="button" onClick={() => { resetForm(); setShowForm(false); }} className="btn-secondary px-4">Cancelar</button>
           </div>
         </form>
       )}
@@ -324,45 +462,65 @@ export default function TransacoesPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((t, i) => (
-            <div key={t.id}
-              className="card card-hover py-3 px-4 flex items-center gap-3 animate-fade-up opacity-0"
-              style={{ animationDelay: `${i * 30}ms` }}>
-              <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                t.tipo === "gasto" ? "bg-red-50" : "bg-[#f0fdf4]")}>
-                {t.tipo === "gasto"
-                  ? <TrendingDown size={15} className="text-red-500"/>
-                  : <TrendingUp size={15} className="text-[#16a34a]"/>}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-[#0d2414] truncate">{t.descricao}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className={cn("badge text-[10px] px-1.5 py-0.5", CAT_COLORS[t.categoria] ?? "badge-green")}>
-                    {t.categoria}
-                  </span>
-                  <span className="text-[11px] text-[#8db89d]">{formatDate(t.date)}</span>
-                  {t.importado_via && t.importado_via !== "manual" && (
-                    <span className="badge bg-purple-50 text-purple-600 text-[10px] px-1.5 py-0.5">📂 Importado</span>
-                  )}
+          {filtered.map((t, i) => {
+            const isFutura = t.date > today;
+            const isParc = !!t.parcelamento_id;
+            return (
+              <div key={t.id}
+                className="card card-hover py-3 px-4 flex items-center gap-3 animate-fade-up opacity-0"
+                style={{
+                  animationDelay: `${i * 30}ms`,
+                  opacity: isFutura ? undefined : undefined,
+                  borderLeft: isParc ? "3px solid #fb923c" : undefined,
+                }}>
+                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                  t.tipo === "gasto" ? "bg-red-50" : "bg-[#f0fdf4]")}>
+                  {t.tipo === "gasto"
+                    ? <TrendingDown size={15} className="text-red-500"/>
+                    : <TrendingUp size={15} className="text-[#16a34a]"/>}
                 </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-sm font-bold text-[#0d2414] truncate">{t.descricao}</p>
+                    {isParc && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 shrink-0">
+                        💳 {t.parcela_numero}/{t.parcela_total}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span className={cn("badge text-[10px] px-1.5 py-0.5", CAT_COLORS[t.categoria] ?? "badge-green")}>
+                      {t.categoria}
+                    </span>
+                    <span className="text-[11px] text-[#8db89d]">{formatDate(t.date)}</span>
+                    {isFutura && (
+                      <span className="badge bg-blue-50 text-blue-600 text-[10px] px-1.5 py-0.5">📅 Agendado</span>
+                    )}
+                    {t.importado_via && t.importado_via !== "manual" && (
+                      <span className="badge bg-purple-50 text-purple-600 text-[10px] px-1.5 py-0.5">📂 Importado</span>
+                    )}
+                  </div>
+                </div>
+                <p className={cn("font-black text-sm shrink-0", t.tipo === "gasto" ? "text-red-500" : "text-[#16a34a]")}
+                  style={{ fontFamily: "Nunito, sans-serif" }}>
+                  {t.tipo === "gasto" ? "-" : "+"}{formatBRL(t.valor)}
+                </p>
+                <button onClick={() => remove(t)}
+                  className="p-1.5 rounded-lg hover:bg-red-50 text-[#8db89d] hover:text-red-500 transition-colors shrink-0">
+                  <Trash2 size={13}/>
+                </button>
               </div>
-              <p className={cn("font-black text-sm shrink-0", t.tipo === "gasto" ? "text-red-500" : "text-[#16a34a]")}
-                style={{ fontFamily: "Nunito, sans-serif" }}>
-                {t.tipo === "gasto" ? "-" : "+"}{formatBRL(t.valor)}
-              </p>
-              <button onClick={() => remove(t.id)}
-                className="p-1.5 rounded-lg hover:bg-red-50 text-[#8db89d] hover:text-red-500 transition-colors shrink-0">
-                <Trash2 size={13}/>
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       <p className="text-xs text-center text-[#8db89d] mt-4">
         {filtered.length} transaç{filtered.length === 1 ? "ão" : "ões"} · máx. 500 por usuário
       </p>
-<VoiceTransactionButton onSuccess={load} isPro={plan === 'pro' || plan === 'premium'} />
+
+      <VoiceTransactionButton onSuccess={load} isPro={plan === 'pro' || plan === 'premium'} />
+
       {/* Portals para modais */}
       {mounted && showImportModal && createPortal(modalImportar, document.body)}
       {mounted && showPremiumModal && createPortal(modalPremium, document.body)}

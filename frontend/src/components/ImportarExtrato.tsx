@@ -16,7 +16,7 @@ const CAT_COLORS: Record<string, string> = {
   Vestuário:"bg-indigo-100 text-indigo-700", Outros:"bg-gray-100 text-gray-600",
 };
 
-export default function TransacoesPage() {
+export default function TransacoesPage({ onSucesso }: { onSucesso?: () => void }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

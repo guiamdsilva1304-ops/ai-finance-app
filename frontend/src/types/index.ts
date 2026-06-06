@@ -2,8 +2,11 @@ export interface Transaction {
   id: string; user_id: string; descricao: string;
   valor: number; categoria: Categoria;
   tipo: "gasto" | "receita"; date: string;
-  source?: "manual"; created_at: string;
+  source?: "manual" | "parcelamento" | "voice" | "pluggy"; created_at: string;
   importado_via?: string;
+  parcelamento_id?: string;
+  parcela_numero?: number;
+  parcela_total?: number;
 }
 export type Categoria = "Moradia"|"Alimentação"|"Transporte"|"Saúde"|"Educação"|"Lazer"|"Vestuário"|"Outros";
 export const CATEGORIAS: Categoria[] = ["Moradia","Alimentação","Transporte","Saúde","Educação","Lazer","Vestuário","Outros"];
