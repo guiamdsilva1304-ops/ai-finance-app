@@ -36,6 +36,7 @@ function useConfetti(active: boolean) {
       shape: Math.random() > 0.5 ? "rect" : "circle",
     }));
     setParticles(ps);
+    navigator.vibrate?.([100, 50, 100, 50, 200]);
     const interval = setInterval(() => {
       setParticles(prev => prev
         .map(p => ({ ...p, y: p.y + p.vy, x: p.x + p.vx, rotation: p.rotation + p.rotationSpeed, vy: p.vy + 0.05 }))
