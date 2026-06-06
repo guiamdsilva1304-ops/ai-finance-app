@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     const [limiteResult, diagnosticoResult, categoriasResult] = await Promise.allSettled([
       verificarLimite(user.id),
-      supabase.from('user_profiles').select('perfil_financeiro, score_saude, diagnostico_json, renda_mensal, gastos_mensais, monthly_available').eq('id', user.id).maybeSingle(),
+      supabase.from('user_profiles').select('perfil_financeiro, score_saude, diagnostico_json, renda_mensal, gastos_mensais, monthly_available').eq('user_id', user.id).maybeSingle(),
       supabase
         .from('transactions')
         .select('categoria, valor')

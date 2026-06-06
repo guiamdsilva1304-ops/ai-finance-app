@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: perfil } = await supabase
-      .from('user_profiles').select('plan').eq('id', user.id).single()
+      .from('user_profiles').select('plan').eq('user_id', user.id).single()
     if (perfil?.plan !== 'premium') {
       return NextResponse.json({ error: 'Disponível apenas no Premium' }, { status: 403 })
     }

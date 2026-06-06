@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const { data: perfil } = await supabase
       .from('user_profiles')
       .select('plan')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (perfil?.plan !== 'pro' && perfil?.plan !== 'premium') {

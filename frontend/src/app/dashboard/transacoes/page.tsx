@@ -50,7 +50,7 @@ export default function TransacoesPage() {
     if (!user) return;
     const [{ data }, { data: perfil }] = await Promise.all([
       supabase.from("transactions").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(500),
-      supabase.from("user_profiles").select("plan").eq("id", user.id).single(),
+      supabase.from("user_profiles").select("plan").eq("user_id", user.id).single(),
     ]);
     setTransactions(data ?? []);
     if (perfil?.plan) setPlan(perfil.plan);

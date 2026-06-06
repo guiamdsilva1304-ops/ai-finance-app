@@ -120,7 +120,7 @@ export default function OnboardingPage() {
       setDiagnostico(data.diagnostico);
     } catch (e) {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) await supabase.from("user_profiles").update({ onboarding_completo: true }).eq("id", user.id);
+      if (user) await supabase.from("user_profiles").update({ onboarding_completo: true }).eq("user_id", user.id);
       router.push("/dashboard?onboarding=1");
     } finally { setLoading(false); }
   }
@@ -131,8 +131,8 @@ export default function OnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
       await salvarPerfil(user.id);
-      await supabase.from("user_profiles").update({ onboarding_completo: true }).eq("id", user.id);
-      const { data: profile } = await supabase.from("user_profiles").select("diagnostico_json").eq("id", user.id).maybeSingle();
+      await supabase.from("user_profiles").update({ onboarding_completo: true }).eq("user_id", user.id);
+      const { data: profile } = await supabase.from("user_profiles").select("diagnostico_json").eq("user_id", user.id).maybeSingle();
       router.push(profile?.diagnostico_json?.score_imoney ? "/dashboard?onboarding=1" : "/dashboard/diagnostico");
     } catch { router.push("/dashboard/diagnostico"); }
     finally { setLoading(false); }
@@ -141,8 +141,8 @@ export default function OnboardingPage() {
   async function irParaDashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from("user_profiles").update({ onboarding_completo: true, updated_at: new Date().toISOString() }).eq("id", user.id);
-      const { data: profile } = await supabase.from("user_profiles").select("diagnostico_json").eq("id", user.id).maybeSingle();
+      await supabase.from("user_profiles").update({ onboarding_completo: true, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+      const { data: profile } = await supabase.from("user_profiles").select("diagnostico_json").eq("user_id", user.id).maybeSingle();
       router.push(profile?.diagnostico_json?.score_imoney ? "/dashboard?onboarding=1" : "/dashboard/diagnostico");
     } else { router.push("/dashboard?onboarding=1"); }
   }

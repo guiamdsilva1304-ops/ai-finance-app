@@ -76,7 +76,7 @@ export default function RendaPage() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (data.user) {
-        const { data: p } = await supabase.from("user_profiles").select("plan,ocupacao").eq("id", data.user.id).single();
+        const { data: p } = await supabase.from("user_profiles").select("plan,ocupacao").eq("user_id", data.user.id).single();
         setPlano(p?.plan ?? "free");
       } else {
         setPlano("free");
