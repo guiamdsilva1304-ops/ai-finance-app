@@ -13,6 +13,7 @@
     { "path": "/api/cron/agentes", "schedule": "0 13 * * *" },
     { "path": "/api/cron/calendario-semanal", "schedule": "0 11 * * 1" },
     { "path": "/api/cron/gerar-calendario", "schedule": "0 23 * * 0" },
-    { "path": "/api/cron/streak-alert", "schedule": "0 0 * * *" }
+    { "path": "/api/cron/streak-alert", "schedule": "0 0 * * *" },
+    { "path": "/api/cron/parcela-alert", "schedule": "0 7 * * *" }
   ]
 }
