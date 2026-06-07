@@ -337,20 +337,13 @@ export default function MetasPage() {
           <button onClick={load} style={{ background: "none", border: `1.5px solid ${C.divider}`, borderRadius: 12, padding: "8px 10px", cursor: "pointer", color: C.ink3 }}>
             <RefreshCw size={16} style={loading ? { animation: "spin 1s linear infinite" } : {}} />
           </button>
-          {!isMobile && (
-            <button onClick={() => setShowForm(!showForm)} style={{ background: C.green500, color: C.green900, border: "none", borderRadius: 12, padding: "8px 18px", fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: "pointer" }}>
-              + Nova meta
-            </button>
-          )}
-          {isMobile && (
-            <button onClick={() => { setShowOnboarding(true); setOnboardingStep(1); }} style={{ background: C.green500, color: C.green900, border: "none", borderRadius: 12, padding: "8px 18px", fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: "pointer" }}>
-              + Nova
-            </button>
-          )}
+          <button onClick={() => setShowForm(!showForm)} style={{ background: C.green500, color: C.green900, border: "none", borderRadius: 12, padding: "8px 18px", fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: "pointer" }}>
+            + Nova meta
+          </button>
         </div>
       </div>
 
-      {showForm && !isMobile && (
+      {showForm && (
         <form onSubmit={save} style={{ background: C.green50, borderRadius: 20, padding: 24, marginBottom: 28, border: `1.5px solid ${C.green100}` }}>
           <p style={{ fontSize: 15, fontWeight: 800, color: C.green900, marginBottom: 20, marginTop: 0 }}>➕ Nova meta</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -400,7 +393,7 @@ export default function MetasPage() {
           <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
           <p style={{ fontWeight: 800, color: C.green900, margin: "0 0 6px" }}>Nenhuma meta ainda</p>
           <p style={{ fontSize: 13, color: C.ink3, margin: "0 0 20px" }}>Crie sua primeira meta financeira.</p>
-          <button onClick={() => isMobile ? (setShowOnboarding(true), setOnboardingStep(1)) : setShowForm(true)}
+          <button onClick={() => setShowForm(true)}
             style={{ background: C.green500, color: C.green900, border: "none", borderRadius: 12, padding: "10px 20px", fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: "pointer" }}>
             + Criar meta
           </button>
