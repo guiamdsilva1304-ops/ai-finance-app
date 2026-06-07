@@ -622,10 +622,18 @@ export default function AssessorPage() {
       ]);
 
       if (historyRes.status === "fulfilled" && historyRes.value.data?.length) {
-        setMessages(historyRes.value.data.map(m => {
-          const { text, plan } = parsePlan(m.content)
-          return { role: m.role as "user" | "assistant", content: text, plan: plan ?? undefined }
-        }))
+        // Filtra prompts internos que possam ter sido salvos antes do fix (proactive)
+        const isInternalPrompt = (content: string) =>
+          content.includes("Escreva uma mensagem de abertura como Assessor") ||
+          content.includes("acabou de ver seu diagnóstico financeiro")
+        setMessages(
+          historyRes.value.data
+            .filter(m => !(m.role === "user" && isInternalPrompt(m.content)))
+            .map(m => {
+              const { text, plan } = parsePlan(m.content)
+              return { role: m.role as "user" | "assistant", content: text, plan: plan ?? undefined }
+            })
+        )
       }
 
       const perfil = perfilRes.status === "fulfilled" ? perfilRes.value.data ?? {} : {}

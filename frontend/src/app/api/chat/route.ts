@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     // Parseia o body antes das queries para ter context disponível
     const body = await req.json();
-    const { messages, context } = body;
+    const { messages, context, proactive } = body;
 
     const noventa_dias = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     const trinta_dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -378,13 +378,17 @@ Regras do plano:
     const reply = response.content[0].type === "text" ? response.content[0].text : "";
 
     const ultimaMensagem = messages[messages.length - 1]
-    await Promise.allSettled([
-      ultimaMensagem?.role === 'user'
-        ? supabase.from('chat_history').insert([
+    // proactive=true: prompt gerado internamente (ex: abertura pós-score), salva só a resposta do assistente
+    const historyInserts = proactive
+      ? [{ user_id: user.id, role: 'assistant', content: reply, created_at: new Date().toISOString() }]
+      : ultimaMensagem?.role === 'user'
+        ? [
             { user_id: user.id, role: 'user', content: ultimaMensagem.content, created_at: new Date().toISOString() },
             { user_id: user.id, role: 'assistant', content: reply, created_at: new Date().toISOString() },
-          ])
-        : Promise.resolve(),
+          ]
+        : []
+    await Promise.allSettled([
+      historyInserts.length ? supabase.from('chat_history').insert(historyInserts) : Promise.resolve(),
       plano !== 'premium' ? incrementarContador(user.id) : Promise.resolve(),
     ])
 
