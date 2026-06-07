@@ -30,6 +30,12 @@ function fmtMesAno(dateStr: string) {
   return d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(". de ", "/").replace(".", "");
 }
 
+function shiftMonth(ym: string, delta: number): string {
+  const d = new Date(ym + "-15");
+  d.setMonth(d.getMonth() + delta);
+  return d.toISOString().slice(0, 7);
+}
+
 type DisplayItem =
   | { kind: "single"; transaction: Transaction }
   | { kind: "group"; parcelamentoId: string; transactions: Transaction[] };
@@ -39,6 +45,7 @@ export default function TransacoesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [filterMes, setFilterMes] = useState(() => new Date().toISOString().slice(0, 7));
   const [filterTipo, setFilterTipo] = useState<"todos"|"gasto"|"receita">("todos");
   const [filterCat, setFilterCat] = useState<string>("todas");
   const [showForm, setShowForm] = useState(false);
@@ -228,6 +235,7 @@ export default function TransacoesPage() {
   }
 
   const filtered = transactions.filter(t => {
+    if (!t.date.startsWith(filterMes)) return false;
     if (filterTipo !== "todos" && t.tipo !== filterTipo) return false;
     if (filterCat !== "todas" && t.categoria !== filterCat) return false;
     if (search && !t.descricao.toLowerCase().includes(search.toLowerCase())) return false;
@@ -235,9 +243,10 @@ export default function TransacoesPage() {
   });
 
   // Build display list: group parcelamento transactions into one item
+  // Use ALL transactions for the parcelamento map so the group card shows the full installment plan
   const displayList: DisplayItem[] = (() => {
     const parcelamentoMap = new Map<string, Transaction[]>();
-    for (const t of filtered) {
+    for (const t of transactions) {
       if (t.parcelamento_id) {
         const arr = parcelamentoMap.get(t.parcelamento_id) ?? [];
         arr.push(t);
@@ -350,14 +359,30 @@ export default function TransacoesPage() {
         </div>
       </div>
 
+      {/* Month navigator */}
+      <div className="flex items-center justify-center gap-3 mb-4">
+        <button
+          onClick={() => setFilterMes(m => shiftMonth(m, -1))}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[#1D9E75] hover:bg-[#f0fdf4] transition-colors font-bold text-lg"
+        >‹</button>
+        <span className="font-black text-[#0d2414] text-base capitalize min-w-36 text-center" style={{ fontFamily: "Nunito, sans-serif" }}>
+          {new Date(filterMes + "-15").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+        </span>
+        <button
+          onClick={() => setFilterMes(m => shiftMonth(m, 1))}
+          disabled={filterMes >= new Date().toISOString().slice(0, 7)}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[#1D9E75] hover:bg-[#f0fdf4] transition-colors font-bold text-lg disabled:opacity-30 disabled:cursor-not-allowed"
+        >›</button>
+      </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="card animate-fade-up opacity-0 anim-1">
-          <p className="metric-label mb-1">Gastos (filtrado)</p>
+          <p className="metric-label mb-1">Gastos do mês</p>
           <p className="metric-val text-red-500">{formatBRL(totalGastos)}</p>
         </div>
         <div className="card animate-fade-up opacity-0 anim-2">
-          <p className="metric-label mb-1">Receitas (filtrado)</p>
+          <p className="metric-label mb-1">Receitas do mês</p>
           <p className="metric-val text-[#16a34a]">{formatBRL(totalReceitas)}</p>
         </div>
       </div>
