@@ -1,79 +1,123 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import "./imoney-tokens.css";
-import { AmplitudeProvider } from "./amplitude";
-import Script from "next/script";
+"use client";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Logo } from "@/components/ui/Logo";
+import { Icon } from "@/components/imoney/primitives";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { createSupabaseBrowser } from "@/lib/supabase";
+import { ThemeProvider, useTheme } from "@/lib/theme";
+import { NPSToast } from "@/components/NPSToast";
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://imoney.ia.br"),
-  title: { default: "iMoney — Assessor Financeiro com IA", template: "%s | iMoney" },
-  description: "Controle suas finanças com inteligência artificial. Dashboard com SELIC e IPCA em tempo real, assessor financeiro IA, metas e muito mais. 100% gratuito para brasileiros.",
-  keywords: ["finanças pessoais", "assessor financeiro", "inteligência artificial", "controle de gastos", "investimentos", "SELIC", "IPCA", "tesouro direto", "reserva de emergência", "metas financeiras", "app financeiro brasil", "educação financeira", "planejamento financeiro", "organizar dinheiro"],
-  authors: [{ name: "iMoney", url: "https://imoney.ia.br" }],
-  creator: "iMoney",
-  publisher: "iMoney",
-  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
-  openGraph: {
-    type: "website",
-    locale: "pt_BR",
-    url: "https://imoney.ia.br",
-    siteName: "iMoney",
-    title: "iMoney — Assessor Financeiro com IA",
-    description: "Controle suas finanças com IA. Dashboard com SELIC e IPCA em tempo real, assessor financeiro personalizado e metas financeiras. 100% gratuito.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "iMoney — Seu assessor pessoal" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "iMoney — Assessor Financeiro com IA",
-    description: "Controle suas finanças com IA. Dashboard com SELIC e IPCA em tempo real. 100% gratuito para brasileiros.",
-    images: ["/og-image.png"],
-  },
-  alternates: { canonical: "https://imoney.ia.br" },
-  verification: { google: "WONpgV72z1PLGHk-AfjWdvn32beVilTymkv_t-FE08E" },
-  manifest: "/manifest.json",
-  icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
-    shortcut: "/icon.svg",
-  },
-};
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
+  const { isDark } = useTheme();
+  const [email, setEmail] = useState<string>();
+  const [plan, setPlan] = useState<string>('free');
+  const [ocupacao, setOcupacao] = useState<string>();
+  const [displayName, setDisplayName] = useState<string>('');
+  const [mounted, setMounted] = useState(false);
+  const supabase = createSupabaseBrowser();
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    setMounted(true);
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { window.location.href = "/"; return; }
+      const userEmail = data.user.email ?? '';
+      setEmail(userEmail);
+      const { data: perfil } = await supabase
+        .from('user_profiles')
+        .select('plan, ocupacao, nome_preferido, nome')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+      setPlan(perfil?.plan ?? 'free');
+      setOcupacao(perfil?.ocupacao ?? undefined);
+      const dn =
+        perfil?.nome_preferido ||
+        ((perfil?.nome || '') as string).split(' ')[0] ||
+        userEmail.split('@')[0].replace(/[._\-0-9]/g, ' ').trim().split(' ').filter(Boolean)[0] || '';
+      setDisplayName(dn ? dn.charAt(0).toUpperCase() + dn.slice(1) : '');
+      // Dispara email de boas-vindas no primeiro acesso (fire-and-forget)
+      supabase.auth.getSession().then(({ data: s }) => {
+        if (s.session?.access_token) {
+          fetch('/api/onboarding/welcome', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${s.session.access_token}` },
+          }).catch(() => {});
+        }
+      });
+    });
+  }, []);
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  }
+
+  if (!mounted) return (
+    <div className="flex min-h-screen items-center justify-center" style={{ background: 'var(--bg-page)' }}>
+      <div className="w-8 h-8 rounded-full border-2 border-[#16a34a] border-t-transparent animate-spin"/>
+    </div>
+  );
+
   return (
-    <html lang="pt-BR">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com"/>
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
-        <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "WebApplication",
-          name: "iMoney",
-          url: "https://imoney.ia.br",
-          description: "Assessor financeiro com inteligência artificial para brasileiros.",
-          applicationCategory: "FinanceApplication",
-          operatingSystem: "Web",
-          offers: { "@type": "Offer", price: "0", priceCurrency: "BRL" },
-          inLanguage: "pt-BR",
-          featureList: ["Assessor financeiro com IA", "Dashboard financeiro", "SELIC e IPCA em tempo real", "Controle de gastos", "Metas financeiras"],
-        })}}/>
-      </head>
-      <body>
-        {/* Google Analytics GA4 */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-LVNS47QZV4"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-LVNS47QZV4');
-          `}
-        </Script>
-        <AmplitudeProvider>{children}</AmplitudeProvider>
-      </body>
-    </html>
+    <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg-page)' }}>
+      {/* Mobile header */}
+      <div className="md:hidden border-b px-4 py-3 flex items-center justify-between" style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}>
+        <div className="flex items-center gap-2">
+          <Logo size={100} showText={false} showTagline={false} />
+          {displayName && (
+            <span className="text-sm font-bold truncate max-w-[120px]" style={{ color: 'var(--text-1)', fontFamily: 'Nunito, sans-serif' }}>
+              {displayName}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {plan === 'free' && (
+            <Link
+              href="/dashboard/pro"
+              className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex items-center gap-1"
+              style={{ background: '#1D9E75' }}
+            >
+              <Icon name="sparkles" size={12} color="#fff" /> Pro
+            </Link>
+          )}
+          {(plan === 'pro' || plan === 'premium') && (
+            <span
+              className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
+              style={{ background: isDark ? '#1a3a22' : '#E1F5EE', color: isDark ? '#4ade80' : '#085041' }}
+            >
+              <Icon name="sparkles" size={12} color={isDark ? '#4ade80' : '#085041'} /> Pro
+            </span>
+          )}
+          {/* Botão Sair — mobile */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-red-400 hover:bg-red-50 transition-colors"
+            title="Sair"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 min-h-0">
+        <Sidebar email={email} plan={plan} ocupacao={ocupacao} displayName={displayName} />
+        <main className="flex-1 min-w-0 pb-24 md:pb-0">{children}</main>
+      </div>
+
+      {/* NPS Toast — aparece 7 dias após cadastro, a cada 7 dias */}
+      <NPSToast />
+    </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </ThemeProvider>
   );
 }
