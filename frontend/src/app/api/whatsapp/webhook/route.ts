@@ -1,15 +1,15 @@
 // frontend/app/api/whatsapp/webhook/route.ts
 //
-// Webhook Z-API → Assessor IA iMoney
+// Webhook Whapi.Cloud → Assessor IA iMoney
 //
 // Fluxo:
-//   1. Z-API envia POST ao receber mensagem no número da iMoney
-//   2. Rota valida o Client Token (segurança)
+//   1. Whapi envia POST ao receber mensagem no número da iMoney
+//   2. Rota ignora mensagens enviadas pelo próprio número (from_me)
 //   3. Busca o usuário pelo número de telefone no Supabase
-//   4. Busca contexto financeiro (renda, gastos, metas, perfil, memória)
-//   5. Chama o Anthropic com o mesmo system prompt do /api/chat
+//   4. Busca contexto financeiro (renda, gastos, metas, perfil)
+//   5. Chama o Anthropic com o system prompt do Assessor
 //   6. Salva no chat_history e incrementa contador de mensagens
-//   7. Responde via Z-API REST
+//   7. Responde via Whapi REST
 
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
@@ -26,20 +26,16 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// ─── Variáveis de ambiente Z-API ───────────────────────────────────────────────
-// Adicione estas variáveis no Vercel:
-//   ZAPI_INSTANCE_ID    → ID da instância (ex: 3F4592FC23609137F967...)
-//   ZAPI_INSTANCE_TOKEN → Token da instância (ex: 979F4AF7A73F34CF72B64B26)
-//   ZAPI_CLIENT_TOKEN   → Client Token (gerado em Segurança no painel Z-API)
+// ─── Variáveis de ambiente Whapi ───────────────────────────────────────────────
+// Adicione/atualize estas variáveis no Vercel:
+//   WHAPI_TOKEN  → Channel Token (painel Whapi.Cloud → seu canal → Settings)
 
-const ZAPI_INSTANCE_ID    = process.env.ZAPI_INSTANCE_ID!;
-const ZAPI_INSTANCE_TOKEN = process.env.ZAPI_INSTANCE_TOKEN!;
-const ZAPI_CLIENT_TOKEN   = process.env.ZAPI_CLIENT_TOKEN!;
+const WHAPI_TOKEN = process.env.WHAPI_TOKEN!;
 
 const LIMITE_FREE = 15;
 const LIMITE_PRO  = 50;
 
-// ─── Helpers de limite (igual ao /api/chat) ────────────────────────────────────
+// ─── Helpers de limite ─────────────────────────────────────────────────────────
 
 async function verificarLimite(userId: string) {
   const { data: perfil } = await supabase
@@ -76,20 +72,17 @@ async function incrementarContador(userId: string) {
     .eq("user_id", userId);
 }
 
-// ─── Envio de mensagem via Z-API ───────────────────────────────────────────────
+// ─── Envio de mensagem via Whapi ───────────────────────────────────────────────
+// Formato do número: "5521999999999" (sem + ou espaços)
+// A Whapi aceita número direto ou chat_id (número@s.whatsapp.net)
 
 async function enviarMensagem(telefone: string, texto: string) {
-  const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_INSTANCE_TOKEN}/send-text`;
-
-  await fetch(url, {
+  await fetch(`https://gate.whapi.cloud/messages/text?token=${WHAPI_TOKEN}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Client-Token": ZAPI_CLIENT_TOKEN,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      phone: telefone, // formato: "5521999999999" (sem + ou espaços)
-      message: texto,
+      to: telefone,
+      body: texto,
     }),
   });
 }
@@ -104,11 +97,10 @@ async function buscarHistorico(userId: string) {
     .order("created_at", { ascending: false })
     .limit(20);
 
-  return (data ?? []).reverse(); // mais antigas primeiro
+  return (data ?? []).reverse();
 }
 
-// ─── System prompt simplificado para WhatsApp ─────────────────────────────────
-// Versão enxuta do prompt do /api/chat, otimizada para leitura em celular
+// ─── System prompt otimizado para WhatsApp ────────────────────────────────────
 
 function buildSystemPrompt(context: Record<string, unknown>, isPro: boolean): string {
   const renda  = Number(context.renda  ?? 0).toFixed(2);
@@ -154,26 +146,28 @@ Se sobra ≤ 0: foque em equilibrar antes de qualquer meta.`
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Valida Client Token da Z-API (segurança básica)
-    const clientToken = req.headers.get("client-token");
-    if (clientToken !== ZAPI_CLIENT_TOKEN) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // 2. Parseia payload da Z-API
     const body = await req.json();
 
-    // Z-API envia vários tipos de evento — só processa mensagens de texto recebidas
-    // Ignora: mensagens enviadas pelo próprio número, status, etc.
-    if (body.fromMe || !body.text?.message) {
+    // Whapi envia um array de mensagens por evento
+    // Pega a primeira mensagem do batch
+    const mensagens = body.messages ?? [];
+    if (!mensagens.length) return NextResponse.json({ ok: true });
+
+    const msg = mensagens[0];
+
+    // Ignora mensagens enviadas pelo próprio número e não-texto
+    if (msg.from_me || msg.type !== "text") {
       return NextResponse.json({ ok: true });
     }
 
-    const telefone: string = body.phone;      // ex: "5521999999999"
-    const texto: string    = body.text.message;
+    // Extrai telefone e texto
+    // chat_id formato: "5521999999999@s.whatsapp.net"
+    const telefone: string = msg.chat_id?.replace("@s.whatsapp.net", "") ?? msg.from;
+    const texto: string    = msg.text?.body ?? "";
 
-    // 3. Busca usuário pelo telefone no Supabase
-    // O campo "phone" em user_profiles deve estar no formato "5521999999999"
+    if (!telefone || !texto) return NextResponse.json({ ok: true });
+
+    // Busca usuário pelo telefone no Supabase
     const { data: perfil } = await supabase
       .from("user_profiles")
       .select("user_id, plan, renda_mensal, gastos_mensais, monthly_available, diagnostico_json, score_saude")
@@ -192,8 +186,8 @@ export async function POST(req: NextRequest) {
     const userId = perfil.user_id;
     const isPro  = perfil.plan === "pro" || perfil.plan === "premium";
 
-    // 4. Verifica limite de mensagens
-    const { permitido, usadas, limite, plano } = await verificarLimite(userId);
+    // Verifica limite de mensagens
+    const { permitido, limite, plano } = await verificarLimite(userId);
 
     if (!permitido) {
       await enviarMensagem(
@@ -203,41 +197,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // 5. Busca contexto financeiro do usuário
+    // Busca contexto financeiro
     const trinta_dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       .toISOString()
       .split("T")[0];
 
     const [metasRes, summaryRes, investRes, categoriaRes] = await Promise.allSettled([
-      supabase
-        .from("metas")
-        .select("nome, valor_alvo, valor_atual, prazo")
-        .eq("user_id", userId),
-      supabase
-        .from("transactions")
-        .select("valor, tipo")
-        .eq("user_id", userId)
-        .gte("data", trinta_dias),
+      supabase.from("metas").select("nome, valor_alvo, valor_atual, prazo").eq("user_id", userId),
+      supabase.from("transactions").select("valor, tipo").eq("user_id", userId).gte("data", trinta_dias),
       isPro
-        ? supabase
-            .from("user_investments")
-            .select("nome, tipo, valor_brl, valor_original")
-            .eq("user_id", userId)
+        ? supabase.from("user_investments").select("nome, tipo, valor_brl, valor_original").eq("user_id", userId)
         : Promise.resolve({ data: [] }),
       isPro
-        ? supabase
-            .from("transactions")
-            .select("categoria, valor")
-            .eq("user_id", userId)
-            .eq("tipo", "gasto")
-            .gte("data", trinta_dias)
+        ? supabase.from("transactions").select("categoria, valor").eq("user_id", userId).eq("tipo", "gasto").gte("data", trinta_dias)
         : Promise.resolve({ data: [] }),
     ]);
 
-    const metas       = metasRes.status === "fulfilled" ? (metasRes.value.data ?? []) : [];
+    const metas       = metasRes.status === "fulfilled"  ? (metasRes.value.data  ?? []) : [];
     const investimentos = investRes.status === "fulfilled" ? (investRes.value.data ?? []) : [];
 
-    // Calcula renda e gastos a partir das transações reais
     let renda = 0; let gastos = 0;
     if (summaryRes.status === "fulfilled") {
       for (const tx of summaryRes.value.data ?? []) {
@@ -245,11 +223,9 @@ export async function POST(req: NextRequest) {
         if (tx.tipo === "gasto")   gastos += Number(tx.valor);
       }
     }
-    // Fallback para dados declarados no perfil
     if (renda  === 0) renda  = Number(perfil.renda_mensal  ?? 0);
     if (gastos === 0) gastos = Number(perfil.gastos_mensais ?? 0);
 
-    // Gastos por categoria (Pro)
     const gastosCat: Record<string, number> = {};
     if (isPro && categoriaRes.status === "fulfilled") {
       for (const tx of categoriaRes.value.data ?? []) {
@@ -258,38 +234,36 @@ export async function POST(req: NextRequest) {
     }
 
     const context = {
-      renda,
-      gastos,
-      sobra: renda - gastos,
-      metas,
-      gastosCat,
-      investimentos,
+      renda, gastos, sobra: renda - gastos,
+      metas, gastosCat, investimentos,
       perfil: perfil.diagnostico_json ?? {},
-      selic: 14.50, // TODO: buscar de /api/rates/eco se quiser dinamizar
+      selic: 14.50,
     };
 
-    // 6. Busca histórico e monta conversa
+    // Busca histórico e monta conversa
     const historico = await buscarHistorico(userId);
     const mensagensParaAPI = [
       ...historico.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
       { role: "user" as const, content: texto },
     ];
 
-    // 7. Chama o Anthropic
+    // Chama o Anthropic
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1024, // mais curto que o web — WhatsApp pede brevidade
+      max_tokens: 1024,
       system: buildSystemPrompt(context, isPro),
       messages: mensagensParaAPI,
     });
 
     const reply =
-      response.content[0].type === "text" ? response.content[0].text : "Desculpe, não consegui processar sua mensagem.";
+      response.content[0].type === "text"
+        ? response.content[0].text
+        : "Desculpe, não consegui processar sua mensagem.";
 
-    // Remove blocos ```plano se o modelo gerar — WhatsApp não renderiza isso
+    // Remove blocos ```plano — WhatsApp não renderiza isso
     const replyLimpo = reply.replace(/```plano[\s\S]*?```/g, "").trim();
 
-    // 8. Salva no histórico e incrementa contador
+    // Salva histórico e incrementa contador
     await Promise.allSettled([
       supabase.from("chat_history").insert([
         { user_id: userId, role: "user",      content: texto,      created_at: new Date().toISOString() },
@@ -298,7 +272,7 @@ export async function POST(req: NextRequest) {
       plano !== "premium" ? incrementarContador(userId) : Promise.resolve(),
     ]);
 
-    // 9. Envia resposta via Z-API
+    // Envia resposta via Whapi
     await enviarMensagem(telefone, replyLimpo);
 
     return NextResponse.json({ ok: true });
