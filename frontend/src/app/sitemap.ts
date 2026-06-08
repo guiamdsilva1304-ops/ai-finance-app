@@ -5,7 +5,7 @@ const BASE = "https://imoney.ia.br";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 

@@ -3,9 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 import { runSeoAgent } from '@/lib/agents/seo'
 import { runGrowthAgent } from '@/lib/agents/growth'
 
+export const dynamic = 'force-dynamic'
+
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
 )
 
 const AGENT_RUNNERS: Record<string, (mission: any) => Promise<string>> = {

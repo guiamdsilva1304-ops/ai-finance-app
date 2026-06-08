@@ -3,12 +3,14 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
 
+export const dynamic = 'force-dynamic'
+
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
 )
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
-const resend = new Resend(process.env.RESEND_API_KEY!)
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? 'sk-ant-placeholder' })
+const resend = new Resend(process.env.RESEND_API_KEY ?? 're_placeholder')
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')

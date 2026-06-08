@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runAgent, pickPendingTasks, logAgentAction, type AgentId } from '@/lib/agent-runner'
 import { AGENT_PROMPTS } from '@/lib/agent-prompts'
 
+export const dynamic = 'force-dynamic'
+
 // Protege a rota com CRON_SECRET (mesmo padrão dos outros crons da iMoney)
 function isAuthorized(req: NextRequest): boolean {
   const secret = process.env.imoneycronsecret2026
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
   let seoInsightsContext = ''
   if (agentId === 'SEO' && !customMessage) {
     const { createClient } = await import('@supabase/supabase-js')
-    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co', process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key')
     const { data: insights } = await sb
       .from('seo_insights')
       .select('topic, keywords, search_intents')
@@ -123,8 +125,8 @@ export async function GET(req: NextRequest) {
 async function handleAgentOutput(agentId: AgentId, response: string, runId: string) {
   const { createClient } = await import('@supabase/supabase-js')
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
   )
 
   // Extrai JSON robusto: remove backticks, depois tenta parse direto ou por delimitadores

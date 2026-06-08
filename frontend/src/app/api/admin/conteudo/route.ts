@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? 'sk-ant-placeholder' })
 
 const SYSTEM_PROMPT = `Voce e o agente de conteudo da iMoney, app brasileiro de financas pessoais com IA para jovens de 20-30 anos. Tom: amigo que entende de dinheiro. Direto, sem juridiques.
 

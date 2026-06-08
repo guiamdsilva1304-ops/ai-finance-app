@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+export const dynamic = 'force-dynamic'
+
+const resend = new Resend(process.env.RESEND_API_KEY ?? 're_placeholder')
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
 )
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -164,7 +166,7 @@ Formato exato do JSON:
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY!,
+      'x-api-key': process.env.ANTHROPIC_API_KEY ?? 'sk-ant-placeholder',
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
@@ -189,7 +191,7 @@ async function getTrendingTopics(): Promise<string> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY!,
+        'x-api-key': process.env.ANTHROPIC_API_KEY ?? 'sk-ant-placeholder',
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'web-search-2025-03-05',
       },

@@ -12,10 +12,10 @@ const AGENT_NAMES: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? 'sk-ant-placeholder' });
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
     );
 
     const { data: feedbacks } = await supabase
@@ -83,8 +83,8 @@ Responda em Markdown: ## Diagnóstico ## Ação ## Resultado esperado`;
 
 export async function GET() {
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
   );
   const { data } = await supabase.from("feedback").select("*").order("created_at", { ascending: false });
   return NextResponse.json({ feedbacks: data || [] });

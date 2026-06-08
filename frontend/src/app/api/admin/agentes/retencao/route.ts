@@ -7,11 +7,11 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
 )
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
-const resend = new Resend(process.env.RESEND_API_KEY!)
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? 'sk-ant-placeholder' })
+const resend = new Resend(process.env.RESEND_API_KEY ?? 're_placeholder')
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 

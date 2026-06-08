@@ -59,7 +59,6 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg-page)' }}>
-      {/* Mobile header */}
       <div className="md:hidden border-b px-4 py-3 flex items-center justify-between" style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}>
         <div className="flex items-center gap-2">
           <Logo size={100} showText={false} showTagline={false} />

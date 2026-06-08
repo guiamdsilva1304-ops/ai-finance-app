@@ -52,7 +52,7 @@ export default async function BlogPage({ searchParams }: Props) {
   const activeFilter = cat && cat !== "todos" ? cat : null
 
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 

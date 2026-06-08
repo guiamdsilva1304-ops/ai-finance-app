@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runAgent, pickPendingTasks, logAgentAction, type AgentId } from '@/lib/agent-runner'
 import { AGENT_PROMPTS } from '@/lib/agent-prompts'
 
+export const dynamic = 'force-dynamic'
+
 // Protege a rota com CRON_SECRET (mesmo padrão dos outros crons da iMoney)
 function isAuthorized(req: NextRequest): boolean {
   const auth = req.headers.get('authorization')
@@ -97,8 +99,8 @@ export async function GET(req: NextRequest) {
 async function handleAgentOutput(agentId: AgentId, response: string, runId: string) {
   const { createClient } = await import('@supabase/supabase-js')
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
   )
 
   // Extrai JSON robusto: nunca usa regex com *? pois quebra quando o conteúdo markdown tem backticks

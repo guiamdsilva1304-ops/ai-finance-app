@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 
 const FROM_EMAIL = "Gui da iMoney <gui@imoney.ia.br>";
-const RESEND_KEY = process.env.RESEND_API_KEY!;
+const RESEND_KEY = process.env.RESEND_API_KEY ?? 're_placeholder';
 
 // Rate limiting: máx 3 tentativas por email por hora (por instância serverless)
 const rateLimitMap = new Map<string, number[]>();
@@ -87,8 +87,8 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
   );
 
   const origin = new URL(req.url).origin;

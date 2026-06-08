@@ -1,172 +1,165 @@
-'use client'
+"use client";
+import { useEffect, useState } from "react";
+import { useTheme } from "@/lib/theme";
 
-import { useState, useEffect } from 'react'
-import { createSupabaseBrowser } from '@/lib/supabase'
-import { X } from 'lucide-react'
+const NPS_KEY = "imoney_nps";
+const SHOW_DELAY_MS = 30_000;
+const SNOOZE_DAYS = 7;
 
-const NPS_STORAGE_KEY = 'imoney_nps_last_shown'
-const NPS_INTERVAL_DAYS = 7
-const NPS_MIN_AGE_DAYS = 7
+function snoozeKey() {
+  const d = new Date();
+  d.setDate(d.getDate() + SNOOZE_DAYS);
+  return d.toISOString();
+}
 
 export function NPSToast() {
-  const [visible, setVisible] = useState(false)
-  const [score, setScore] = useState<number | null>(null)
-  const [enviado, setEnviado] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const supabase = createSupabaseBrowser()
+  const { isDark } = useTheme();
+  const [visible, setVisible] = useState(false);
+  const [score, setScore] = useState<number | null>(null);
+  const [comment, setComment] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    checkShouldShow()
-  }, [])
-
-  async function checkShouldShow() {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Checa idade da conta (mínimo 7 dias)
-      const createdAt = new Date(user.created_at)
-      const diasDeCadastro = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
-      if (diasDeCadastro < NPS_MIN_AGE_DAYS) return
-
-      // Checa última vez que foi exibido (localStorage)
-      const lastShown = localStorage.getItem(NPS_STORAGE_KEY)
-      if (lastShown) {
-        const diasDesdeUltimaExibicao = (Date.now() - parseInt(lastShown)) / (1000 * 60 * 60 * 24)
-        if (diasDesdeUltimaExibicao < NPS_INTERVAL_DAYS) return
+      const raw = localStorage.getItem(NPS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.submitted) return;
+        if (parsed.snoozeUntil && new Date(parsed.snoozeUntil) > new Date()) return;
       }
+    } catch {}
 
-      // Aparece após 3s para não assustar
-      setTimeout(() => {
-        setVisible(true)
-        localStorage.setItem(NPS_STORAGE_KEY, Date.now().toString())
-      }, 3000)
-    } catch {
-      // silencia erros
-    }
-  }
+    const t = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
+    return () => clearTimeout(t);
+  }, []);
 
-  async function handleEnviar() {
-    if (score === null) return
-    setLoading(true)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      await supabase.from('nps_responses').insert({ user_id: user.id, score })
-      setEnviado(true)
-      setTimeout(() => setVisible(false), 2000)
-    } catch {
-      setVisible(false)
-    } finally {
-      setLoading(false)
-    }
+  function handleSubmit() {
+    if (score === null) return;
+    localStorage.setItem(NPS_KEY, JSON.stringify({
+      score,
+      comment,
+      submitted: true,
+      date: new Date().toISOString(),
+    }));
+    setSubmitted(true);
+    setTimeout(() => setVisible(false), 2000);
   }
 
   function handleDismiss() {
-    setVisible(false)
+    localStorage.setItem(NPS_KEY, JSON.stringify({ snoozeUntil: snoozeKey() }));
+    setVisible(false);
   }
 
-  if (!visible) return null
+  if (!visible) return null;
 
-  const getScoreColor = (s: number) => {
-    if (s <= 6) return { bg: '#fee2e2', text: '#dc2626', border: '#fca5a5' }
-    if (s <= 8) return { bg: '#fef9c3', text: '#ca8a04', border: '#fde047' }
-    return { bg: '#dcfce7', text: '#16a34a', border: '#86efac' }
-  }
+  const bg = isDark ? '#1a1f2e' : '#ffffff';
+  const border = isDark ? '#2d3748' : '#e5e7eb';
+  const text1 = isDark ? '#f1f5f9' : '#111827';
+  const text2 = isDark ? '#94a3b8' : '#6b7280';
 
   return (
     <div
-      className="fixed top-5 right-5 z-50 w-80 shadow-2xl rounded-2xl overflow-hidden"
       style={{
-        background: '#fff',
-        border: '1px solid #e4f5e9',
-        animation: 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        position: 'fixed',
+        bottom: '80px',
+        right: '16px',
+        zIndex: 9999,
+        width: '320px',
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: '16px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+        padding: '20px',
+        fontFamily: 'Nunito, sans-serif',
       }}
     >
-      <style>{`
-        @keyframes slideInRight {
-          from { transform: translateX(120%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `}</style>
-
-      {/* Header */}
-      <div className="flex items-start justify-between p-4 pb-3">
-        <div>
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-base">⭐</span>
-            <p className="font-black text-[#0d2414] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>
-              Avalie a iMoney
-            </p>
-          </div>
-          <p className="text-xs text-[#6b9e80] leading-snug">
-            De 0 a 10, qual a chance de recomendar para um amigo?
-          </p>
-        </div>
-        <button
-          onClick={handleDismiss}
-          className="p-1 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0 ml-2"
-        >
-          <X size={15} className="text-gray-400" />
-        </button>
-      </div>
-
-      {!enviado ? (
-        <>
-          {/* Scores */}
-          <div className="px-4 pb-3">
-            <div className="flex gap-1 flex-wrap">
-              {Array.from({ length: 11 }, (_, i) => {
-                const colors = getScoreColor(i)
-                const selected = score === i
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setScore(i)}
-                    className="w-[26px] h-[26px] rounded-lg text-xs font-black transition-all border"
-                    style={{
-                      background: selected ? colors.bg : '#f8fdf9',
-                      color: selected ? colors.text : '#8db89d',
-                      borderColor: selected ? colors.border : '#e4f5e9',
-                      transform: selected ? 'scale(1.15)' : 'scale(1)',
-                    }}
-                  >
-                    {i}
-                  </button>
-                )
-              })}
-            </div>
-            <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-gray-400">Pouco provável</span>
-              <span className="text-[10px] text-gray-400">Muito provável</span>
-            </div>
-          </div>
-
-          {/* Botão */}
-          <div className="px-4 pb-4">
-            <button
-              onClick={handleEnviar}
-              disabled={score === null || loading}
-              className="w-full py-2.5 rounded-xl text-sm font-bold transition-all"
-              style={{
-                background: score !== null ? '#1D9E75' : '#e4f5e9',
-                color: score !== null ? '#fff' : '#8db89d',
-                cursor: score !== null ? 'pointer' : 'not-allowed',
-              }}
-            >
-              {loading ? 'Enviando...' : 'Enviar avaliação'}
-            </button>
-          </div>
-        </>
-      ) : (
-        <div className="px-4 pb-5 text-center">
-          <p className="text-2xl mb-1">🙏</p>
-          <p className="font-black text-[#0d2414] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>
+      {submitted ? (
+        <div style={{ textAlign: 'center', padding: '8px 0' }}>
+          <div style={{ fontSize: '28px', marginBottom: '8px' }}>🙏</div>
+          <p style={{ color: '#1D9E75', fontWeight: 700, fontSize: '15px', margin: 0 }}>
             Obrigado pelo feedback!
           </p>
-          <p className="text-xs text-[#6b9e80] mt-0.5">Isso nos ajuda a melhorar a iMoney.</p>
         </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <p style={{ color: text1, fontWeight: 700, fontSize: '14px', margin: 0, lineHeight: 1.4 }}>
+              De 0 a 10, você indicaria o iMoney para um amigo?
+            </p>
+            <button
+              onClick={handleDismiss}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: text2, fontSize: '18px', lineHeight: 1, padding: '0 0 0 8px', flexShrink: 0 }}
+              aria-label="Fechar"
+            >
+              ×
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '12px' }}>
+            {Array.from({ length: 11 }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setScore(i)}
+                style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '6px',
+                  border: score === i ? '2px solid #1D9E75' : `1px solid ${border}`,
+                  background: score === i ? '#1D9E75' : 'transparent',
+                  color: score === i ? '#fff' : text1,
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'Nunito, sans-serif',
+                }}
+              >
+                {i}
+              </button>
+            ))}
+          </div>
+
+          {score !== null && (
+            <textarea
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              placeholder="Comentário opcional..."
+              rows={2}
+              style={{
+                width: '100%',
+                borderRadius: '8px',
+                border: `1px solid ${border}`,
+                background: isDark ? '#0f1117' : '#f9fafb',
+                color: text1,
+                fontSize: '13px',
+                padding: '8px',
+                marginBottom: '10px',
+                resize: 'none',
+                fontFamily: 'Nunito, sans-serif',
+                boxSizing: 'border-box',
+              }}
+            />
+          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={score === null}
+            style={{
+              width: '100%',
+              padding: '9px',
+              borderRadius: '8px',
+              border: 'none',
+              background: score === null ? (isDark ? '#2d3748' : '#e5e7eb') : '#1D9E75',
+              color: score === null ? text2 : '#fff',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: score === null ? 'not-allowed' : 'pointer',
+              fontFamily: 'Nunito, sans-serif',
+            }}
+          >
+            Enviar
+          </button>
+        </>
       )}
     </div>
-  )
+  );
 }

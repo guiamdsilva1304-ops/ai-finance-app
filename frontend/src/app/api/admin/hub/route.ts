@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 
+export const dynamic = 'force-dynamic'
+
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
 )
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? 'sk-ant-placeholder' })
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   seo: 'Voce e o agente SEO da iMoney. Quando pedirem para escrever e publicar um artigo, retorne APENAS um objeto JSON valido sem nenhum texto antes ou depois, sem blocos de codigo (sem ```). O campo conteudo NAO pode conter backticks triplos. Formato: {"artigo":{"titulo":"...","slug":"titulo-em-kebab","meta_description":"...","conteudo":"artigo completo em markdown sem blocos de codigo","publicar_automaticamente":true}}',

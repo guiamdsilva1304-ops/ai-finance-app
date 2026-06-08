@@ -95,10 +95,10 @@ Critérios:
 
 export async function POST(req: NextRequest) {
   try {
-    const key = process.env.ANTHROPIC_API_KEY!;
+    const key = process.env.ANTHROPIC_API_KEY ?? 'sk-ant-placeholder';
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
     );
 
     // Cria o experimento
@@ -208,8 +208,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
   );
 
   const { data: experiments } = await supabase

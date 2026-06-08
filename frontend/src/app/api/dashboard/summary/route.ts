@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { global: { headers: { Authorization: `Bearer ${token}` } } }
     );
