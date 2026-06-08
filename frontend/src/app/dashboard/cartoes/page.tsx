@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createSupabaseBrowser } from '@/lib/supabase'
 import { Plus, CreditCard, Trash2, X, ChevronRight, Wallet } from 'lucide-react'
 
 interface CreditCard {
@@ -59,11 +59,9 @@ function CardVisual({ card }: { card: CreditCard }) {
         minHeight: 160,
       }}
     >
-      {/* Círculos decorativos */}
       <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full opacity-10 bg-white" />
       <div className="absolute -bottom-8 -right-2 w-36 h-36 rounded-full opacity-10 bg-white" />
 
-      {/* Topo */}
       <div className="flex justify-between items-start mb-4">
         <div>
           <p className="text-xs opacity-70 font-medium mb-0.5">iMoney</p>
@@ -72,7 +70,6 @@ function CardVisual({ card }: { card: CreditCard }) {
         <BandeiraIcon bandeira={card.bandeira} />
       </div>
 
-      {/* Limite */}
       <div className="mb-3">
         <p className="text-xs opacity-70 mb-0.5">Limite disponível</p>
         <p className="text-xl font-black">
@@ -85,7 +82,6 @@ function CardVisual({ card }: { card: CreditCard }) {
         </p>
       </div>
 
-      {/* Barra de uso */}
       <div className="mb-3">
         <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
           <div
@@ -95,7 +91,6 @@ function CardVisual({ card }: { card: CreditCard }) {
         </div>
       </div>
 
-      {/* Rodapé */}
       <div className="flex justify-between text-xs opacity-70">
         <span>Fecha dia {card.fechamento_fatura}</span>
         <span>Vence dia {card.vencimento_fatura}</span>
@@ -135,7 +130,9 @@ function ModalNovoCartao({
         nome: form.nome,
         bandeira: form.bandeira,
         limite: parseFloat(form.limite),
-        limite_disponivel: form.limite_disponivel ? parseFloat(form.limite_disponivel) : parseFloat(form.limite),
+        limite_disponivel: form.limite_disponivel
+          ? parseFloat(form.limite_disponivel)
+          : parseFloat(form.limite),
         vencimento_fatura: parseInt(form.vencimento_fatura),
         fechamento_fatura: parseInt(form.fechamento_fatura),
         cor: form.cor,
@@ -151,11 +148,12 @@ function ModalNovoCartao({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-        {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <CreditCard className="text-[#00C853]" size={20} />
-            <h2 className="font-bold text-[#1a3a1a] text-lg">Novo Cartão</h2>
+            <h2 className="font-black text-[#1a3a1a] text-lg" style={{ fontFamily: 'Nunito, sans-serif' }}>
+              Novo Cartão
+            </h2>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
             <X size={18} className="text-gray-400" />
@@ -163,14 +161,15 @@ function ModalNovoCartao({
         </div>
 
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-          {/* Preview */}
           <CardVisual
             card={{
               id: 'preview',
               nome: form.nome || 'Meu Cartão',
               bandeira: form.bandeira,
               limite: parseFloat(form.limite) || 0,
-              limite_disponivel: form.limite_disponivel ? parseFloat(form.limite_disponivel) : parseFloat(form.limite) || 0,
+              limite_disponivel: form.limite_disponivel
+                ? parseFloat(form.limite_disponivel)
+                : parseFloat(form.limite) || 0,
               vencimento_fatura: parseInt(form.vencimento_fatura) || 10,
               fechamento_fatura: parseInt(form.fechamento_fatura) || 3,
               cor: form.cor,
@@ -178,9 +177,10 @@ function ModalNovoCartao({
             }}
           />
 
-          {/* Cor */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Cor do cartão</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">
+              Cor do cartão
+            </label>
             <div className="flex gap-2">
               {CORES.map((c) => (
                 <button
@@ -197,7 +197,6 @@ function ModalNovoCartao({
             </div>
           </div>
 
-          {/* Nome */}
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
               Nome do cartão *
@@ -207,17 +206,19 @@ function ModalNovoCartao({
               placeholder="ex: Nubank, Itaú Black..."
               value={form.nome}
               onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00C853] transition-colors"
+              className="input w-full"
+              maxLength={100}
             />
           </div>
 
-          {/* Bandeira */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Bandeira *</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+              Bandeira *
+            </label>
             <select
               value={form.bandeira}
               onChange={(e) => setForm({ ...form, bandeira: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00C853] transition-colors bg-white"
+              className="input w-full bg-white"
             >
               {BANDEIRAS.map((b) => (
                 <option key={b.value} value={b.value}>{b.label}</option>
@@ -225,7 +226,6 @@ function ModalNovoCartao({
             </select>
           </div>
 
-          {/* Limite */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -236,7 +236,9 @@ function ModalNovoCartao({
                 placeholder="5000"
                 value={form.limite}
                 onChange={(e) => setForm({ ...form, limite: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00C853] transition-colors"
+                className="input w-full"
+                min="0"
+                step="0.01"
               />
             </div>
             <div>
@@ -248,52 +250,52 @@ function ModalNovoCartao({
                 placeholder="3200"
                 value={form.limite_disponivel}
                 onChange={(e) => setForm({ ...form, limite_disponivel: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00C853] transition-colors"
+                className="input w-full"
+                min="0"
+                step="0.01"
               />
             </div>
           </div>
 
-          {/* Datas */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                Fechamento *
+                Fechamento (dia) *
               </label>
               <input
                 type="number"
-                placeholder="dia 3"
+                placeholder="3"
                 min={1}
                 max={31}
                 value={form.fechamento_fatura}
                 onChange={(e) => setForm({ ...form, fechamento_fatura: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00C853] transition-colors"
+                className="input w-full"
               />
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                Vencimento *
+                Vencimento (dia) *
               </label>
               <input
                 type="number"
-                placeholder="dia 10"
+                placeholder="10"
                 min={1}
                 max={31}
                 value={form.vencimento_fatura}
                 onChange={(e) => setForm({ ...form, vencimento_fatura: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00C853] transition-colors"
+                className="input w-full"
               />
             </div>
           </div>
 
-          {erro && <p className="text-red-500 text-sm">{erro}</p>}
+          {erro && <p className="text-red-500 text-sm font-medium">{erro}</p>}
         </div>
 
-        {/* Footer */}
         <div className="p-5 border-t border-gray-100">
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-[#00C853] text-white font-bold py-3.5 rounded-xl hover:bg-[#00b34a] transition-colors disabled:opacity-60"
+            className="btn-primary w-full py-3.5"
           >
             {loading ? 'Salvando...' : 'Adicionar Cartão'}
           </button>
@@ -304,7 +306,7 @@ function ModalNovoCartao({
 }
 
 export default function CartoesPage() {
-  const supabase = createClientComponentClient()
+  const supabase = createSupabaseBrowser()
   const [cartoes, setCartoes] = useState<CreditCard[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -319,9 +321,12 @@ export default function CartoesPage() {
 
   async function fetchCartoes() {
     setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
     const { data } = await supabase
       .from('credit_cards')
       .select('*')
+      .eq('user_id', user.id)
       .eq('ativo', true)
       .order('created_at', { ascending: false })
     setCartoes(data || [])
@@ -331,7 +336,9 @@ export default function CartoesPage() {
   async function handleSave(data: Omit<CreditCard, 'id' | 'ativo'>) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Não autenticado')
-    const { error } = await supabase.from('credit_cards').insert({ ...data, user_id: user.id })
+    const { error } = await supabase
+      .from('credit_cards')
+      .insert({ ...data, user_id: user.id })
     if (error) throw error
     await fetchCartoes()
   }
@@ -342,125 +349,119 @@ export default function CartoesPage() {
     await fetchCartoes()
   }
 
+  const fmt = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="p-5 lg:p-8 max-w-2xl mx-auto pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-6 pb-4 sticky top-0 z-10">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-black text-[#1a3a1a]">Cartões</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Gerencie seus cartões de crédito</p>
+      <div className="flex items-center justify-between mb-7">
+        <div>
+          <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+            💳 Cartões
+          </h1>
+          <p className="text-sm text-[#6b9e80] mt-0.5">Gerencie seus cartões de crédito</p>
+        </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="btn-primary"
+        >
+          <Plus size={16} /> Adicionar
+        </button>
+      </div>
+
+      {/* Resumo geral */}
+      {cartoes.length > 0 && (
+        <div className="card mb-5" style={{ background: '#0d2414', color: '#fff' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Wallet size={18} style={{ color: '#00C853' }} />
+            <span className="text-sm font-semibold opacity-80">Visão geral</span>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 bg-[#00C853] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-[#00b34a] transition-colors"
-          >
-            <Plus size={16} />
-            Adicionar
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p className="text-xs opacity-60 mb-1">Limite total</p>
+              <p className="font-black text-sm">{fmt(limiteTotal)}</p>
+            </div>
+            <div>
+              <p className="text-xs opacity-60 mb-1">Usado</p>
+              <p className="font-black text-sm" style={{ color: '#fca5a5' }}>{fmt(usadoTotal)}</p>
+            </div>
+            <div>
+              <p className="text-xs opacity-60 mb-1">Disponível</p>
+              <p className="font-black text-sm" style={{ color: '#00C853' }}>{fmt(disponivelTotal)}</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${limiteTotal > 0 ? (disponivelTotal / limiteTotal) * 100 : 0}%`,
+                  background: '#00C853',
+                }}
+              />
+            </div>
+            <p className="text-xs opacity-50 mt-1 text-right">
+              {limiteTotal > 0 ? Math.round((disponivelTotal / limiteTotal) * 100) : 0}% disponível
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Lista */}
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-40 rounded-2xl shimmer" />
+          ))}
+        </div>
+      ) : cartoes.length === 0 ? (
+        <div className="card text-center py-12 bg-[#f8fdf9]">
+          <p className="text-4xl mb-3">💳</p>
+          <p className="font-black text-[#0d2414] text-lg" style={{ fontFamily: 'Nunito, sans-serif' }}>
+            Nenhum cartão ainda
+          </p>
+          <p className="text-sm text-[#6b9e80] mt-1 mb-6">
+            Adicione seus cartões para o Assessor IA conhecer seu limite e gastos.
+          </p>
+          <button onClick={() => setShowModal(true)} className="btn-primary">
+            Adicionar primeiro cartão
           </button>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-4">
+          {cartoes.map((card) => (
+            <div key={card.id} className="relative group">
+              <CardVisual card={card} />
+              <button
+                onClick={() => handleDelete(card.id)}
+                className="absolute top-3 right-3 bg-red-500/80 backdrop-blur-sm text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
-      <div className="max-w-lg mx-auto px-4 py-5 space-y-5">
-        {/* Resumo geral */}
-        {cartoes.length > 0 && (
-          <div className="bg-[#1a3a1a] rounded-2xl p-5 text-white">
-            <div className="flex items-center gap-2 mb-4">
-              <Wallet size={18} className="text-[#00C853]" />
-              <span className="text-sm font-semibold opacity-80">Visão geral</span>
-            </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div>
-                <p className="text-xs opacity-60 mb-1">Limite total</p>
-                <p className="font-black text-sm">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(limiteTotal)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs opacity-60 mb-1">Usado</p>
-                <p className="font-black text-sm text-red-300">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(usadoTotal)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs opacity-60 mb-1">Disponível</p>
-                <p className="font-black text-sm text-[#00C853]">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(disponivelTotal)}
-                </p>
-              </div>
-            </div>
-            <div className="mt-4">
-              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#00C853] rounded-full transition-all"
-                  style={{ width: `${limiteTotal > 0 ? (disponivelTotal / limiteTotal) * 100 : 0}%` }}
-                />
-              </div>
-              <p className="text-xs opacity-50 mt-1 text-right">
-                {limiteTotal > 0 ? Math.round((disponivelTotal / limiteTotal) * 100) : 0}% disponível
-              </p>
-            </div>
+      {/* Dica Assessor */}
+      {cartoes.length > 0 && (
+        <div className="card mt-5 flex items-center gap-3" style={{ background: '#E8F5E9' }}>
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: '#00C853' }}
+          >
+            <span className="text-white text-lg">✦</span>
           </div>
-        )}
-
-        {/* Lista de cartões */}
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2].map((i) => (
-              <div key={i} className="h-40 bg-gray-200 rounded-2xl animate-pulse" />
-            ))}
-          </div>
-        ) : cartoes.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 bg-[#E8F5E9] rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <CreditCard className="text-[#00C853]" size={28} />
-            </div>
-            <p className="font-bold text-[#1a3a1a] text-lg mb-1">Nenhum cartão ainda</p>
-            <p className="text-gray-400 text-sm mb-6">
-              Adicione seus cartões para o Assessor IA conhecer seu limite e gastos.
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-[#0d2414]">Assessor IA atualizado</p>
+            <p className="text-xs text-[#6b9e80] mt-0.5">
+              O Assessor já conhece seus cartões e usa esse contexto nas conversas.
             </p>
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-[#00C853] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#00b34a] transition-colors"
-            >
-              Adicionar primeiro cartão
-            </button>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {cartoes.map((card) => (
-              <div key={card.id} className="relative group">
-                <CardVisual card={card} />
-                {/* Ações */}
-                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => handleDelete(card.id)}
-                    className="bg-red-500/80 backdrop-blur-sm text-white p-1.5 rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Dica pro Assessor */}
-        {cartoes.length > 0 && (
-          <div className="bg-[#E8F5E9] rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#00C853] rounded-xl flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-lg">✦</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#1a3a1a]">Assessor IA atualizado</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                O Assessor já conhece seus cartões e vai usar esse contexto nas conversas.
-              </p>
-            </div>
-            <ChevronRight size={16} className="text-gray-400 flex-shrink-0" />
-          </div>
-        )}
-      </div>
+          <ChevronRight size={16} className="text-gray-400 flex-shrink-0" />
+        </div>
+      )}
 
       {showModal && (
         <ModalNovoCartao
