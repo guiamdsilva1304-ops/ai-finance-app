@@ -24,11 +24,12 @@ const RENDA_VARIAVEL_OCUPACOES = [
 
 function buildNavItems(ocupacao?: string): { href: string; icon: IconName; label: string }[] {
   const base = [
-    { href: "/dashboard",               icon: 'home'        as IconName, label: "Dashboard" },
-    { href: "/dashboard/assessor",      icon: 'sparkles'    as IconName, label: "Assessor" },
-    { href: "/dashboard/transacoes",    icon: 'wallet'      as IconName, label: "Transações" },
-    { href: "/dashboard/metas",         icon: 'target'      as IconName, label: "Metas" },
-    { href: "/dashboard/investimentos", icon: 'trending-up' as IconName, label: "Investimentos" },
+    { href: "/dashboard",               icon: 'home'          as IconName, label: "Dashboard" },
+    { href: "/dashboard/assessor",      icon: 'sparkles'      as IconName, label: "Assessor" },
+    { href: "/dashboard/transacoes",    icon: 'wallet'        as IconName, label: "Transações" },
+    { href: "/dashboard/cartoes",       icon: 'credit-card'   as IconName, label: "Cartões" },
+    { href: "/dashboard/metas",         icon: 'target'        as IconName, label: "Metas" },
+    { href: "/dashboard/investimentos", icon: 'trending-up'   as IconName, label: "Investimentos" },
   ];
 
   const mostraRendaVariavel = ocupacao && RENDA_VARIAVEL_OCUPACOES.some(o =>
@@ -45,8 +46,8 @@ function buildNavItems(ocupacao?: string): { href: string; icon: IconName; label
 // ─── Mobile nav ───────────────────────────────────────────────────────────────
 
 const MOBILE_NAV_LEFT: { href: string; icon: IconName; label: string }[] = [
-  { href: "/dashboard",            icon: 'home',   label: "Início" },
-  { href: "/dashboard/transacoes", icon: 'wallet', label: "Transações" },
+  { href: "/dashboard",            icon: 'home',         label: "Início" },
+  { href: "/dashboard/transacoes", icon: 'wallet',       label: "Transações" },
 ];
 
 const MOBILE_NAV_RIGHT: { href: string; icon: IconName; label: string }[] = [
@@ -150,20 +151,20 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
         </div>
       )}
 
-      {/* Bottom — Open Finance, Perfil, Sair */}
+      {/* Bottom — Relatório, Open Finance, Perfil, Sair */}
       <div className="px-3 pb-5 border-t pt-3 space-y-1" style={{ borderColor: 'var(--border)' }}>
-        {/* Open Finance */}
         <Link
           href="/dashboard/relatorio"
-              className={[
-                "nav-link",
-                pathname.startsWith("/dashboard/relatorio") ? "nav-link-active" : "",
-              ].join(" ")}
-            >
-              <Icon name="bar-chart" size={18} />
-              {!collapsed && <span>Relatório</span>}
-            </Link>
-            <Link
+          className={[
+            "nav-link",
+            pathname.startsWith("/dashboard/relatorio") ? "nav-link-active" : "",
+          ].join(" ")}
+        >
+          <Icon name="bar-chart" size={18} />
+          {!collapsed && <span>Relatório</span>}
+        </Link>
+
+        <Link
           href="/dashboard/openfinance"
           className={cn(
             "nav-link",
