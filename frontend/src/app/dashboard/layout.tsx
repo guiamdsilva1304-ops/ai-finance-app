@@ -1,172 +1,120 @@
-'use client'
+"use client";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Logo } from "@/components/ui/Logo";
+import { Icon } from "@/components/imoney/primitives";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { createSupabaseBrowser } from "@/lib/supabase";
+import { ThemeProvider, useTheme } from "@/lib/theme";
+import { NPSToast } from "@/components/NPSToast";
 
-import { useState, useEffect } from 'react'
-import { createSupabaseBrowser } from '@/lib/supabase'
-import { X } from 'lucide-react'
-
-const NPS_STORAGE_KEY = 'imoney_nps_last_shown'
-const NPS_INTERVAL_DAYS = 7
-const NPS_MIN_AGE_DAYS = 7
-
-export function NPSToast() {
-  const [visible, setVisible] = useState(false)
-  const [score, setScore] = useState<number | null>(null)
-  const [enviado, setEnviado] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const supabase = createSupabaseBrowser()
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
+  const { isDark } = useTheme();
+  const [email, setEmail] = useState<string>();
+  const [plan, setPlan] = useState<string>('free');
+  const [ocupacao, setOcupacao] = useState<string>();
+  const [displayName, setDisplayName] = useState<string>('');
+  const [mounted, setMounted] = useState(false);
+  const supabase = createSupabaseBrowser();
 
   useEffect(() => {
-    checkShouldShow()
-  }, [])
+    setMounted(true);
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { window.location.href = "/"; return; }
+      const userEmail = data.user.email ?? '';
+      setEmail(userEmail);
+      const { data: perfil } = await supabase
+        .from('user_profiles')
+        .select('plan, ocupacao, nome_preferido, nome')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+      setPlan(perfil?.plan ?? 'free');
+      setOcupacao(perfil?.ocupacao ?? undefined);
+      const dn =
+        perfil?.nome_preferido ||
+        ((perfil?.nome || '') as string).split(' ')[0] ||
+        userEmail.split('@')[0].replace(/[._\-0-9]/g, ' ').trim().split(' ').filter(Boolean)[0] || '';
+      setDisplayName(dn ? dn.charAt(0).toUpperCase() + dn.slice(1) : '');
+      supabase.auth.getSession().then(({ data: s }) => {
+        if (s.session?.access_token) {
+          fetch('/api/onboarding/welcome', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${s.session.access_token}` },
+          }).catch(() => {});
+        }
+      });
+    });
+  }, []);
 
-  async function checkShouldShow() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Checa idade da conta (mínimo 7 dias)
-      const createdAt = new Date(user.created_at)
-      const diasDeCadastro = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
-      if (diasDeCadastro < NPS_MIN_AGE_DAYS) return
-
-      // Checa última vez que foi exibido (localStorage)
-      const lastShown = localStorage.getItem(NPS_STORAGE_KEY)
-      if (lastShown) {
-        const diasDesdeUltimaExibicao = (Date.now() - parseInt(lastShown)) / (1000 * 60 * 60 * 24)
-        if (diasDesdeUltimaExibicao < NPS_INTERVAL_DAYS) return
-      }
-
-      // Aparece após 3s para não assustar
-      setTimeout(() => {
-        setVisible(true)
-        localStorage.setItem(NPS_STORAGE_KEY, Date.now().toString())
-      }, 3000)
-    } catch {
-      // silencia erros
-    }
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    window.location.href = "/";
   }
 
-  async function handleEnviar() {
-    if (score === null) return
-    setLoading(true)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      await supabase.from('nps_responses').insert({ user_id: user.id, score })
-      setEnviado(true)
-      setTimeout(() => setVisible(false), 2000)
-    } catch {
-      setVisible(false)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function handleDismiss() {
-    setVisible(false)
-  }
-
-  if (!visible) return null
-
-  const getScoreColor = (s: number) => {
-    if (s <= 6) return { bg: '#fee2e2', text: '#dc2626', border: '#fca5a5' }
-    if (s <= 8) return { bg: '#fef9c3', text: '#ca8a04', border: '#fde047' }
-    return { bg: '#dcfce7', text: '#16a34a', border: '#86efac' }
-  }
+  if (!mounted) return (
+    <div className="flex min-h-screen items-center justify-center" style={{ background: 'var(--bg-page)' }}>
+      <div className="w-8 h-8 rounded-full border-2 border-[#16a34a] border-t-transparent animate-spin"/>
+    </div>
+  );
 
   return (
-    <div
-      className="fixed top-5 right-5 z-50 w-80 shadow-2xl rounded-2xl overflow-hidden"
-      style={{
-        background: '#fff',
-        border: '1px solid #e4f5e9',
-        animation: 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-      }}
-    >
-      <style>{`
-        @keyframes slideInRight {
-          from { transform: translateX(120%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `}</style>
-
-      {/* Header */}
-      <div className="flex items-start justify-between p-4 pb-3">
-        <div>
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-base">⭐</span>
-            <p className="font-black text-[#0d2414] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>
-              Avalie a iMoney
-            </p>
-          </div>
-          <p className="text-xs text-[#6b9e80] leading-snug">
-            De 0 a 10, qual a chance de recomendar para um amigo?
-          </p>
+    <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg-page)' }}>
+      {/* Mobile header */}
+      <div className="md:hidden border-b px-4 py-3 flex items-center justify-between" style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}>
+        <div className="flex items-center gap-2">
+          <Logo size={100} showText={false} showTagline={false} />
+          {displayName && (
+            <span className="text-sm font-bold truncate max-w-[120px]" style={{ color: 'var(--text-1)', fontFamily: 'Nunito, sans-serif' }}>
+              {displayName}
+            </span>
+          )}
         </div>
-        <button
-          onClick={handleDismiss}
-          className="p-1 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0 ml-2"
-        >
-          <X size={15} className="text-gray-400" />
-        </button>
+        <div className="flex items-center gap-2">
+          {plan === 'free' && (
+            <Link
+              href="/dashboard/pro"
+              className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex items-center gap-1"
+              style={{ background: '#1D9E75' }}
+            >
+              <Icon name="sparkles" size={12} color="#fff" /> Pro
+            </Link>
+          )}
+          {(plan === 'pro' || plan === 'premium') && (
+            <span
+              className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
+              style={{ background: isDark ? '#1a3a22' : '#E1F5EE', color: isDark ? '#4ade80' : '#085041' }}
+            >
+              <Icon name="sparkles" size={12} color={isDark ? '#4ade80' : '#085041'} /> Pro
+            </span>
+          )}
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-red-400 hover:bg-red-50 transition-colors"
+            title="Sair"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {!enviado ? (
-        <>
-          {/* Scores */}
-          <div className="px-4 pb-3">
-            <div className="flex gap-1 flex-wrap">
-              {Array.from({ length: 11 }, (_, i) => {
-                const colors = getScoreColor(i)
-                const selected = score === i
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setScore(i)}
-                    className="w-[26px] h-[26px] rounded-lg text-xs font-black transition-all border"
-                    style={{
-                      background: selected ? colors.bg : '#f8fdf9',
-                      color: selected ? colors.text : '#8db89d',
-                      borderColor: selected ? colors.border : '#e4f5e9',
-                      transform: selected ? 'scale(1.15)' : 'scale(1)',
-                    }}
-                  >
-                    {i}
-                  </button>
-                )
-              })}
-            </div>
-            <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-gray-400">Pouco provável</span>
-              <span className="text-[10px] text-gray-400">Muito provável</span>
-            </div>
-          </div>
+      <div className="flex flex-1 min-h-0">
+        <Sidebar email={email} plan={plan} ocupacao={ocupacao} displayName={displayName} />
+        <main className="flex-1 min-w-0 pb-24 md:pb-0">{children}</main>
+      </div>
 
-          {/* Botão */}
-          <div className="px-4 pb-4">
-            <button
-              onClick={handleEnviar}
-              disabled={score === null || loading}
-              className="w-full py-2.5 rounded-xl text-sm font-bold transition-all"
-              style={{
-                background: score !== null ? '#1D9E75' : '#e4f5e9',
-                color: score !== null ? '#fff' : '#8db89d',
-                cursor: score !== null ? 'pointer' : 'not-allowed',
-              }}
-            >
-              {loading ? 'Enviando...' : 'Enviar avaliação'}
-            </button>
-          </div>
-        </>
-      ) : (
-        <div className="px-4 pb-5 text-center">
-          <p className="text-2xl mb-1">🙏</p>
-          <p className="font-black text-[#0d2414] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>
-            Obrigado pelo feedback!
-          </p>
-          <p className="text-xs text-[#6b9e80] mt-0.5">Isso nos ajuda a melhorar a iMoney.</p>
-        </div>
-      )}
+      <NPSToast />
     </div>
-  )
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </ThemeProvider>
+  );
 }
