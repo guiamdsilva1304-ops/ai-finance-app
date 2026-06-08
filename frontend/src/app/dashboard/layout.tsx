@@ -117,3 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </ThemeProvider>
   );
 }
+import { NPSToast } from '@/components/NPSToast'
+
+// dentro do return:
+<NPSToast />
