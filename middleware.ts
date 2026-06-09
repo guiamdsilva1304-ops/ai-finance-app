@@ -10,7 +10,10 @@ export async function middleware(req: NextRequest) {
 
   // Rotas públicas
   const publicRoutes = ['/', '/login', '/privacidade', '/termos', '/blog', '/mfa']
-  if (publicRoutes.some((r) => pathname === r || pathname.startsWith('/blog/'))) return res
+  if (
+    publicRoutes.some((r) => pathname === r || pathname.startsWith('/blog/')) ||
+    pathname.startsWith('/api/')
+  ) return res
 
   // Não autenticado → login
   if (!session) return NextResponse.redirect(new URL('/login', req.url))
@@ -28,7 +31,6 @@ export async function middleware(req: NextRequest) {
       .select('is_admin')
       .eq('id', session.user.id)
       .single()
-
     if (!perfil?.is_admin) {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
