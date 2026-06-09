@@ -98,7 +98,7 @@ async function incrementarContador(userId: string) {
 
 async function enviarMensagem(telefone: string, texto: string) {
   await fetch(
-    `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    `https://graph.facebook.com/v22.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
     {
       method: "POST",
       headers: {
@@ -170,11 +170,22 @@ Se sobra ≤ 0: foque em equilibrar antes de qualquer meta.`
   );
 }
 
+
+async function validarAssinatura(req: NextRequest, rawBody: string): Promise<boolean> {
+  const signature = req.headers.get("x-hub-signature-256");
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signed = await crypto.subtle.sign("HMAC", key, encoder.encode(rawBody));
+  const hex = Array.from(new Uint8Array(signed)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return signature === `sha256=${hex}`;
+}
 // ─── POST — Recebe mensagens da Meta ──────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+    if (!await validarAssinatura(req, rawBody)) return new NextResponse("Unauthorized", { status: 401 });
+    const body = JSON.parse(rawBody);
 
     // Confirma que é um evento do WhatsApp Business
     if (body.object !== "whatsapp_business_account") {
@@ -284,7 +295,7 @@ export async function POST(req: NextRequest) {
 
     // Chama o Anthropic
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-4-5",
       max_tokens: 1024,
       system: buildSystemPrompt(context, isPro),
       messages: mensagensParaAPI,
