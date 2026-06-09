@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(git -C /workspaces/ai-finance-app add frontend/src/app/blog/page.tsx)",
+      "Bash(git -C /workspaces/ai-finance-app commit -m ' *)",
+      "Bash(git -C /workspaces/ai-finance-app add frontend/src/app/api/cron/seo/route.ts)",
+      "mcp__claude_ai_Vercel__get_project",
+      "Bash(git -C /workspaces/ai-finance-app add frontend/vercel.json)",
+      "Bash(node -e ' *)",
+      "Bash(git pull *)",
+      "Bash(git checkout *)",
+      "Bash(git rebase *)",
+      "Bash(grep -rn \"R\\\\$.*premium\\\\|premium.*R\\\\$\\\\|PRECO_PREMIUM\\\\|precoPremium\\\\|price.*premium\" --include=\"*.tsx\" --include=\"*.ts\" .)",
+      "Bash(grep -iE \"R\\\\$|preço|price|amount|preco|[0-9]+\\\\.[0-9]+\")",
+      "Bash(grep -rn \"price\\\\|amount\\\\|preco\\\\|R\\\\$\\\\|[0-9]\\\\+\\\\.[0-9]\\\\+\" frontend/src/app/dashboard/premium/page.tsx)"
+    ]
+  }
+}
