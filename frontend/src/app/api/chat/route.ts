@@ -92,8 +92,10 @@ export async function POST(req: NextRequest) {
 
     const noventa_dias = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     const trinta_dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const _now = new Date()
+    const inicio_mes = `${_now.getUTCFullYear()}-${String(_now.getUTCMonth() + 1).padStart(2, '0')}-01`
 
-    const [limiteResult, diagnosticoResult, categoriasResult, receitasResult] = await Promise.allSettled([
+    const [limiteResult, diagnosticoResult, categoriasResult, receitasResult, metasResult] = await Promise.allSettled([
       verificarLimite(user.id),
       supabase.from('user_profiles')
         .select('perfil_financeiro, score_saude, diagnostico_json, renda_mensal, gastos_mensais, monthly_available')
@@ -103,18 +105,23 @@ export async function POST(req: NextRequest) {
         .select('categoria, valor')
         .eq('user_id', user.id)
         .eq('tipo', 'gasto')
-        .gte('date', trinta_dias),
+        .gte('date', inicio_mes),
       supabase.from('transactions')
         .select('descricao, valor, date, categoria')
         .eq('user_id', user.id)
         .eq('tipo', 'receita')
         .gte('date', noventa_dias),
+      supabase.from('metas')
+        .select('nome, valor_alvo, valor_atual, prazo')
+        .eq('user_id', user.id),
     ])
 
     const { permitido, usadas, limite, plano } = limiteResult.status === 'fulfilled'
       ? limiteResult.value
       : { permitido: true, usadas: 0, limite: 10, plano: 'free' }
     const perfilDiagnostico = diagnosticoResult.status === 'fulfilled' ? diagnosticoResult.value.data : null
+    const metasServidor = metasResult.status === 'fulfilled' ? (metasResult.value.data ?? []) : []
+    const metasParaPrompt = metasServidor.length > 0 ? metasServidor : (context?.metas ?? [])
 
     if (!permitido) {
       return NextResponse.json({
@@ -150,7 +157,7 @@ export async function POST(req: NextRequest) {
 
     let categoriasBlock = ''
     if (isPro && categorias.length > 0) {
-      const linhas: string[] = ['\n### Gastos por categoria (últimos 30 dias):']
+      const linhas: string[] = ['\n### Gastos por categoria (mês atual):']
       categorias.forEach(c => {
         linhas.push(`  • ${c.categoria}: R$ ${c.total.toFixed(0)} (${c.percentual}% dos gastos)`)
       })
@@ -233,6 +240,10 @@ DADOS DO USUÁRIO:
 - Renda mensal: R$ ${Number(context?.renda ?? 0).toFixed(2)}
 - Gastos mensais: R$ ${Number(context?.gastos ?? 0).toFixed(2)}
 - Sobra mensal: R$ ${Number(context?.sobra ?? 0).toFixed(2)}
+- Metas: ${JSON.stringify(metasParaPrompt)}
+
+PROATIVIDADE EM TRANSAÇÕES:
+Quando o usuário mencionar um gasto ou receita, inclua ao final UMA observação curta sobre o impacto — ex: "Isso representa X% da sua sobra mensal" ou "Com isso você fica mais perto da sua meta de [nome]." Seja conciso e positivo.
 
 COMO RESPONDER:
 - Responda a pergunta com uma direção clara e prática
@@ -271,8 +282,8 @@ DADOS COMPLETOS DO USUÁRIO:
 - Gastos mensais declarados: R$ ${Number(context?.gastos ?? perfilDiagnostico?.gastos_mensais ?? 0).toFixed(2)}
 - Sobra mensal (transações reais): R$ ${Number(context?.sobra ?? 0).toFixed(2)}
 - Disponível por mês (renda − gastos declarados): R$ ${Number(context?.monthly_available ?? perfilDiagnostico?.monthly_available ?? 0).toFixed(2)}
-- Gastos por categoria: ${JSON.stringify(context?.gastosCat ?? {})}
-- Metas: ${JSON.stringify(context?.metas ?? [])}
+- Gastos por categoria (mês atual): ${JSON.stringify(context?.gastosCat ?? {})}
+- Metas: ${JSON.stringify(metasParaPrompt)}
 ${categoriasBlock}
 ${receitasBlock}
 - Plano: Pro ✨
@@ -295,6 +306,15 @@ DETECÇÃO DE PADRÕES — use os dados para agir, não para explicar:
 - Se a sobra mensal for negativa ou próxima de zero, priorize isso acima de qualquer outra coisa
 - Se houver meta com prazo próximo, mencione o progresso proativamente
 - Não descreva o padrão ao usuário — aja em cima dele: "Vejo que você gasta R$ X em Y — quer ajustar isso agora?"
+
+PROATIVIDADE EM TRANSAÇÕES — OBRIGATÓRIO:
+Sempre que a mensagem do usuário mencionar um gasto ou uma receita (registro, confirmação ou comentário sobre um valor gasto/recebido), inclua ao final da resposta UMA linha de observação proativa sobre o impacto financeiro dessa transação. Use os dados reais:
+- Gastos por categoria do mês atual: compare se a categoria está dentro ou acima do padrão do mês
+- Metas ativas: calcule quanto falta ou como essa transação aproxima/afasta da meta mais relevante
+- Sobra mensal: se o gasto for significativo em relação à sobra, sinalize
+Formato: frase curta e direta, com valor concreto quando possível.
+Exemplos: "Esse gasto está dentro do seu padrão de alimentação deste mês ✅" | "Com esse gasto, você precisa de R$X para atingir [meta]." | "Essa entrada te deixa R$X mais perto da sua reserva." | "⚠️ Você já usou R$X em [categoria] este mês."
+Quando a mensagem for apenas um registro de transação (sem outra pergunta), a observação proativa substitui o ▶ Próximo passo.
 
 CELEBRAÇÃO DE PROGRESSO:
 - Quando o usuário mencionar que atingiu qualquer marco em uma meta, celebre genuinamente antes de continuar

@@ -20,11 +20,11 @@ export const dynamic = "force-dynamic";
 
 // ─── Clientes ──────────────────────────────────────────────────────────────────
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? 'sk-ant-placeholder' });
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
 );
 
 // ─── Variáveis de ambiente Meta ────────────────────────────────────────────────
@@ -141,6 +141,7 @@ Tom: parceiro próximo, direto, humano, sem jargão de banco.
 Máximo 160 palavras por resposta — texto de WhatsApp, não relatório.
 Parágrafos curtos. Sem tabelas markdown. Máximo 1 emoji.
 Sempre termine com UMA ação concreta pequena que o usuário pode fazer hoje.
+Exceção: quando o usuário apenas registrar um gasto ou receita, termine com UMA observação sobre o impacto financeiro dessa transação — ex: "Isso te deixa R$X mais perto de [meta]" ou "Você já gastou R$X em [categoria] este mês."
 
 DADOS DO USUÁRIO:
 - Renda: R$ ${renda}/mês
@@ -161,12 +162,17 @@ DADOS DO USUÁRIO:
     base +
     `\n
 Perfil: ${JSON.stringify(context.perfil ?? {})}
-Gastos por categoria: ${JSON.stringify(context.gastosCat ?? {})}
+Gastos por categoria (mês atual): ${JSON.stringify(context.gastosCat ?? {})}
 Investimentos: ${JSON.stringify(context.investimentos ?? [])}
 
 REGRA PRO: use os dados reais para personalizar cada resposta.
 Se sobra > 0: sugira onde alocar com valor concreto.
-Se sobra ≤ 0: foque em equilibrar antes de qualquer meta.`
+Se sobra ≤ 0: foque em equilibrar antes de qualquer meta.
+
+PROATIVIDADE EM TRANSAÇÕES — OBRIGATÓRIO:
+Quando o usuário mencionar gasto ou receita, termine com UMA observação de impacto usando dados reais.
+Use gastos por categoria do mês atual e metas para personalizar.
+Ex: "Esse gasto está dentro do seu padrão de alimentação ✅" | "Com isso, você precisa de R$X para [meta]." | "⚠️ Você já usou R$X em [categoria] este mês."`
   );
 }
 
@@ -312,15 +318,17 @@ export async function POST(req: NextRequest) {
     const trinta_dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       .toISOString()
       .split("T")[0];
+    const _now = new Date()
+    const inicio_mes = `${_now.getUTCFullYear()}-${String(_now.getUTCMonth() + 1).padStart(2, '0')}-01`
 
     const [metasRes, summaryRes, investRes, categoriaRes] = await Promise.allSettled([
       supabase.from("metas").select("nome, valor_alvo, valor_atual, prazo").eq("user_id", userId),
-      supabase.from("transactions").select("valor, tipo").eq("user_id", userId).gte("data", trinta_dias),
+      supabase.from("transactions").select("valor, tipo").eq("user_id", userId).gte("date", trinta_dias),
       isPro
         ? supabase.from("user_investments").select("nome, tipo, valor_brl, valor_original").eq("user_id", userId)
         : Promise.resolve({ data: [] }),
       isPro
-        ? supabase.from("transactions").select("categoria, valor").eq("user_id", userId).eq("tipo", "gasto").gte("data", trinta_dias)
+        ? supabase.from("transactions").select("categoria, valor").eq("user_id", userId).eq("tipo", "gasto").gte("date", inicio_mes)
         : Promise.resolve({ data: [] }),
     ]);
 
