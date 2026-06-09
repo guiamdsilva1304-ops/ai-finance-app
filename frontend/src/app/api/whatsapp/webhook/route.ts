@@ -179,6 +179,71 @@ async function validarAssinatura(req: NextRequest, rawBody: string): Promise<boo
   const hex = Array.from(new Uint8Array(signed)).map((b) => b.toString(16).padStart(2, "0")).join("");
   return signature === `sha256=${hex}`;
 }
+
+// ─── Detecta e salva transação pendente ───────────────────────────────────────
+
+async function detectarTransacao(texto: string, userId: string, isPro: boolean): Promise<boolean> {
+  const prompt = `Analise se a mensagem abaixo é um registro de transação financeira.
+Se for, responda APENAS com JSON no formato:
+{"é_transacao": true, "descricao": "...", "valor": 00.00, "categoria": "...", "tipo": "gasto" ou "receita"}
+Categorias válidas: Alimentação, Transporte, Moradia, Saúde, Educação, Lazer, Vestuário, Salário, Freelance, Outros
+Se NÃO for transação, responda APENAS: {"é_transacao": false}
+
+Mensagem: ${texto}`;
+
+  const res = await anthropic.messages.create({
+    model: "claude-sonnet-4-5",
+    max_tokens: 200,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const raw = res.content[0].type === "text" ? res.content[0].text.trim() : "{}";
+  try {
+    const parsed = JSON.parse(raw);
+
+    await supabase.from("whatsapp_pending_transactions").delete().eq("user_id", userId);
+    await supabase.from("whatsapp_pending_transactions").insert({
+      user_id: userId,
+      descricao: parsed.descricao,
+      valor: parsed.valor,
+      categoria: parsed.categoria,
+      tipo: parsed.tipo,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function confirmarTransacao(userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("whatsapp_pending_transactions")
+    .select("*")
+    .eq("user_id", userId)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+
+  await supabase.from("transactions").insert({
+    user_id: userId,
+    descricao: data.descricao,
+    valor: data.valor,
+    categoria: data.categoria,
+    tipo: data.tipo,
+    date: new Date().toISOString().split("T")[0],
+    source: "whatsapp",
+  });
+
+  await supabase.from("whatsapp_pending_transactions").delete().eq("user_id", userId);
+
+  return `✅ Registrado: ${data.tipo === "gasto" ? "Gasto" : "Receita"} de R$${Number(data.valor).toFixed(2)} em ${data.categoria} (${data.descricao})`;
+}
+
+async function cancelarTransacao(userId: string): Promise<void> {
+  await supabase.from("whatsapp_pending_transactions").delete().eq("user_id", userId);
+}
 // ─── POST — Recebe mensagens da Meta ──────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -285,6 +350,39 @@ export async function POST(req: NextRequest) {
       perfil: perfil.diagnostico_json ?? {},
       selic: 14.50,
     };
+
+
+    // Verifica se é confirmação/cancelamento de transação pendente
+    const textoLower = texto.toLowerCase().trim();
+    if (["sim", "s", "yes", "confirma", "confirmar", "ok"].includes(textoLower)) {
+      const resultado = await confirmarTransacao(userId);
+      if (resultado) {
+        await enviarMensagem(telefone, resultado);
+        return NextResponse.json({ ok: true });
+      }
+    }
+    if (["não", "nao", "n", "no", "cancelar", "cancela"].includes(textoLower)) {
+      await cancelarTransacao(userId);
+      await enviarMensagem(telefone, "Tudo bem, transação cancelada! 👍");
+      return NextResponse.json({ ok: true });
+    }
+
+    // Verifica se é registro de transação
+    const éTransacao = await detectarTransacao(texto, userId, isPro);
+    if (éTransacao) {
+      const { data: pendente } = await supabase
+        .from("whatsapp_pending_transactions")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+      if (pendente) {
+        await enviarMensagem(
+          telefone,
+          `Vou registrar: ${pendente.tipo === "gasto" ? "Gasto" : "Receita"} de R$${Number(pendente.valor).toFixed(2)} em ${pendente.categoria} (${pendente.descricao}). Confirma? (sim/não)`
+        );
+        return NextResponse.json({ ok: true });
+      }
+    }
 
     // Busca histórico e monta conversa
     const historico = await buscarHistorico(userId);
