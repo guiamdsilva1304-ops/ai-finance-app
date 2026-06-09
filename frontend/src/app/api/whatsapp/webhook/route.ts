@@ -1,15 +1,16 @@
 // frontend/app/api/whatsapp/webhook/route.ts
 //
-// Webhook Whapi.Cloud → Assessor IA iMoney
+// Webhook Meta Cloud API → Assessor IA iMoney
 //
 // Fluxo:
-//   1. Whapi envia POST ao receber mensagem no número da iMoney
-//   2. Rota ignora mensagens enviadas pelo próprio número (from_me)
-//   3. Busca o usuário pelo número de telefone no Supabase
-//   4. Busca contexto financeiro (renda, gastos, metas, perfil)
-//   5. Chama o Anthropic com o system prompt do Assessor
-//   6. Salva no chat_history e incrementa contador de mensagens
-//   7. Responde via Whapi REST
+//   1. Meta envia GET para verificar o webhook (hub.challenge)
+//   2. Meta envia POST ao receber mensagem no número da iMoney
+//   3. Rota ignora mensagens de status e não-texto
+//   4. Busca o usuário pelo número de telefone no Supabase
+//   5. Busca contexto financeiro (renda, gastos, metas, perfil)
+//   6. Chama o Anthropic com o system prompt do Assessor
+//   7. Salva no chat_history e incrementa contador de mensagens
+//   8. Responde via Meta Graph API
 
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
@@ -26,14 +27,35 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// ─── Variáveis de ambiente Whapi ───────────────────────────────────────────────
+// ─── Variáveis de ambiente Meta ────────────────────────────────────────────────
 // Adicione/atualize estas variáveis no Vercel:
-//   WHAPI_TOKEN  → Channel Token (painel Whapi.Cloud → seu canal → Settings)
+//   WHATSAPP_TOKEN          → Token de acesso permanente (Graph API)
+//   WHATSAPP_PHONE_NUMBER_ID → Phone Number ID do painel Meta for Developers
+//   WHATSAPP_VERIFY_TOKEN   → Token de verificação do webhook (você define)
 
-const WHAPI_TOKEN = process.env.WHAPI_TOKEN!;
+const WHATSAPP_TOKEN           = process.env.WHATSAPP_TOKEN!;
+const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID!;
+const WHATSAPP_VERIFY_TOKEN    = process.env.WHATSAPP_VERIFY_TOKEN!;
 
 const LIMITE_FREE = 15;
 const LIMITE_PRO  = 50;
+
+// ─── GET — Verificação do webhook pela Meta ────────────────────────────────────
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+
+  const mode      = searchParams.get("hub.mode");
+  const token     = searchParams.get("hub.verify_token");
+  const challenge = searchParams.get("hub.challenge");
+
+  if (mode === "subscribe" && token === WHATSAPP_VERIFY_TOKEN) {
+    console.log("[whatsapp/webhook] Webhook verificado com sucesso");
+    return new NextResponse(challenge, { status: 200 });
+  }
+
+  return new NextResponse("Forbidden", { status: 403 });
+}
 
 // ─── Helpers de limite ─────────────────────────────────────────────────────────
 
@@ -48,7 +70,7 @@ async function verificarLimite(userId: string) {
   if (plano === "premium") return { permitido: true, usadas: 0, limite: 0, plano };
 
   const limite = plano === "pro" ? LIMITE_PRO : LIMITE_FREE;
-  const hoje = new Date().toISOString().split("T")[0];
+  const hoje   = new Date().toISOString().split("T")[0];
   const usadas =
     perfil?.daily_messages_date === hoje ? (perfil.daily_messages_count ?? 0) : 0;
 
@@ -72,19 +94,25 @@ async function incrementarContador(userId: string) {
     .eq("user_id", userId);
 }
 
-// ─── Envio de mensagem via Whapi ───────────────────────────────────────────────
-// Formato do número: "5521999999999" (sem + ou espaços)
-// A Whapi aceita número direto ou chat_id (número@s.whatsapp.net)
+// ─── Envio de mensagem via Meta Graph API ─────────────────────────────────────
 
 async function enviarMensagem(telefone: string, texto: string) {
-  await fetch(`https://gate.whapi.cloud/messages/text?token=${WHAPI_TOKEN}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      to: telefone,
-      body: texto,
-    }),
-  });
+  await fetch(
+    `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: telefone,
+        type: "text",
+        text: { body: texto },
+      }),
+    }
+  );
 }
 
 // ─── Busca histórico recente do usuário (últimas 20 msgs) ──────────────────────
@@ -142,27 +170,34 @@ Se sobra ≤ 0: foque em equilibrar antes de qualquer meta.`
   );
 }
 
-// ─── Rota principal ────────────────────────────────────────────────────────────
+// ─── POST — Recebe mensagens da Meta ──────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Whapi envia um array de mensagens por evento
-    // Pega a primeira mensagem do batch
-    const mensagens = body.messages ?? [];
-    if (!mensagens.length) return NextResponse.json({ ok: true });
-
-    const msg = mensagens[0];
-
-    // Ignora mensagens enviadas pelo próprio número e não-texto
-    if (msg.from_me || msg.type !== "text") {
+    // Confirma que é um evento do WhatsApp Business
+    if (body.object !== "whatsapp_business_account") {
       return NextResponse.json({ ok: true });
     }
 
+    // Extrai a mensagem do payload da Meta
+    const entry   = body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value   = changes?.value;
+
+    // Ignora eventos que não são mensagens (status updates, etc.)
+    const mensagens = value?.messages;
+    if (!mensagens?.length) return NextResponse.json({ ok: true });
+
+    const msg = mensagens[0];
+
+    // Ignora mensagens não-texto (imagem, áudio, etc.)
+    if (msg.type !== "text") return NextResponse.json({ ok: true });
+
     // Extrai telefone e texto
-    // chat_id formato: "5521999999999@s.whatsapp.net"
-    const telefone: string = msg.chat_id?.replace("@s.whatsapp.net", "") ?? msg.from;
+    // Meta envia telefone no formato "5521999999999" (sem + ou @)
+    const telefone: string = msg.from ?? "";
     const texto: string    = msg.text?.body ?? "";
 
     if (!telefone || !texto) return NextResponse.json({ ok: true });
@@ -213,8 +248,8 @@ export async function POST(req: NextRequest) {
         : Promise.resolve({ data: [] }),
     ]);
 
-    const metas       = metasRes.status === "fulfilled"  ? (metasRes.value.data  ?? []) : [];
-    const investimentos = investRes.status === "fulfilled" ? (investRes.value.data ?? []) : [];
+    const metas       = metasRes.status     === "fulfilled" ? (metasRes.value.data     ?? []) : [];
+    const investimentos = investRes.status  === "fulfilled" ? (investRes.value.data    ?? []) : [];
 
     let renda = 0; let gastos = 0;
     if (summaryRes.status === "fulfilled") {
@@ -260,10 +295,9 @@ export async function POST(req: NextRequest) {
         ? response.content[0].text
         : "Desculpe, não consegui processar sua mensagem.";
 
-    // Remove blocos ```plano — WhatsApp não renderiza isso
-    const replyLimpo = reply.replace(/```plano[\s\S]*?```/g, "").trim();
+    const replyLimpo = reply.replace(/```[\s\S]*?```/g, "").trim();
 
-    // Salva histórico e incrementa contador
+    // Salva histórico e incrementa contador em paralelo
     await Promise.allSettled([
       supabase.from("chat_history").insert([
         { user_id: userId, role: "user",      content: texto,      created_at: new Date().toISOString() },
@@ -272,7 +306,7 @@ export async function POST(req: NextRequest) {
       plano !== "premium" ? incrementarContador(userId) : Promise.resolve(),
     ]);
 
-    // Envia resposta via Whapi
+    // Envia resposta via Meta Graph API
     await enviarMensagem(telefone, replyLimpo);
 
     return NextResponse.json({ ok: true });
