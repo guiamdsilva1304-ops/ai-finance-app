@@ -3,13 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { formatBRL, formatDate } from "@/lib/utils";
+import { formatBRL, formatDate, metaEmoji } from "@/lib/utils";
 import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Search, Tag, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORIAS, type Categoria, type Transaction } from "@/types";
 import Link from "next/link";
 import ImportarExtrato from "@/components/ImportarExtrato";
-import { StreakToast } from "@/components/imoney/celebration";
+import { StreakToast, MetaProgressToast } from "@/components/imoney/celebration";
 import VoiceTransactionButton from "@/components/VoiceTransactionButton";
 
 const CAT_COLORS: Record<string, string> = {
@@ -56,6 +56,8 @@ export default function TransacoesPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [streakToast, setStreakToast] = useState<string | null>(null);
+  const [metaToastValor, setMetaToastValor] = useState<number | null>(null);
+  const [mainMeta, setMainMeta] = useState<{ id: string; nome: string; valor_alvo: number; valor_atual: number } | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // Form state
@@ -80,12 +82,15 @@ export default function TransacoesPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const [{ data }, { data: perfil }] = await Promise.all([
+    const [{ data }, { data: perfil }, { data: metas }] = await Promise.all([
       supabase.from("transactions").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(500),
       supabase.from("user_profiles").select("plan").eq("user_id", user.id).single(),
+      supabase.from("metas").select("id,nome,valor_alvo,valor_atual,principal").eq("user_id", user.id).eq("concluida", false).order("created_at", { ascending: false }),
     ]);
     setTransactions(data ?? []);
     if (perfil?.plan) setPlan(perfil.plan);
+    const principal = (metas ?? []).find(m => m.principal) ?? (metas ?? [])[0] ?? null;
+    setMainMeta(principal);
     setLoading(false);
   }, [supabase]);
 
@@ -193,7 +198,11 @@ export default function TransacoesPage() {
     resetForm();
     setShowForm(false);
     setSaving(false);
-    if (waReceita) setStreakToast(`R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} registrados! Continue assim 💪`);
+    if (waReceita) {
+      // Micro-celebração: progresso da meta no card, não toast genérico
+      if (mainMeta && mainMeta.valor_alvo > 0) setMetaToastValor(v);
+      else setStreakToast(`R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} registrados! Continue assim 💪`);
+    }
     load();
   }
 
@@ -335,6 +344,17 @@ export default function TransacoesPage() {
           mensagem={streakToast}
           emoji="💰"
           onClose={() => setStreakToast(null)}
+        />
+      )}
+      {metaToastValor !== null && mainMeta && (
+        <MetaProgressToast
+          metaId={mainMeta.id}
+          metaNome={mainMeta.nome}
+          emoji={metaEmoji(mainMeta.nome)}
+          valorAtual={mainMeta.valor_atual}
+          valorAlvo={mainMeta.valor_alvo}
+          valorEntrada={metaToastValor}
+          onClose={() => setMetaToastValor(null)}
         />
       )}
       {/* Header */}

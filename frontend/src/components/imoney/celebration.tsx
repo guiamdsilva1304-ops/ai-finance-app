@@ -308,6 +308,71 @@ export function MilestoneToast({ pct, metaNome, onClose }: MilestoneToastProps) 
   );
 }
 
+interface MetaProgressToastProps {
+  metaId: string;
+  metaNome: string;
+  emoji: string;
+  valorAtual: number;
+  valorAlvo: number;
+  valorEntrada: number;
+  onClose: () => void;
+}
+
+// Micro-celebração ao registrar receita: progresso da meta no card,
+// com o ganho potencial da entrada — não um toast genérico.
+export function MetaProgressToast({ metaId, metaNome, emoji, valorAtual, valorAlvo, valorEntrada, onClose }: MetaProgressToastProps) {
+  const pctAtual = valorAlvo > 0 ? Math.min(100, (valorAtual / valorAlvo) * 100) : 0;
+  const pctPotencial = valorAlvo > 0 ? Math.min(100, ((valorAtual + valorEntrada) / valorAlvo) * 100) : 0;
+  const ganhoPct = Math.round(pctPotencial - pctAtual);
+  const [fill, setFill] = useState(0);
+
+  useEffect(() => {
+    const reduzido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t = setTimeout(() => setFill(pctAtual), reduzido ? 0 : 80);
+    if (!reduzido) navigator.vibrate?.(60);
+    const c = setTimeout(onClose, 9000);
+    return () => { clearTimeout(t); clearTimeout(c); };
+  }, [pctAtual, onClose]);
+
+  return (
+    <div style={{
+      position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+      zIndex: 250, width: "calc(100% - 48px)", maxWidth: 400,
+      background: "#fff", borderRadius: 18, padding: "16px 18px",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04)",
+      fontFamily: "'Nunito', sans-serif",
+      animation: "slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards",
+    }}>
+      <style>{`@keyframes slideUp { from{opacity:0;transform:translateX(-50%) translateY(20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} } @media (prefers-reduced-motion: reduce){ .mpt-bar{transition:none !important} }`}</style>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <span style={{ fontSize: 24, flexShrink: 0 }}>{emoji}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 11, fontWeight: 800, color: "#00A344", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 2px" }}>
+            + R$ {valorEntrada.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} registrados
+          </p>
+          <p style={{ fontSize: 13, fontWeight: 800, color: "#0d2414", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {ganhoPct >= 1
+              ? <>Isso pode virar <strong style={{ color: "#00A344" }}>+{ganhoPct}%</strong> de &ldquo;{metaNome}&rdquo;</>
+              : <>Cada entrada te aproxima de &ldquo;{metaNome}&rdquo;</>}
+          </p>
+        </div>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: 18, padding: 4, lineHeight: 1, flexShrink: 0 }}>×</button>
+      </div>
+      <div style={{ position: "relative", height: 8, background: "#f0f0f0", borderRadius: 999, overflow: "hidden", marginBottom: 12 }}>
+        {/* Potencial (translúcido) por trás do progresso real */}
+        <div style={{ position: "absolute", inset: 0, width: `${pctPotencial}%`, background: "rgba(0,200,83,0.25)", borderRadius: 999 }} />
+        <div className="mpt-bar" style={{ position: "absolute", inset: 0, width: `${fill}%`, background: "linear-gradient(90deg, #1D9E75, #00C853)", borderRadius: 999, transition: "width 0.9s cubic-bezier(0.34,1.2,0.64,1)" }} />
+      </div>
+      <a href={`/dashboard/metas/${metaId}`} style={{
+        display: "block", textAlign: "center", padding: "10px 0", borderRadius: 12,
+        background: "#00C853", color: "#0a1f0a", fontSize: 13, fontWeight: 800, textDecoration: "none",
+      }}>
+        Guardar na meta →
+      </a>
+    </div>
+  );
+}
+
 interface StreakToastProps {
   mensagem: string;
   emoji?: string;
