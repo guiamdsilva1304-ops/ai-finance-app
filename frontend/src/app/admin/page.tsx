@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import KpiHeader from "./_components/KpiHeader";
 import FunnelChart from "./_components/FunnelChart";
+import AgentCards from "./_components/AgentCards";
 
 const AGENTS = [
   { id:"blog", icon:"✍️", name:"Blog iMoney", desc:"Lucas gera artigos de SEO sobre finanças. Você aprova e publica.", status:"ativo", href:"/admin/blog" },
@@ -93,22 +94,19 @@ export default function AdminDashboard() {
 
         {/* CENTRAL DE AGENTES */}
         <h1 className="mb-1 mt-10 text-[26px] font-black tracking-tight text-white">Central de Agentes</h1>
-        <p className="mb-5 text-sm text-[#6b8f72]">IA trabalhando para a iMoney enquanto você foca no produto.</p>
-        <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
-          {AGENTS.map(a => (
-            <div
+        <p className="mb-5 text-sm text-[#6b8f72]">Status real de execução — dados de agent_logs e agent_budgets.</p>
+        <AgentCards />
+
+        <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[#3a6b45]">🧰 Ferramentas</h2>
+        <div className="flex flex-wrap gap-2">
+          {AGENTS.filter(a => a.status === "ativo").map(a => (
+            <button
               key={a.id}
-              onClick={() => a.status === "ativo" && router.push(a.href)}
-              className={`rounded-2xl bg-[#0e1a10] p-5 ${a.status === "ativo" ? "cursor-pointer border border-[#00C853]/25" : "border border-[#00C853]/10 opacity-60"}`}
+              onClick={() => router.push(a.href)}
+              className="rounded-xl border border-[#00C853]/15 bg-[#0e1a10] px-3.5 py-2 text-xs font-bold text-[#dff0e3]/80 hover:border-[#00C853]/40"
             >
-              <div className="mb-3 flex items-start justify-between">
-                <div className={`flex h-11 w-11 items-center justify-center rounded-xl text-[22px] ${a.status === "ativo" ? "bg-[#00C853]/15" : "bg-[#152018]"}`}>{a.icon}</div>
-                <div className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] ${a.status === "ativo" ? "bg-[#00C853]/15 text-[#00C853]" : "bg-white/5 text-[#6b8f72]"}`}>{a.status}</div>
-              </div>
-              <div className="mb-1.5 text-[15px] font-extrabold text-white">{a.name}</div>
-              <div className="text-xs leading-relaxed text-[#6b8f72]">{a.desc}</div>
-              {a.status === "ativo" && <div className="mt-3.5 text-xs font-bold text-[#00C853]">Abrir agente →</div>}
-            </div>
+              {a.icon} {a.name}
+            </button>
           ))}
         </div>
       </div>
