@@ -78,21 +78,8 @@ export default function AdminDashboard() {
     load();
   }, [supabase]);
 
-  const logout = async () => {
-    await fetch("/api/admin/auth", { method: "DELETE" });
-    router.push("/admin/login");
-  };
-
   return (
-    <div style={{ minHeight:"100vh", background:"#07100a", color:"#dff0e3", fontFamily:"'Nunito','Segoe UI',sans-serif" }}>
-      <div style={{ background:"#0e1a10", borderBottom:"1px solid rgba(0,200,83,0.12)", padding:"0 24px", height:60, display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:100 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:32, height:32, background:"#00C853", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>💸</div>
-          <span style={{ fontWeight:800, color:"#fff", fontSize:15 }}>iMoney <span style={{ color:"#00C853" }}>Admin</span></span>
-        </div>
-        <button onClick={logout} style={{ background:"transparent", border:"1px solid rgba(255,82,82,0.3)", color:"#ff5252", fontFamily:"inherit", fontSize:12, padding:"5px 12px", borderRadius:8, cursor:"pointer" }}>Sair</button>
-      </div>
-
+    <div style={{ color:"#dff0e3", fontFamily:"'Nunito','Segoe UI',sans-serif" }}>
       <div style={{ maxWidth:960, margin:"0 auto", padding:"28px 20px 60px" }}>
 
         {/* RETENÇÃO & CRESCIMENTO */}
