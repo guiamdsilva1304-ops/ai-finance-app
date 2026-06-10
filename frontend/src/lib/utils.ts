@@ -29,7 +29,12 @@ export function fmtInt(n: number): string {
   return Math.round(n).toLocaleString("pt-BR");
 }
 
+const LEADING_EMOJI = /^(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*/u;
+
 export function metaEmoji(nome: string): string {
+  // Se o usuário já colocou emoji no nome (padrão do onboarding), ele tem prioridade
+  const proprio = nome.match(LEADING_EMOJI);
+  if (proprio) return proprio[1];
   const n = nome.toLowerCase();
   if (n.includes("reserva") || n.includes("emergên") || n.includes("emergenc")) return "🏦";
   if (n.includes("viagem") || n.includes("férias") || n.includes("ferias") || n.includes("europa") || n.includes("eua")) return "✈️";
@@ -43,4 +48,8 @@ export function metaEmoji(nome: string): string {
   if (n.includes("aposent") || n.includes("reform")) return "🌴";
   if (n.includes("div") || n.includes("empréstimo")) return "💳";
   return "🎯";
+}
+
+export function metaNomeLimpo(nome: string): string {
+  return nome.replace(LEADING_EMOJI, "");
 }

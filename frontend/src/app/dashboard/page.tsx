@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { MetricCard, MetricCardSkeleton } from "@/components/ui/MetricCard";
-import { formatBRL, getScoreColor, getScoreLabel, fmtInt, metaEmoji } from "@/lib/utils";
+import { formatBRL, getScoreColor, getScoreLabel, fmtInt, metaEmoji, metaNomeLimpo } from "@/lib/utils";
 import { RefreshCw } from "lucide-react";
 import { GoalCard, Icon } from "@/components/imoney/primitives";
 import {
@@ -137,7 +137,7 @@ function SonhoHero({ meta, loading }: { meta: Meta | null; loading: boolean }) {
           <span style={{ fontSize: 28 }}>{emoji}</span>
           <div>
             <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 2px" }}>Seu sonho principal</p>
-            <p style={{ fontSize: 15, fontWeight: 900, color: "#fff", margin: 0, fontFamily: "Nunito, sans-serif", lineHeight: 1.2 }}>{meta.nome}</p>
+            <p style={{ fontSize: 15, fontWeight: 900, color: "#fff", margin: 0, fontFamily: "Nunito, sans-serif", lineHeight: 1.2 }}>{metaNomeLimpo(meta.nome)}</p>
           </div>
         </div>
         <div style={{ textAlign: "right" }}>

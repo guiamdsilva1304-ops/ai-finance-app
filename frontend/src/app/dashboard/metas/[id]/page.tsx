@@ -6,7 +6,7 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 import { C, FONT } from "@/components/imoney/tokens";
 import type { Meta } from "@/types";
 import { Trash2, CheckCircle2, Star } from "lucide-react";
-import { fmtInt, metaEmoji } from "@/lib/utils";
+import { fmtInt, metaEmoji, metaNomeLimpo } from "@/lib/utils";
 
 type MetaExt = Meta & { principal?: boolean };
 
@@ -162,7 +162,7 @@ export default function MetaDetailPage() {
               <p style={{ fontSize: 40, fontWeight: 900, color: "#fff", margin: "0 0 4px", lineHeight: 1, fontFamily: FONT }}>
                 R$ {fmtBRL(falta)}
               </p>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", margin: 0 }}>{meta.nome}</p>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", margin: 0 }}>{metaNomeLimpo(meta.nome)}</p>
             </>
           ) : (
             <>
@@ -170,7 +170,7 @@ export default function MetaDetailPage() {
               <p style={{ fontSize: 32, fontWeight: 900, color: "#fff", margin: "0 0 4px", fontFamily: FONT }}>
                 R$ {fmtBRL(meta.valor_alvo)}
               </p>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", margin: 0 }}>{meta.nome}</p>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", margin: 0 }}>{metaNomeLimpo(meta.nome)}</p>
             </>
           )}
         </div>

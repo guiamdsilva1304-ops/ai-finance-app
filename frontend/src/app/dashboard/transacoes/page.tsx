@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { formatBRL, formatDate, metaEmoji } from "@/lib/utils";
+import { formatBRL, formatDate, metaEmoji, metaNomeLimpo } from "@/lib/utils";
 import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Search, Tag, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORIAS, type Categoria, type Transaction } from "@/types";
@@ -349,7 +349,7 @@ export default function TransacoesPage() {
       {metaToastValor !== null && mainMeta && (
         <MetaProgressToast
           metaId={mainMeta.id}
-          metaNome={mainMeta.nome}
+          metaNome={metaNomeLimpo(mainMeta.nome)}
           emoji={metaEmoji(mainMeta.nome)}
           valorAtual={mainMeta.valor_atual}
           valorAlvo={mainMeta.valor_alvo}

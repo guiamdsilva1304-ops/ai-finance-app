@@ -8,7 +8,7 @@ import { GoalCard } from "@/components/imoney/primitives";
 import { C, FONT } from "@/components/imoney/tokens";
 import { MetaCompletion, MilestoneToast, useMilestoneDetector } from "@/components/imoney/celebration";
 import type { Meta } from "@/types";
-import { fmtInt, metaEmoji } from "@/lib/utils";
+import { fmtInt, metaEmoji, metaNomeLimpo } from "@/lib/utils";
 
 type MetaExt = Meta & { principal?: boolean };
 
@@ -407,7 +407,7 @@ export default function MetasPage() {
               <div key={meta.id}>
                 <div onClick={() => isMobile && router.push(`/dashboard/metas/${meta.id}`)} style={{ cursor: isMobile ? "pointer" : "default" }}>
                   <GoalCard
-                    title={meta.concluida ? `🎉 ${meta.nome}` : meta.nome}
+                    title={meta.concluida ? `🎉 ${metaNomeLimpo(meta.nome)}` : metaNomeLimpo(meta.nome)}
                     emoji={meta.concluida ? "✨" : metaEmoji(meta.nome)}
                     current={fmtInt(meta.valor_atual)}
                     target={meta.concluida ? undefined : fmtInt(meta.valor_alvo)}
