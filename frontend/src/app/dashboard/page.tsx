@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import MonthlySummaryCard from "@/components/MonthlySummaryCard"
 import { StreakBadge } from "@/components/imoney/StreakBadge";
+import { NextStepCard } from "@/components/imoney/NextStepCard";
 
 const CATEGORY_COLORS = [
   "#16a34a","#22c55e","#4ade80","#86efac",
@@ -70,6 +71,7 @@ interface Meta {
   id: string; nome: string;
   valor_alvo: number; valor_atual: number;
   prazo_meses: number; concluida: boolean; principal?: boolean;
+  created_at?: string;
 }
 
 interface EcoData {
@@ -102,6 +104,8 @@ function SonhoHero({ meta, loading }: { meta: Meta | null; loading: boolean }) {
   const pct = meta.valor_alvo > 0 ? Math.min(100, Math.round((meta.valor_atual / meta.valor_alvo) * 100)) : 0;
   const falta = meta.valor_alvo - meta.valor_atual;
   const aporte = meta.prazo_meses > 0 ? Math.round(falta / meta.prazo_meses) : 0;
+  const aporteMesPlanejado = meta.prazo_meses > 0 ? meta.valor_alvo / meta.prazo_meses : 0;
+  const mesesFaltam = falta <= 0 ? 0 : aporteMesPlanejado > 0 ? Math.max(1, Math.ceil(falta / aporteMesPlanejado)) : meta.prazo_meses;
   const emoji = metaEmoji(meta.nome);
   const pctColor = pct >= 75 ? "#FFD600" : pct >= 50 ? "#69F0AE" : "#00C853";
 
@@ -117,8 +121,14 @@ function SonhoHero({ meta, loading }: { meta: Meta | null; loading: boolean }) {
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <p style={{ fontSize: 32, fontWeight: 900, color: pctColor, margin: 0, lineHeight: 1, fontFamily: "Nunito, sans-serif" }}>{pct}%</p>
-          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", margin: "2px 0 0" }}>concluído</p>
+          {falta <= 0 ? (
+            <p style={{ fontSize: 32, fontWeight: 900, color: pctColor, margin: 0, lineHeight: 1, fontFamily: "Nunito, sans-serif" }}>🎉</p>
+          ) : (
+            <>
+              <p style={{ fontSize: 32, fontWeight: 900, color: pctColor, margin: 0, lineHeight: 1, fontFamily: "Nunito, sans-serif" }}>{mesesFaltam}</p>
+              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", margin: "2px 0 0" }}>{mesesFaltam === 1 ? "mês restante" : "meses restantes"}</p>
+            </>
+          )}
         </div>
       </div>
       <div style={{ background: "rgba(255,255,255,0.12)", height: 8, borderRadius: 999, overflow: "hidden", marginBottom: 12 }}>
@@ -167,6 +177,7 @@ export default function DashboardPage() {
   const [allMetas, setAllMetas] = useState<Meta[]>([]);
   const [userName, setUserName] = useState("");
   const [isPro, setIsPro] = useState(false);
+  const [preferredSaveDay, setPreferredSaveDay] = useState<number | null>(null);
   const [scoreProfile, setScoreProfile] = useState<ScoreProfile | null>(null);
   const [hora] = useState(() => new Date().getHours());
   const supabase = createSupabaseBrowser();
@@ -178,7 +189,7 @@ export default function DashboardPage() {
 
     const [metasRes, profileRes] = await Promise.all([
       supabase.from("metas").select("*").eq("user_id", session.user.id).eq("concluida", false).order("created_at", { ascending: false }),
-     supabase.from("user_profiles").select("plan,nome,nome_preferido").eq("user_id", session.user.id).maybeSingle(),
+     supabase.from("user_profiles").select("plan,nome,nome_preferido,preferred_save_day").eq("user_id", session.user.id).maybeSingle(),
     ]);
     const metas: Meta[] = metasRes.data ?? [];
     setAllMetas(metas);
@@ -187,6 +198,7 @@ export default function DashboardPage() {
 
     if (profileRes.data) {
       setIsPro(profileRes.data.plan === "pro" || profileRes.data.plan === "premium");
+      setPreferredSaveDay(profileRes.data.preferred_save_day ?? null);
       const displayName =
         profileRes.data.nome_preferido ||
         (profileRes.data.nome || "").split(" ")[0];
@@ -271,32 +283,15 @@ export default function DashboardPage() {
             {userName ? `${saudacao}, ${userName}! ${saudacaoEmoji}` : `${saudacao}! ${saudacaoEmoji}`}
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-2)", margin: 0 }}>
-            {!loading && dash && dash.sobra < 0
-              ? "⚠️ Gastos acima da renda este mês"
-              : !loading && allMetas.length === 0
+            {!loading && allMetas.length === 0
               ? "Crie seu primeiro sonho para começar 🎯"
               : "Veja como seus sonhos estão evoluindo"}
           </p>
         </div>
 
+        {!loading && <NextStepCard meta={mainMeta} preferredSaveDay={preferredSaveDay} />}
         <SonhoHero meta={mainMeta} loading={loading} />
         <AssessorCard insight={insight} />
-
-        {!loading && dash && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
-            {[
-              { label: "Renda", value: `R$ ${fmtInt(dash.renda)}`, color: "#1D9E75", icon: "💰" },
-              { label: "Gastos", value: `R$ ${fmtInt(dash.gastos)}`, color: dash.gastos > dash.renda * 0.8 ? "#ef4444" : "var(--text-1)", icon: "📤" },
-              { label: "Sobra", value: `R$ ${fmtInt(Math.abs(dash.sobra))}`, color: dash.sobra >= 0 ? "#1D9E75" : "#ef4444", icon: dash.sobra >= 0 ? "✅" : "❌" },
-              { label: "SELIC", value: eco ? `${eco.selic_anual}%` : "—", color: "var(--text-1)", icon: "📈" },
-            ].map(({ label, value, color, icon }) => (
-              <div key={label} style={{ background: "var(--bg-card)", borderRadius: 14, padding: "12px 14px", border: "1.5px solid var(--border)" }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>{icon} {label}</p>
-                <p style={{ fontSize: 16, fontWeight: 900, color, margin: 0, fontFamily: "Nunito, sans-serif" }}>{value}</p>
-              </div>
-            ))}
-          </div>
-        )}
 
         {allMetas.length > 1 && (
           <>
@@ -354,6 +349,22 @@ export default function DashboardPage() {
         })()}
 
         <StreakBadge />
+
+        {!loading && dash && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+            {[
+              { label: "Renda", value: `R$ ${fmtInt(dash.renda)}`, color: "#1D9E75", icon: "💰" },
+              { label: "Gastos", value: `R$ ${fmtInt(dash.gastos)}`, color: "var(--text-1)", icon: "📤" },
+              { label: "Sobra", value: `R$ ${fmtInt(Math.abs(dash.sobra))}`, color: dash.sobra >= 0 ? "#1D9E75" : "var(--text-1)", icon: dash.sobra >= 0 ? "✅" : "🔍" },
+              { label: "SELIC", value: eco ? `${eco.selic_anual}%` : "—", color: "var(--text-1)", icon: "📈" },
+            ].map(({ label, value, color, icon }) => (
+              <div key={label} style={{ background: "var(--bg-card)", borderRadius: 14, padding: "12px 14px", border: "1.5px solid var(--border)" }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>{icon} {label}</p>
+                <p style={{ fontSize: 16, fontWeight: 900, color, margin: 0, fontFamily: "Nunito, sans-serif" }}>{value}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
 
@@ -365,15 +376,15 @@ export default function DashboardPage() {
             {`${saudacao}${userName ? `, ${userName}` : ""}! ${saudacaoEmoji}`}
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-2)", margin: 0 }}>
-            {!loading && dash && dash.sobra < 0
-              ? "⚠️ Seus gastos estão acima da renda este mês"
-              : "Veja como seus sonhos estão evoluindo"}
+            Veja como seus sonhos estão evoluindo
           </p>
         </div>
         <button onClick={load} className="btn-ghost p-2.5 rounded-xl" title="Atualizar">
           <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
+
+      {!loading && <NextStepCard meta={mainMeta} preferredSaveDay={preferredSaveDay} />}
 
       <div style={{ marginBottom: 16 }}>
         <SonhoHero meta={mainMeta} loading={loading} />
