@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase";
+import { useConfetti } from "@/components/imoney/celebration";
 
 const STEPS = [
   { id: 1, titulo: "Qual é o seu grande sonho? 🌟", subtitulo: "Vamos começar pelo que mais importa pra você" },
@@ -20,6 +21,29 @@ const SONHOS = [
   { emoji: "🎓", label: "Educação / pós-grad",     descricao: "Dar o próximo passo na carreira" },
   { emoji: "💳", label: "Sair das dívidas",        descricao: "Zerar as dívidas e recomeçar do zero" },
   { emoji: "✨", label: "Outro sonho",             descricao: "Você digita o que quiser" },
+];
+
+// Identity priming: frase de quem o usuário está se tornando, por sonho
+const IDENTIDADE: Record<string, string> = {
+  "Casa própria":            "Você está se tornando alguém que constrói patrimônio.",
+  "Viagem dos sonhos":       "Você está se tornando alguém que realiza experiências.",
+  "Meu primeiro carro":      "Você está se tornando alguém que transforma plano em conquista.",
+  "Reserva de emergência":   "Você está se tornando alguém que se protege.",
+  "Independência financeira": "Você está se tornando alguém que constrói a própria liberdade.",
+  "Educação / pós-grad":     "Você está se tornando alguém que investe em si.",
+  "Sair das dívidas":        "Você está se tornando alguém que retoma o controle.",
+};
+const IDENTIDADE_PADRAO = "Você está se tornando alguém que realiza o que planeja.";
+
+function fraseIdentidade(sonhoLabel: string): string {
+  const semEmoji = sonhoLabel.split(" ").slice(1).join(" ");
+  return IDENTIDADE[semEmoji] ?? IDENTIDADE_PADRAO;
+}
+
+const DIAS_SEMANA: Array<{ label: string; valor: number }> = [
+  { label: "Seg", valor: 1 }, { label: "Ter", valor: 2 }, { label: "Qua", valor: 3 },
+  { label: "Qui", valor: 4 }, { label: "Sex", valor: 5 }, { label: "Sáb", valor: 6 },
+  { label: "Dom", valor: 0 },
 ];
 
 const PERGUNTAS = [
@@ -55,6 +79,8 @@ export default function OnboardingPage() {
   const [respostas, setRespostas] = useState<Record<number, string>>({});
   const [diagnostico, setDiagnostico] = useState<Diagnostico | null>(null);
   const [compartilhado, setCompartilhado] = useState(false);
+  const [showCelebracao, setShowCelebracao] = useState(false);
+  const [saveDay, setSaveDay] = useState<number | null>(null);
 
   const sonhoEhOutro = sonhoSelecionado === "✨ Outro sonho";
   const metaNome = sonhoEhOutro ? sonhoCustom : sonhoSelecionado;
@@ -83,6 +109,7 @@ export default function OnboardingPage() {
       renda_mensal: rendaNum,
       gastos_mensais: gastosNum,
       monthly_available: monthly,
+      ...(saveDay !== null ? { preferred_save_day: saveDay } : {}),
       updated_at: new Date().toISOString(),
     });
     if (metaNome && metaValor) {
@@ -99,6 +126,7 @@ export default function OnboardingPage() {
   }
 
   async function avancar() {
+    if (step === 4 && calculo && metaNome) { setShowCelebracao(true); return; }
     if (step < 5) { setStep(step + 1); return; }
     await gerarRadiografia();
   }
@@ -157,6 +185,13 @@ export default function OnboardingPage() {
     } catch { /* cancelled */ }
   }
 
+  const particles = useConfetti(showCelebracao);
+
+  function continuarDaCelebracao() {
+    setShowCelebracao(false);
+    setStep(5);
+  }
+
   const progresso = (step / STEPS.length) * 100;
   const stepAtual = STEPS[step - 1];
   const todasRespondidas = Object.keys(respostas).length === PERGUNTAS.length;
@@ -166,6 +201,69 @@ export default function OnboardingPage() {
     (step === 3 && renda.trim().length > 0) ||
     (step === 4) ||
     (step === 5 && todasRespondidas);
+
+  // ── Tela de celebração da primeira meta (peak-end rule) ────────────────
+  if (showCelebracao && calculo) {
+    const emoji = sonhoSelecionado.split(" ")[0];
+    const porMesFmt = calculo.porMes.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return (
+      <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, #050f08 0%, #1a3a1a 55%, #0d5435 100%)", fontFamily: "'Nunito',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 20px", overflow: "hidden", position: "relative" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap'); @keyframes pop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} .c-pop{animation:pop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards} .c-f1{animation:fadeUp 0.5s ease 0.2s forwards;opacity:0} .c-f2{animation:fadeUp 0.5s ease 0.4s forwards;opacity:0} .c-f3{animation:fadeUp 0.5s ease 0.6s forwards;opacity:0} @media (prefers-reduced-motion: reduce){.c-pop,.c-f1,.c-f2,.c-f3{animation:none;opacity:1}}`}</style>
+
+        {/* Confetti */}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+          {particles.map(p => (
+            <div key={p.id} style={{ position: "absolute", left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.shape === "rect" ? p.size * 0.45 : p.size, borderRadius: p.shape === "circle" ? "50%" : 2, background: p.color, transform: `rotate(${p.rotation}deg)`, opacity: 0.85 }} />
+          ))}
+        </div>
+
+        <div className="c-pop" style={{ fontSize: 64, marginBottom: 8, filter: "drop-shadow(0 0 28px rgba(249,168,37,0.5))" }}>{emoji}</div>
+        <div className="c-f1" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(249,168,37,0.18)", border: "1px solid rgba(249,168,37,0.5)", borderRadius: 20, padding: "5px 14px", marginBottom: 18 }}>
+          <span style={{ fontSize: 11, fontWeight: 800, color: "#F9A825", textTransform: "uppercase", letterSpacing: "0.1em" }}>⭐ Primeira meta criada</span>
+        </div>
+
+        <div className="c-f1" style={{ textAlign: "center", marginBottom: 22 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 900, color: "#fff", margin: "0 0 8px", lineHeight: 1.25 }}>{metaNome}</h1>
+          <p style={{ fontSize: 15, color: "#A7F3D0", fontWeight: 700, margin: 0 }}>
+            R$ {porMesFmt}<span style={{ fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>/mês durante {metaMeses} meses</span>
+          </p>
+        </div>
+
+        <p className="c-f2" style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: "0 0 28px", textAlign: "center" }}>Seu plano começa hoje.</p>
+
+        {/* Implementation intention: dia da semana */}
+        <div className="c-f2" style={{ width: "100%", maxWidth: 400, marginBottom: 24 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.75)", textAlign: "center", margin: "0 0 12px" }}>
+            Qual dia da semana você quer guardar esse valor?
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+            {DIAS_SEMANA.map(d => {
+              const ativo = saveDay === d.valor;
+              return (
+                <button key={d.valor} onClick={() => setSaveDay(d.valor)} style={{ padding: "12px 0", borderRadius: 10, border: `2px solid ${ativo ? "#00C853" : "rgba(255,255,255,0.18)"}`, background: ativo ? "#00C853" : "rgba(255,255,255,0.06)", color: ativo ? "#0a1f0a" : "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "'Nunito',sans-serif", transition: "all 0.15s" }}>
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+          {saveDay !== null && (
+            <p style={{ fontSize: 12, color: "#A7F3D0", textAlign: "center", margin: "10px 0 0", fontWeight: 600 }}>
+              Combinado: toda {DIAS_SEMANA.find(d => d.valor === saveDay)?.label} a iMoney te lembra de guardar. 💚
+            </p>
+          )}
+        </div>
+
+        <div className="c-f3" style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 10 }}>
+          <button onClick={continuarDaCelebracao} disabled={saveDay === null} style={{ padding: "16px 0", borderRadius: 14, border: "none", background: saveDay !== null ? "#00C853" : "rgba(255,255,255,0.12)", color: saveDay !== null ? "#0a1f0a" : "rgba(255,255,255,0.4)", fontSize: 16, fontWeight: 800, cursor: saveDay !== null ? "pointer" : "not-allowed", fontFamily: "'Nunito',sans-serif", boxShadow: saveDay !== null ? "0 8px 28px rgba(0,200,83,0.35)" : "none", transition: "all 0.2s" }}>
+            Ver meu plano →
+          </button>
+          <button onClick={continuarDaCelebracao} style={{ padding: "8px 0", borderRadius: 12, border: "none", background: "transparent", color: "rgba(255,255,255,0.4)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Nunito',sans-serif" }}>
+            Escolher o dia depois
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ── Tela de resultado (Radiografia) ────────────────────────────────────
   if (diagnostico) {
@@ -264,10 +362,10 @@ export default function OnboardingPage() {
               {sonhoEhOutro && (
                 <input value={sonhoCustom} onChange={e => setSonhoCustom(e.target.value)} placeholder="Descreva seu sonho..." autoFocus style={{ width: "100%", border: "2px solid #1D9E75", borderRadius: 12, padding: "12px 16px", fontSize: 14, fontFamily: "'Nunito',sans-serif", color: "#1a1a1a", boxSizing: "border-box" }} />
               )}
-              {sonhoSelecionado && !sonhoEhOutro && (
-                <div style={{ background: "#E1F5EE", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 18 }}>✅</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#085041" }}>Ótimo! A iMoney vai montar e executar o plano para: <strong>{sonhoSelecionado}</strong></span>
+              {sonhoSelecionado && (!sonhoEhOutro || sonhoCustom.trim().length > 1) && (
+                <div className="calculo-box" style={{ background: "linear-gradient(135deg, #1a3a1a, #0d5435)", borderRadius: 12, padding: "14px 18px" }}>
+                  <p style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "0 0 4px", lineHeight: 1.4 }}>{fraseIdentidade(sonhoSelecionado)}</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#A7F3D0", margin: 0 }}>A iMoney monta e executa o plano com você.</p>
                 </div>
               )}
             </div>

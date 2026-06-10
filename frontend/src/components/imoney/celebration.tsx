@@ -17,11 +17,15 @@ interface Particle {
 
 const COLORS = ["#00C853", "#FFD600", "#FF4081", "#40C4FF", "#E040FB", "#FFAB40", "#69F0AE", "#FFFFFF"];
 
-function useConfetti(active: boolean) {
+export function useConfetti(active: boolean) {
   const [particles, setParticles] = useState<Particle[]>([]);
 
   useEffect(() => {
     if (!active) { setParticles([]); return; }
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setParticles([]);
+      return;
+    }
     const count = 120;
     const ps: Particle[] = Array.from({ length: count }, (_, i) => ({
       id: i,
