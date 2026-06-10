@@ -299,8 +299,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Ignora mensagens não-texto (imagem, áudio, etc.)
-    if (msg.type !== "text") return NextResponse.json({ ok: true });
+    // Reações continuam ignoradas; demais não-texto ganham resposta fixa
+    if (msg.type !== "text") {
+      if (msg.type !== "reaction" && msg.from) {
+        await enviarMensagem(
+          msg.from,
+          "Por enquanto só consigo responder mensagens de texto. 📝\n\nPara registrar gastos, me mande algo como: 'gastei 50 reais no mercado'."
+        );
+      }
+      return NextResponse.json({ ok: true });
+    }
 
     // Extrai telefone e texto
     // Meta envia telefone no formato "5521999999999" (sem + ou @)
