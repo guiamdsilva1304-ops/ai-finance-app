@@ -374,7 +374,7 @@ export async function POST(req: NextRequest) {
     // Busca usuário pelo telefone no Supabase (wa_id pode vir com ou sem o nono dígito)
     const { data: perfis } = await supabase
       .from("user_profiles")
-      .select("user_id, plan, renda_mensal, gastos_mensais, monthly_available, diagnostico_json, score_saude")
+      .select("user_id, plan, renda, gastos_mensais, monthly_available, diagnostico_json, score_saude")
       .in("phone", variantesTelefoneBR(telefone))
       .limit(1);
     const perfil = perfis?.[0] ?? null;
@@ -432,7 +432,7 @@ export async function POST(req: NextRequest) {
         if (tx.tipo === "gasto")   gastos += Number(tx.valor);
       }
     }
-    if (renda  === 0) renda  = Number(perfil.renda_mensal  ?? 0);
+    if (renda  === 0) renda  = Number(perfil.renda  ?? 0);
     if (gastos === 0) gastos = Number(perfil.gastos_mensais ?? 0);
 
     const gastosCat: Record<string, number> = {};

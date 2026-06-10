@@ -101,17 +101,18 @@ export default function OnboardingPage() {
 
   async function salvarPerfil(userId: string) {
     const monthly = rendaNum - gastosNum;
-    await supabase.from("user_profiles").upsert({
+    const { error: perfilError } = await supabase.from("user_profiles").upsert({
       id: userId,
       user_id: userId,
       nome,
       ocupacao,
-      renda_mensal: rendaNum,
+      renda: rendaNum,
       gastos_mensais: gastosNum,
       monthly_available: monthly,
       ...(saveDay !== null ? { preferred_save_day: saveDay } : {}),
       updated_at: new Date().toISOString(),
     });
+    if (perfilError) console.error("Erro ao salvar perfil no onboarding:", perfilError.message);
     if (metaNome && metaValor) {
       await supabase.from("metas").insert({
         user_id: userId,

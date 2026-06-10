@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     const [limiteResult, diagnosticoResult, categoriasResult, receitasResult, metasResult, ultimaTxResult] = await Promise.allSettled([
       verificarLimite(user.id),
       supabase.from('user_profiles')
-        .select('perfil_financeiro, score_saude, diagnostico_json, renda_mensal, gastos_mensais, monthly_available, preferred_save_day')
+        .select('perfil_financeiro, score_saude, diagnostico_json, renda, gastos_mensais, monthly_available, preferred_save_day')
         .eq('user_id', user.id)
         .maybeSingle(),
       supabase.from('transactions')
@@ -304,7 +304,7 @@ DADOS COMPLETOS DO USUÁRIO:
 - Idade: ${context?.idade ?? "não informada"}
 - Ocupação: ${context?.ocupacao ?? "não informada"}
 - Cidade: ${context?.cidade ?? ""}/${context?.estado ?? ""}
-- Renda mensal declarada: R$ ${Number(context?.renda ?? perfilDiagnostico?.renda_mensal ?? 0).toFixed(2)}
+- Renda mensal declarada: R$ ${Number(context?.renda ?? perfilDiagnostico?.renda ?? 0).toFixed(2)}
 - Gastos mensais declarados: R$ ${Number(context?.gastos ?? perfilDiagnostico?.gastos_mensais ?? 0).toFixed(2)}
 - Sobra mensal (transações reais): R$ ${Number(context?.sobra ?? 0).toFixed(2)}
 - Disponível por mês (renda − gastos declarados): R$ ${Number(context?.monthly_available ?? perfilDiagnostico?.monthly_available ?? 0).toFixed(2)}
