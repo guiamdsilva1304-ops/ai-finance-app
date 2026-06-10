@@ -377,12 +377,37 @@ export function PricingTable() {
 }
 
 /* ───── Blog preview ───── */
-export function BlogPreview() {
-  const posts = [
-    { eb: 'Sonhos financeiros',   title: 'Como juntar dinheiro para a casa própria em 5 anos', read: '6 min', emoji: '🏠' },
-    { eb: 'Metas e planejamento', title: 'Método 50-30-20 explicado pro brasileiro real',       read: '5 min', emoji: '🎯' },
-    { eb: 'Contexto Brasil',      title: 'O que é SELIC e como ela afeta os seus sonhos',       read: '4 min', emoji: '📊' },
-  ];
+export type BlogPreviewPost = {
+  slug: string; title: string; category: string | null; reading_time_min: number | null;
+};
+
+const BLOG_CATS: Record<string, { label: string; emoji: string }> = {
+  'educacao-financeira': { label: 'Educação',      emoji: '📚' },
+  'investimentos':       { label: 'Investimentos', emoji: '📈' },
+  'dividas':             { label: 'Dívidas',       emoji: '💳' },
+  'planejamento':        { label: 'Planejamento',  emoji: '🗓️' },
+};
+
+// Fallback se a busca de posts falhar ou o blog estiver vazio — a seção nunca quebra a landing
+const BLOG_FALLBACK = [
+  { eb: 'Sonhos financeiros',   title: 'Como juntar dinheiro para a casa própria em 5 anos', read: '6 min', emoji: '🏠', href: '/blog' },
+  { eb: 'Metas e planejamento', title: 'Método 50-30-20 explicado pro brasileiro real',       read: '5 min', emoji: '🎯', href: '/blog' },
+  { eb: 'Contexto Brasil',      title: 'O que é SELIC e como ela afeta os seus sonhos',       read: '4 min', emoji: '📊', href: '/blog' },
+];
+
+export function BlogPreview({ posts: realPosts = [] }: { posts?: BlogPreviewPost[] }) {
+  const posts = realPosts.length > 0
+    ? realPosts.map(p => {
+        const cat = p.category ? BLOG_CATS[p.category] : undefined;
+        return {
+          eb: cat?.label ?? p.category ?? 'Finanças',
+          title: p.title,
+          read: `${p.reading_time_min ?? 3} min`,
+          emoji: cat?.emoji ?? '📚',
+          href: `/blog/${p.slug}`,
+        };
+      })
+    : BLOG_FALLBACK;
   return (
     <section className="mkt-blog-sect" style={{ padding: '80px 32px', background: C.paper, fontFamily: FONT }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -395,12 +420,12 @@ export function BlogPreview() {
         </div>
         <div className="mkt-blog-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
           {posts.map(p => (
-            <a key={p.title} href="/blog" style={{ textDecoration: 'none' }}>
+            <a key={p.title} href={p.href} style={{ textDecoration: 'none' }}>
             <Card style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
               <div style={{ height: 140, background: C.green50, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 56 }}>{p.emoji}</div>
               <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: C.green500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{p.eb}</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: C.green900, lineHeight: 1.3 }}>{p.title}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: C.green900, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.title}</div>
                 <div style={{ fontSize: 12, color: C.ink3, fontWeight: 700, marginTop: 'auto' }}>{p.read} de leitura</div>
               </div>
             </Card>
