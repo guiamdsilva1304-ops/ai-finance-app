@@ -365,12 +365,12 @@ export default function TransacoesPage() {
           </h1>
           <p className="text-sm text-[#6b9e80] mt-0.5">Registre e acompanhe seus gastos e receitas</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={load} className="btn-ghost p-2.5"><RefreshCw size={16} className={loading ? "animate-spin" : ""}/></button>
-          <button onClick={exportarCSV} disabled={exportando} className="btn-ghost p-2.5" title="Exportar CSV (Premium)">
+        <div className="flex gap-1.5">
+          <button onClick={load} className="btn-ghost p-2"><RefreshCw size={16} className={loading ? "animate-spin" : ""}/></button>
+          <button onClick={exportarCSV} disabled={exportando} className="btn-ghost p-2" title="Exportar CSV (Premium)">
             <Download size={16} className={exportando ? "animate-pulse" : ""}/>
           </button>
-          <button onClick={() => setShowImportModal(true)} className="btn-ghost p-2.5" title="Importar extrato">
+          <button onClick={() => setShowImportModal(true)} className="btn-ghost p-2" title="Importar extrato">
             📂
           </button>
           <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="btn-primary">
