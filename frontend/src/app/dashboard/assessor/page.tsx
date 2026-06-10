@@ -1135,7 +1135,7 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }}}
-              placeholder={isListening ? "Ouvindo..." : limiteAtingido ? "Suas mensagens renovam amanhã 🌱" : "Digite ou fale sua pergunta financeira..."}
+              placeholder={isListening ? "Ouvindo..." : limiteAtingido ? "Suas mensagens renovam amanhã 🌱" : "Digite sua pergunta..."}
               rows={1}
               style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#0d2414', padding: '6px 8px', maxHeight: 128, fontFamily: 'Nunito, sans-serif' }}
               disabled={loading || limiteAtingido || isListening}
