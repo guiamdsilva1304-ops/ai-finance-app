@@ -213,6 +213,10 @@ Mensagem: ${texto}`;
   const raw = res.content[0].type === "text" ? res.content[0].text.trim() : "{}";
   try {
     const parsed = JSON.parse(raw);
+    const tipoValido = parsed.tipo === "gasto" || parsed.tipo === "receita";
+    if (!parsed["é_transacao"] || !parsed.descricao || !(Number(parsed.valor) > 0) || !tipoValido) {
+      return false;
+    }
 
     await supabase.from("whatsapp_pending_transactions").delete().eq("user_id", userId);
     await supabase.from("whatsapp_pending_transactions").insert({
@@ -229,7 +233,7 @@ Mensagem: ${texto}`;
 }
 
 async function confirmarTransacao(userId: string): Promise<string | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("whatsapp_pending_transactions")
     .select("*")
     .eq("user_id", userId)
@@ -238,6 +242,9 @@ async function confirmarTransacao(userId: string): Promise<string | null> {
     .limit(1)
     .single();
 
+  if (error?.code === "PGRST116") return null; // sem pendente — esperado
+  if (error) throw error;                      // erro real — propaga
+  if (!data) return null;
 
   await supabase.from("transactions").insert({
     user_id: userId,
