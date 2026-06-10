@@ -1016,7 +1016,7 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
                   Você está progredindo rápido.
                 </p>
                 <p style={{ fontSize: 13, color: '#9FE1CB', margin: '0 0 18px', lineHeight: 1.6, fontWeight: 600 }}>
-                  Usuários Pro chegam ao sonho 40% mais rápido com memória financeira completa e 50 mensagens/dia.
+                  No Pro, seu assessor lembra de tudo: memória financeira completa e 50 mensagens por dia para acelerar seu plano.
                 </p>
                 <a href="/dashboard/pro" style={{ display: 'block', background: '#fff', color: '#0a3d28', fontWeight: 800, fontSize: 14, padding: '14px 0', borderRadius: 12, textDecoration: 'none', fontFamily: 'Nunito, sans-serif', marginBottom: 8 }}>
                   Investir no meu plano — R$ 14,90/mês
