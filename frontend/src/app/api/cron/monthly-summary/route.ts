@@ -126,7 +126,7 @@ Escreva um resumo em português brasileiro, tom amigável e direto, máximo 4 pa
 Seja humano, não robótico. Use linguagem de jovem adulto, sem ser informal demais.`
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 600,
     messages: [{ role: 'user', content: prompt }]
   })

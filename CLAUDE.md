@@ -47,7 +47,8 @@ ANTHROPIC_API_KEY, RESEND_API_KEY, CRON_SECRET, SUPABASE_SERVICE_ROLE_KEY
 - Commits no formato: `fix: descrição` ou `feat: descrição`
 
 ## Modelo de IA
-Sempre usar `claude-sonnet-4-20250514` nas API routes.
+Sempre usar `claude-sonnet-4-6` nas API routes
+(exceção: rotas de baixo custo — blog, autoresearch — usam `claude-haiku-4-5-20251001`).
 Max tokens: 4096 para respostas longas, 1024 para respostas curtas.
 
 ## Burn e contexto de negócio

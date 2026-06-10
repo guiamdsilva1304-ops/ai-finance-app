@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
 
     // Chama o Claude
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 8192,
       system: SYSTEM_PROMPTS[agent_id] ?? 'Voce e um agente da iMoney. Responda em markdown.',
       messages: [{ role: 'user', content: prompt }],
