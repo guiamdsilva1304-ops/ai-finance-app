@@ -39,6 +39,8 @@ interface UserContext {
   metas: Array<{ nome: string; valor_alvo: number; valor_atual: number; prazo?: string }>;
   perfil: Record<string, unknown>;
   mem: Record<string, unknown>;
+  diasSemAcesso: number | null;
+  receitaHoje: boolean;
 }
 
 // ─── Parser de plano ─────────────────────────────────────────────────────────
@@ -225,6 +227,42 @@ function buildContextualStarters(ctx: UserContext | null): Array<{ label: string
 
   const sobra = ctx.renda - ctx.gastos
   const metaPrincipal = ctx.metas?.[0]
+
+  // ── Starters comportamentais (prioridade sobre os genéricos) ──
+  const pctPrincipal = metaPrincipal && metaPrincipal.valor_alvo > 0
+    ? Math.round((metaPrincipal.valor_atual / metaPrincipal.valor_alvo) * 100)
+    : 0
+
+  const saveDay = ctx.perfil?.preferred_save_day
+  const isSaveDay = typeof saveDay === "number" && new Date().getDay() === saveDay
+
+  if (isSaveDay) {
+    starters.push({
+      label: "💚 Hoje é seu dia. Já guardou?",
+      prompt: "Hoje é meu dia de guardar para a meta. Me lembra o valor do aporte e me diz onde aplicar hoje.",
+    })
+  }
+
+  if (metaPrincipal && pctPrincipal >= 80 && pctPrincipal < 100) {
+    starters.push({
+      label: "🎯 Você está quase lá",
+      prompt: `Já estou com ${pctPrincipal}% da meta "${metaPrincipal.nome}". Como fecho os últimos ${100 - pctPrincipal}% nas próximas semanas?`,
+    })
+  }
+
+  if (ctx.receitaHoje && metaPrincipal) {
+    starters.push({
+      label: `💰 Quanto me aproximei de "${metaPrincipal.nome}"?`,
+      prompt: `Acabei de registrar uma receita. Quanto disso devo guardar e quanto isso me aproxima da meta "${metaPrincipal.nome}"?`,
+    })
+  }
+
+  if (ctx.diasSemAcesso !== null && ctx.diasSemAcesso >= 3) {
+    starters.push({
+      label: "👋 O que mudou desde a última vez?",
+      prompt: `Faz ${ctx.diasSemAcesso} dias que não converso com você. Me ajuda a retomar: o que devo revisar primeiro no meu plano?`,
+    })
+  }
 
   if (sobra > 0) {
     starters.push({
@@ -611,7 +649,8 @@ export default function AssessorPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [historyRes, perfilRes, memRes, metasRes, summaryRes] = await Promise.allSettled([
+      const hojeISO = new Date().toISOString().split("T")[0];
+      const [historyRes, perfilRes, memRes, metasRes, summaryRes, ultimaMsgRes, receitaHojeRes] = await Promise.allSettled([
         supabase.from("chat_history").select("role,content").eq("user_id", user.id).order("created_at", { ascending: true }).limit(50),
         supabase.from("user_profiles").select("*").eq("user_id", user.id).single(),
         supabase.from("user_memory").select("*").eq("user_id", user.id).single(),
@@ -620,6 +659,8 @@ export default function AssessorPage() {
           const { data: { session } } = await supabase.auth.getSession();
           return fetch("/api/dashboard/summary", { headers: { Authorization: `Bearer ${session?.access_token}` } });
         })(),
+        supabase.from("chat_history").select("created_at").eq("user_id", user.id).eq("role", "user").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("transactions").select("id").eq("user_id", user.id).eq("tipo", "receita").gte("created_at", hojeISO).limit(1).maybeSingle(),
       ]);
 
       if (historyRes.status === "fulfilled" && historyRes.value.data?.length) {
@@ -653,7 +694,13 @@ export default function AssessorPage() {
         }
       }
 
-      setUserCtx({ renda, gastos, metas, perfil, mem })
+      const ultimaMsg = ultimaMsgRes.status === "fulfilled" ? ultimaMsgRes.value.data : null;
+      const diasSemAcesso = ultimaMsg?.created_at
+        ? Math.floor((Date.now() - new Date(ultimaMsg.created_at).getTime()) / 86400000)
+        : null;
+      const receitaHoje = receitaHojeRes.status === "fulfilled" && !!receitaHojeRes.value.data;
+
+      setUserCtx({ renda, gastos, metas, perfil, mem, diasSemAcesso, receitaHoje })
 
       const historyData = historyRes.status === "fulfilled" ? historyRes.value.data : null;
       if (fromScore && (!historyData?.length)) {

@@ -95,10 +95,10 @@ export async function POST(req: NextRequest) {
     const _now = new Date()
     const inicio_mes = `${_now.getUTCFullYear()}-${String(_now.getUTCMonth() + 1).padStart(2, '0')}-01`
 
-    const [limiteResult, diagnosticoResult, categoriasResult, receitasResult, metasResult] = await Promise.allSettled([
+    const [limiteResult, diagnosticoResult, categoriasResult, receitasResult, metasResult, ultimaTxResult] = await Promise.allSettled([
       verificarLimite(user.id),
       supabase.from('user_profiles')
-        .select('perfil_financeiro, score_saude, diagnostico_json, renda_mensal, gastos_mensais, monthly_available')
+        .select('perfil_financeiro, score_saude, diagnostico_json, renda_mensal, gastos_mensais, monthly_available, preferred_save_day')
         .eq('user_id', user.id)
         .maybeSingle(),
       supabase.from('transactions')
@@ -114,6 +114,12 @@ export async function POST(req: NextRequest) {
       supabase.from('metas')
         .select('nome, valor_alvo, valor_atual, prazo')
         .eq('user_id', user.id),
+      supabase.from('transactions')
+        .select('descricao, valor, tipo, categoria, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ])
 
     const { permitido, usadas, limite, plano } = limiteResult.status === 'fulfilled'
@@ -135,6 +141,25 @@ export async function POST(req: NextRequest) {
     }
 
     const isPro = plano === 'pro' || plano === 'premium'
+
+    // ─── Contexto comportamental (progresso recente + implementation intentions) ─
+    const ultimaTx = ultimaTxResult.status === 'fulfilled' ? ultimaTxResult.value.data : null
+    const DIAS_SEMANA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
+    const saveDay = perfilDiagnostico?.preferred_save_day
+    const diaGuardar = typeof saveDay === 'number' && saveDay >= 0 && saveDay <= 6 ? DIAS_SEMANA[saveDay] : null
+
+    const ultimaAcaoBlock = ultimaTx
+      ? `\nÚLTIMA AÇÃO DO USUÁRIO: registrou ${ultimaTx.tipo === 'receita' ? 'uma receita' : 'um gasto'} de R$ ${Number(ultimaTx.valor).toFixed(0)} (${ultimaTx.descricao ?? ultimaTx.categoria}) em ${new Date(ultimaTx.created_at).toLocaleDateString('pt-BR')}.`
+      : ''
+
+    const comportamentoBlock = `
+PRINCÍPIOS COMPORTAMENTAIS — siga em TODA resposta:
+- Antes de qualquer conselho, reconheça em UMA frase curta o progresso recente do usuário (use a última ação registrada quando existir — registrar qualquer coisa já é progresso).
+- Implementation intentions: ao sugerir uma ação, especifique QUANDO e COMO. ${diaGuardar ? `O usuário escolheu ${diaGuardar} como dia de guardar — ancore as sugestões nesse dia (ex: "nesta ${diaGuardar}, antes das 18h").` : `Ex: "Que tal transferir R$ X para sua reserva nesta sexta-feira, antes das 18h?"`}
+- Identity language: fale com o usuário como quem ele está se tornando. Ex: "Como alguém que está construindo patrimônio, você provavelmente vai querer...".
+- NUNCA use linguagem de culpa: "você deveria ter", "você está gastando demais", "isso foi um erro" são proibidos. Recaída é dado, não falha.
+- Termine TODA resposta com UMA pergunta aberta curta que convide à próxima interação${isPro ? ' (depois do ▶ Próximo passo)' : ''}.
+${ultimaAcaoBlock}`
 
     // ─── Gastos por categoria (Pro/Premium) ───────────────────────────────────
     type CategoriaItem = { categoria: string; total: number; percentual: number }
@@ -251,6 +276,7 @@ COMO RESPONDER:
 - Nunca diga "você deveria aprender sobre X" — diga "faça X"
 - Não cruze dados entre categorias nem analise padrões históricos
 - Quando análise mais profunda realmente ajudaria, adicione de forma natural (não em toda resposta): "💡 No Pro, eu analiso isso com os seus dados reais e te mostro exatamente o que fazer."
+${comportamentoBlock}
 
 ECONOMIA:
 - SELIC: ${context?.selic ?? 14.50}% a.a.
@@ -320,6 +346,7 @@ CELEBRAÇÃO DE PROGRESSO:
 - Quando o usuário mencionar que atingiu qualquer marco em uma meta, celebre genuinamente antes de continuar
 - Progresso pequeno merece reconhecimento — não minimize
 - Uma conquista financeira, por menor que seja, é um comportamento a reforçar
+${comportamentoBlock}
 
 ${context?.ocupacao === 'mei' || context?.ocupacao === 'autonomo' ? `
 PERFIL MEI/AUTÔNOMO:
