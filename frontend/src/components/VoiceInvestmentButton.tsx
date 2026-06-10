@@ -106,7 +106,7 @@ export default function VoiceInvestmentButton({ onSuccess, isPro }: Props) {
           setState('confirm')
         }
       } catch {
-        setError('Erro ao processar. Tente novamente.')
+        setError('Algo deu errado — tente em instantes.')
         setState('idle')
       }
     }

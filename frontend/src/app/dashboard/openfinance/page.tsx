@@ -29,7 +29,7 @@ export default function OpenFinancePage() {
       email: email.trim(),
     });
     setLoading(false);
-    if (err && err.code !== "23505") { setError("Erro ao registrar. Tente novamente."); return; }
+    if (err && err.code !== "23505") { setError("Algo deu errado — tente em instantes."); return; }
     setDone(true);
   }
 

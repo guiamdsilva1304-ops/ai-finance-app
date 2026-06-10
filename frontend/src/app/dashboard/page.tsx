@@ -62,6 +62,26 @@ function gerarInsight(nome: string, dash: DashData | null, meta: Meta | null, ho
   return `Boa noite, ${firstName}! Revise seus gastos do dia antes de dormir. 🌙`;
 }
 
+// Saudação dinâmica: manhã = plano em dia; tarde = proximidade da conquista;
+// noite = progresso realizado. Sempre dados reais, nunca carência.
+function subtituloDinamico(hora: number, meta: Meta | null, isSaveDay: boolean, semMetas: boolean): string {
+  if (semMetas) return "Qual é o primeiro sonho que vamos realizar?";
+  if (isSaveDay) return "Hoje é seu dia de guardar — seu plano te espera 💚";
+  if (hora >= 6 && hora < 12) return "Seu plano está em dia.";
+  if (hora >= 12 && hora < 18 && meta && meta.valor_alvo > 0 && meta.prazo_meses > 0) {
+    const falta = meta.valor_alvo - meta.valor_atual;
+    if (falta > 0) {
+      const dias = Math.max(1, Math.ceil((falta / (meta.valor_alvo / meta.prazo_meses)) * 30.44));
+      return `${dias} ${dias === 1 ? "dia" : "dias"} até sua próxima conquista.`;
+    }
+  }
+  if (hora >= 18 && meta && meta.valor_alvo > 0) {
+    const pct = Math.round((meta.valor_atual / meta.valor_alvo) * 100);
+    if (pct > 0) return `Você já realizou ${Math.min(100, pct)}% de "${meta.nome}".`;
+  }
+  return "Veja como seus sonhos estão evoluindo";
+}
+
 interface ScoreProfile {
   score_saude: number | null;
   diagnostico_json: { score_imoney?: { titulo?: string } } | null;
@@ -291,6 +311,10 @@ export default function DashboardPage() {
   const insight = gerarInsight(userName, dash, mainMeta, hora);
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
   const saudacaoEmoji = hora < 12 ? "☀️" : hora < 18 ? "🌤️" : "🌙";
+  const isSaveDay = preferredSaveDay !== null && new Date().getDay() === preferredSaveDay;
+  const subtitulo = loading
+    ? "Veja como seus sonhos estão evoluindo"
+    : subtituloDinamico(hora, mainMeta, isSaveDay, allMetas.length === 0);
 
   return (
     <>
@@ -302,9 +326,7 @@ export default function DashboardPage() {
             {userName ? `${saudacao}, ${userName}! ${saudacaoEmoji}` : `${saudacao}! ${saudacaoEmoji}`}
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-2)", margin: 0 }}>
-            {!loading && allMetas.length === 0
-              ? "Crie seu primeiro sonho para começar 🎯"
-              : "Veja como seus sonhos estão evoluindo"}
+            {subtitulo}
           </p>
         </div>
 
@@ -396,7 +418,7 @@ export default function DashboardPage() {
             {`${saudacao}${userName ? `, ${userName}` : ""}! ${saudacaoEmoji}`}
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-2)", margin: 0 }}>
-            Veja como seus sonhos estão evoluindo
+            {subtitulo}
           </p>
         </div>
         <button onClick={load} className="btn-ghost p-2.5 rounded-xl" title="Atualizar">
@@ -499,8 +521,8 @@ export default function DashboardPage() {
               icon={<Icon name="trending-up" size={16} color="#1D9E75" />} animDelay={60} />
             <MetricCard label="Sobra do Mês"
               value={formatBRL(Math.abs(dash?.sobra ?? 0))}
-              sub={dash && dash.sobra >= 0 ? "disponível para investir" : "DÉFICIT"}
-              trend={dash && dash.sobra > 0 ? "up" : "down"}
+              sub={dash && dash.sobra >= 0 ? "disponível para investir" : "vamos equilibrar — fale com o Assessor"}
+              trend={dash && dash.sobra > 0 ? "up" : "neutral"}
               icon={<Icon name="piggy-bank" size={16} color="#1D9E75" />} animDelay={120} />
             <MetricCard label="SELIC" value={eco ? `${eco.selic_anual}% a.a.` : "—"}
               sub={eco ? `Meta: ${eco.selic_meta}% | IPCA: ${eco.ipca_anual}%` : ""}
@@ -565,11 +587,14 @@ export default function DashboardPage() {
 
       {!loading && (!dash || (dash.renda === 0 && dash.gastos === 0)) && (
         <div className="card text-center py-12 bg-[#f8fdf9]">
-          <p className="text-3xl mb-2">📊</p>
-          <p className="font-bold text-[#0d2414]">Nenhuma transação este mês</p>
-          <p className="text-sm text-[#6b9e80] mt-1">
-            Registre suas receitas e gastos em <strong>Transações</strong> para ver o dashboard.
+          <p className="text-3xl mb-2">🌱</p>
+          <p className="font-bold text-[#0d2414]">Seu histórico começa aqui</p>
+          <p className="text-sm text-[#6b9e80] mt-1 mb-4">
+            Cada registro te aproxima do seu sonho.
           </p>
+          <a href="/dashboard/transacoes" className="btn-primary inline-flex">
+            Registrar primeira transação →
+          </a>
         </div>
       )}
     </div>

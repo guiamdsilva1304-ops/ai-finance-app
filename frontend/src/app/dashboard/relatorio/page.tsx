@@ -126,7 +126,7 @@ export default function RelatorioPage() {
       if (data.error) { setIaError(data.error); return }
       setAnalise(data)
     } catch {
-      setIaError('Erro ao gerar análise. Tente novamente.')
+      setIaError('Algo deu errado ao gerar a análise — tente em instantes.')
     } finally {
       setGerandoIA(false)
     }

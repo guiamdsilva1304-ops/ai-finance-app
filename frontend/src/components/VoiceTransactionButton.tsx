@@ -76,7 +76,7 @@ export default function VoiceTransactionButton({ onSuccess, isPro }: Props) {
         if (data.erro) { setError(data.erro); setState('idle') }
         else { setResult(data); setState('confirm') }
       } catch {
-        setError('Erro ao processar. Tente novamente.')
+        setError('Algo deu errado — tente em instantes.')
         setState('idle')
       }
     }

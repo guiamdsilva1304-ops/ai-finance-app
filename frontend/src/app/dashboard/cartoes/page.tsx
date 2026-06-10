@@ -139,7 +139,7 @@ function ModalNovoCartao({
       })
       onClose()
     } catch {
-      setErro('Erro ao salvar cartão.')
+      setErro('Algo deu errado ao salvar — tente em instantes.')
     } finally {
       setLoading(false)
     }

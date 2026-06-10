@@ -61,7 +61,7 @@ export default function PremiumPage() {
         alert('Erro: ' + (data.error ?? 'Tente novamente.'))
       }
     } catch {
-      alert('Erro ao conectar. Tente novamente.')
+      alert('Algo deu errado — tente em instantes.')
     } finally {
       setLoading(false)
     }

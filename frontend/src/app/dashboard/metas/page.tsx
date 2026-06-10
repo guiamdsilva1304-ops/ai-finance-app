@@ -391,11 +391,11 @@ export default function MetasPage() {
       ) : sorted.length === 0 ? (
         <div style={{ background: C.green50, borderRadius: 20, padding: "48px 24px", textAlign: "center" }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
-          <p style={{ fontWeight: 800, color: C.green900, margin: "0 0 6px" }}>Nenhuma meta ainda</p>
-          <p style={{ fontSize: 13, color: C.ink3, margin: "0 0 20px" }}>Crie sua primeira meta financeira.</p>
+          <p style={{ fontWeight: 800, color: C.green900, margin: "0 0 6px" }}>Qual é o primeiro sonho que vamos realizar?</p>
+          <p style={{ fontSize: 13, color: C.ink3, margin: "0 0 20px" }}>Quem define um sonho com prazo já está na frente.</p>
           <button onClick={() => setShowForm(true)}
             style={{ background: C.green500, color: C.green900, border: "none", borderRadius: 12, padding: "10px 20px", fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: "pointer" }}>
-            + Criar meta
+            ✨ Definir meu sonho
           </button>
         </div>
       ) : (

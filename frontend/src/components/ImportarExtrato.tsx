@@ -74,7 +74,7 @@ export default function TransacoesPage({ onSucesso }: { onSucesso?: () => void }
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert("Erro ao exportar: " + e);
+      alert("Algo deu errado ao exportar — tente em instantes.");
     } finally {
       setExportando(false);
     }
@@ -266,9 +266,9 @@ export default function TransacoesPage({ onSucesso }: { onSucesso?: () => void }
         </div>
       ) : filtered.length === 0 ? (
         <div className="card text-center py-12 bg-[#f8fdf9]">
-          <p className="text-3xl mb-2">📋</p>
-          <p className="font-bold text-[#0d2414]">Nenhuma transação encontrada</p>
-          <p className="text-sm text-[#6b9e80] mt-1">Clique em "+ Nova" para registrar.</p>
+          <p className="text-3xl mb-2">🔍</p>
+          <p className="font-bold text-[#0d2414]">Nada por aqui nesse filtro</p>
+          <p className="text-sm text-[#6b9e80] mt-1">Ajuste o filtro para ver as transações do extrato.</p>
         </div>
       ) : (
         <div className="space-y-2">

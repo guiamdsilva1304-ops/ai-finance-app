@@ -112,7 +112,7 @@ export default function TransacoesPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert("Erro ao exportar: " + e);
+      alert("Algo deu errado ao exportar — tente em instantes.");
     } finally {
       setExportando(false);
     }
@@ -548,11 +548,22 @@ export default function TransacoesPage() {
           {[0,1,2,3].map(i => <div key={i} className="card h-16 shimmer"/>)}
         </div>
       ) : displayList.length === 0 ? (
-        <div className="card text-center py-12 bg-[#f8fdf9]">
-          <p className="text-3xl mb-2">📋</p>
-          <p className="font-bold text-[#0d2414]">Nenhuma transação encontrada</p>
-          <p className="text-sm text-[#6b9e80] mt-1">Clique em "+ Nova" para registrar.</p>
-        </div>
+        transactions.length === 0 ? (
+          <div className="card text-center py-12 bg-[#f8fdf9]">
+            <p className="text-3xl mb-2">🌱</p>
+            <p className="font-bold text-[#0d2414]">Seu histórico começa aqui</p>
+            <p className="text-sm text-[#6b9e80] mt-1 mb-4">Cada registro te aproxima do seu sonho.</p>
+            <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary mx-auto">
+              <Plus size={16}/> Registrar primeira transação
+            </button>
+          </div>
+        ) : (
+          <div className="card text-center py-12 bg-[#f8fdf9]">
+            <p className="text-3xl mb-2">🔍</p>
+            <p className="font-bold text-[#0d2414]">Nada por aqui nesse período</p>
+            <p className="text-sm text-[#6b9e80] mt-1">Ajuste os filtros ou o mês para ver seus registros.</p>
+          </div>
+        )
       ) : (
         <div className="space-y-2">
           {displayList.map((item, i) => {
