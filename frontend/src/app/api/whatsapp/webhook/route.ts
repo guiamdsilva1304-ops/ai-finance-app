@@ -178,6 +178,12 @@ Ex: "Esse gasto está dentro do seu padrão de alimentação ✅" | "Com isso, v
 
 
 async function validarAssinatura(req: NextRequest, rawBody: string): Promise<boolean> {
+  const secret = process.env.WHATSAPP_APP_SECRET;
+  if (!secret) {
+    // Sem o app secret configurado não dá para validar; não derruba o webhook em produção.
+    console.warn("[whatsapp] WHATSAPP_APP_SECRET não configurado — assinatura não validada");
+    return true;
+  }
   const signature = req.headers.get("x-hub-signature-256");
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);

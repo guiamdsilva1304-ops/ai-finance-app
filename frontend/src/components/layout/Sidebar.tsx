@@ -160,7 +160,7 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
             pathname.startsWith("/dashboard/relatorio") ? "nav-link-active" : "",
           ].join(" ")}
         >
-          <Icon name="bar-chart" size={18} />
+          <Icon name="pie" size={18} />
           {!collapsed && <span>Relatório</span>}
         </Link>
 

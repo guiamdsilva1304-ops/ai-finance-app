@@ -61,7 +61,7 @@ export default function Hub() {
   const carregar = useCallback(async () => {
     try {
       const [mRes, metrRes] = await Promise.all([
-        fetch('/api/admin/hub', { credentials: 'include', credentials: 'include' }),
+        fetch('/api/admin/hub', { credentials: 'include' }),
         fetch('/api/admin/metricas', { credentials: 'include' }),
       ])
       const mData = await mRes.json()
