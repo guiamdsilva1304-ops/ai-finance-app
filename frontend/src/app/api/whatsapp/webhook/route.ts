@@ -264,6 +264,57 @@ async function confirmarTransacao(userId: string): Promise<string | null> {
 async function cancelarTransacao(userId: string): Promise<void> {
   await supabase.from("whatsapp_pending_transactions").delete().eq("user_id", userId);
 }
+
+// ─── Opt-out via mensagem ──────────────────────────────────────────────────────
+
+const PALAVRAS_OPT_OUT = ["parar", "cancelar", "stop", "sair", "desativar"];
+
+async function processarOptOut(telefone: string, texto: string): Promise<boolean> {
+  const palavra = texto.toLowerCase().trim();
+  if (!PALAVRAS_OPT_OUT.includes(palavra)) return false;
+
+  const { data: perfis } = await supabase
+    .from("user_profiles")
+    .select("user_id")
+    .in("phone", variantesTelefoneBR(telefone))
+    .limit(1);
+  const perfil = perfis?.[0];
+
+  if (!perfil) {
+    await enviarMensagem(telefone, "Este número não está vinculado a nenhuma conta iMoney.");
+    return true;
+  }
+
+  // "cancelar" com transação pendente ativa cancela a transação, não o vínculo
+  if (palavra === "cancelar") {
+    const { data: pendentes } = await supabase
+      .from("whatsapp_pending_transactions")
+      .select("id")
+      .eq("user_id", perfil.user_id)
+      .gt("expires_at", new Date().toISOString())
+      .limit(1);
+    if (pendentes?.length) return false;
+  }
+
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({ phone: null })
+    .eq("user_id", perfil.user_id);
+
+  if (error) {
+    console.error("[whatsapp] erro ao desvincular:", error.message);
+    await enviarMensagem(telefone, "Não consegui desvincular agora. Tente de novo em instantes.");
+    return true;
+  }
+
+  console.log(`[whatsapp] opt-out do número ${telefone} em ${new Date().toISOString()}`);
+  await enviarMensagem(
+    telefone,
+    "Tudo bem! Desvinculei seu WhatsApp da iMoney.\nSe quiser voltar, acesse imoney.ia.br/perfil 👋"
+  );
+  return true;
+}
+
 // ─── POST — Recebe mensagens da Meta ──────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -316,6 +367,9 @@ export async function POST(req: NextRequest) {
     const texto: string    = msg.text?.body ?? "";
 
     if (!telefone || !texto) return NextResponse.json({ ok: true });
+
+    // Opt-out: "parar", "cancelar", "stop", "sair", "desativar" — antes de tudo
+    if (await processarOptOut(telefone, texto)) return NextResponse.json({ ok: true });
 
     // Busca usuário pelo telefone no Supabase (wa_id pode vir com ou sem o nono dígito)
     const { data: perfis } = await supabase
