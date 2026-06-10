@@ -64,11 +64,10 @@ Retorne JSON:
     const { data: existingProfile } = await supabase
       .from('user_profiles')
       .select('diagnostico_json')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .maybeSingle()
 
-    await supabase.from('user_profiles').upsert({
-      id: user.id,
+    const novosDados = {
       score_saude: scoreData.score,
       diagnostico_json: {
         ...(existingProfile?.diagnostico_json ?? {}),
@@ -84,7 +83,14 @@ Retorne JSON:
         },
       },
       updated_at: new Date().toISOString(),
-    })
+    }
+
+    // user_profiles.id pode divergir de user_id — upsert pela PK criaria perfil duplicado
+    if (existingProfile) {
+      await supabase.from('user_profiles').update(novosDados).eq('user_id', user.id)
+    } else {
+      await supabase.from('user_profiles').insert({ user_id: user.id, ...novosDados })
+    }
 
     return NextResponse.json({ scoreData })
   } catch (err) {

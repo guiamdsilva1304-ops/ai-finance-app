@@ -188,7 +188,7 @@ export async function GET(req: NextRequest) {
       const { data: perfil } = await supabase
         .from('user_profiles')
         .select('nome, ocupacao, plan')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single()
 
       const nome = perfil?.nome ?? ''

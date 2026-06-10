@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     const { data } = await supabase
       .from('user_profiles')
       .select('score_saude, diagnostico_json')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .maybeSingle()
 
     const scoreImoney = data?.diagnostico_json?.score_imoney

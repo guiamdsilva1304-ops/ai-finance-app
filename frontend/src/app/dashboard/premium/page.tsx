@@ -30,7 +30,7 @@ export default function PremiumPage() {
           const { data } = await supabase
             .from('user_profiles')
             .select('plan')
-            .eq('id', user.id)
+            .eq('user_id', user.id)
             .single()
           if (data?.plan) setPlano(data.plan)
         }

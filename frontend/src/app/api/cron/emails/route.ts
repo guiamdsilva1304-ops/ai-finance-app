@@ -102,7 +102,7 @@ async function processEmailQueue(): Promise<{ queued: number }> {
       const { data: profile } = await supabaseAdmin
         .from('user_profiles')
         .select('nome')
-        .eq('id', item.user_id)
+        .eq('user_id', item.user_id)
         .maybeSingle()
 
       const nome = profile?.nome || item.email.split('@')[0]
