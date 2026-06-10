@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/imoney/primitives";
 import { useTheme } from "@/lib/theme";
+import { normalizarTelefoneBR } from "@/lib/phone";
 
 const ESTADOS: Record<string, string> = {
   AC:"Acre",AL:"Alagoas",AP:"Amapá",AM:"Amazonas",BA:"Bahia",CE:"Ceará",
@@ -83,6 +84,7 @@ export default function PerfilPage() {
   const [ocupacao, setOcupacao] = useState(OCUPACOES[0]);
   const [estado, setEstado] = useState("");
   const [cidade, setCidade] = useState("");
+  const [telefone, setTelefone] = useState("");
 
   // NPS
   const [npsScore, setNpsScore] = useState<number | null>(null);
@@ -117,6 +119,7 @@ export default function PerfilPage() {
         setOcupacao(data.ocupacao ?? OCUPACOES[0]);
         setEstado(data.estado ?? "");
         setCidade(data.cidade ?? "");
+        setTelefone(data.phone ?? "");
         setPlan(data.plan ?? "free");
       }
       setLoading(false);
@@ -170,6 +173,14 @@ export default function PerfilPage() {
       setError("Idade inválida."); return;
     }
     if (estado && !cidade) { setError("Selecione sua cidade."); return; }
+    let phoneNorm: string | null = null;
+    if (telefone.trim()) {
+      phoneNorm = normalizarTelefoneBR(telefone);
+      if (!phoneNorm) {
+        setError("Telefone inválido. Use DDD + número, ex: (21) 99999-9999.");
+        return;
+      }
+    }
 
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -183,6 +194,7 @@ export default function PerfilPage() {
     if (idadeN) upsertData.idade = idadeN;
     if (estado) upsertData.estado = estado;
     if (cidade) upsertData.cidade = cidade;
+    upsertData.phone = phoneNorm; // null limpa o vínculo se o campo for esvaziado
 
     const { error: err } = await supabase.from("user_profiles").upsert(upsertData, { onConflict: "user_id" });
     setSaving(false);
@@ -422,6 +434,24 @@ export default function PerfilPage() {
               </select>
             </div>
           </div>
+        </div>
+
+        <div className="border-t border-[#e4f5e9] pt-5 mb-5">
+          <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
+            📱 WhatsApp
+          </p>
+          <label className="label">Número com DDD</label>
+          <input
+            type="tel"
+            value={telefone}
+            onChange={e => setTelefone(e.target.value)}
+            placeholder="Ex: (21) 99999-9999"
+            maxLength={20}
+            className="input"
+          />
+          <p className="text-xs text-[#8db89d] mt-1">
+            Vincule seu número para falar com o Assessor direto pelo WhatsApp.
+          </p>
         </div>
 
         {error && (

@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import { variantesTelefoneBR } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
@@ -280,6 +281,17 @@ export async function POST(req: NextRequest) {
 
     const msg = mensagens[0];
 
+    // Meta reenvia o webhook se não receber 200 rápido — ignora msg.id já processado
+    if (msg.id) {
+      const { error: dupErr } = await supabase
+        .from("whatsapp_processed_messages")
+        .insert({ message_id: msg.id });
+      if (dupErr) {
+        if (dupErr.code === "23505") return NextResponse.json({ ok: true }); // duplicada
+        console.error("[whatsapp] dedup indisponível, processando assim mesmo:", dupErr.message);
+      }
+    }
+
     // Ignora mensagens não-texto (imagem, áudio, etc.)
     if (msg.type !== "text") return NextResponse.json({ ok: true });
 
@@ -290,12 +302,13 @@ export async function POST(req: NextRequest) {
 
     if (!telefone || !texto) return NextResponse.json({ ok: true });
 
-    // Busca usuário pelo telefone no Supabase
-    const { data: perfil } = await supabase
+    // Busca usuário pelo telefone no Supabase (wa_id pode vir com ou sem o nono dígito)
+    const { data: perfis } = await supabase
       .from("user_profiles")
       .select("user_id, plan, renda_mensal, gastos_mensais, monthly_available, diagnostico_json, score_saude")
-      .eq("phone", telefone)
-      .single();
+      .in("phone", variantesTelefoneBR(telefone))
+      .limit(1);
+    const perfil = perfis?.[0] ?? null;
 
     // Usuário não cadastrado na iMoney
     if (!perfil) {
@@ -427,6 +440,8 @@ export async function POST(req: NextRequest) {
         { user_id: userId, role: "assistant", content: replyLimpo, created_at: new Date().toISOString() },
       ]),
       plano !== "premium" ? incrementarContador(userId) : Promise.resolve(),
+      supabase.from("whatsapp_processed_messages").delete()
+        .lt("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
     ]);
 
     // Envia resposta via Meta Graph API
