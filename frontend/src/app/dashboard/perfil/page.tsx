@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/imoney/primitives";
 import { useTheme } from "@/lib/theme";
-import { normalizarTelefoneBR } from "@/lib/phone";
+import { normalizarTelefoneBR, formatarTelefoneBR } from "@/lib/phone";
 
 const ESTADOS: Record<string, string> = {
   AC:"Acre",AL:"Alagoas",AP:"Amapá",AM:"Amazonas",BA:"Bahia",CE:"Ceará",
@@ -85,6 +85,8 @@ export default function PerfilPage() {
   const [estado, setEstado] = useState("");
   const [cidade, setCidade] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [phoneAtual, setPhoneAtual] = useState<string | null>(null);
+  const [phoneMsg, setPhoneMsg] = useState("");
 
   // NPS
   const [npsScore, setNpsScore] = useState<number | null>(null);
@@ -119,7 +121,7 @@ export default function PerfilPage() {
         setOcupacao(data.ocupacao ?? OCUPACOES[0]);
         setEstado(data.estado ?? "");
         setCidade(data.cidade ?? "");
-        setTelefone(data.phone ?? "");
+        setPhoneAtual(data.phone ?? null);
         setPlan(data.plan ?? "free");
       }
       setLoading(false);
@@ -194,7 +196,7 @@ export default function PerfilPage() {
     if (idadeN) upsertData.idade = idadeN;
     if (estado) upsertData.estado = estado;
     if (cidade) upsertData.cidade = cidade;
-    upsertData.phone = phoneNorm; // null limpa o vínculo se o campo for esvaziado
+    if (phoneNorm) upsertData.phone = phoneNorm; // desvincular só pelo botão dedicado
 
     const { error: err } = await supabase.from("user_profiles").upsert(upsertData, { onConflict: "user_id" });
     setSaving(false);
@@ -202,6 +204,24 @@ export default function PerfilPage() {
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
     setProfile({ ...profile, ...upsertData } as Profile);
+    if (phoneNorm) {
+      setPhoneAtual(phoneNorm);
+      setTelefone("");
+      setPhoneMsg("✅ WhatsApp vinculado com sucesso!");
+      setTimeout(() => setPhoneMsg(""), 4000);
+    }
+  }
+
+  async function desvincularWhatsApp() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error: err } = await supabase.from("user_profiles")
+      .update({ phone: null }).eq("user_id", user.id);
+    if (err) { setPhoneMsg("⚠ Não foi possível desvincular. Tente de novo."); return; }
+    setPhoneAtual(null);
+    setTelefone("");
+    setPhoneMsg("Número desvinculado.");
+    setTimeout(() => setPhoneMsg(""), 4000);
   }
 
   async function cancelPlan() {
@@ -440,7 +460,21 @@ export default function PerfilPage() {
           <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
             📱 WhatsApp
           </p>
-          <label className="label">Número com DDD</label>
+
+          {phoneAtual && (
+            <div className="flex items-center justify-between gap-3 bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl px-4 py-3 mb-3">
+              <div>
+                <p className="text-xs font-bold text-[#15803d]">Número vinculado</p>
+                <p className="text-sm font-bold text-[#0d2414]">{formatarTelefoneBR(phoneAtual)}</p>
+              </div>
+              <button type="button" onClick={desvincularWhatsApp}
+                className="text-xs font-bold px-3 py-2 rounded-lg border border-red-200 text-red-500 bg-white flex-shrink-0">
+                Desvincular
+              </button>
+            </div>
+          )}
+
+          <label className="label">{phoneAtual ? "Trocar número" : "Número com DDD"}</label>
           <input
             type="tel"
             value={telefone}
@@ -452,6 +486,12 @@ export default function PerfilPage() {
           <p className="text-xs text-[#8db89d] mt-1">
             Vincule seu número para falar com o Assessor direto pelo WhatsApp.
           </p>
+
+          {phoneMsg && (
+            <p className="text-xs font-bold mt-2" style={{ color: phoneMsg.startsWith("⚠") ? "#ef4444" : "#15803d" }}>
+              {phoneMsg}
+            </p>
+          )}
         </div>
 
         {error && (

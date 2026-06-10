@@ -8,6 +8,15 @@ export function normalizarTelefoneBR(input: string): string | null {
   return d;
 }
 
+// Formata um wa_id para exibição: "5521999999999" → "+55 (21) 99999-9999"
+export function formatarTelefoneBR(waId: string): string {
+  if (!waId.startsWith("55") || waId.length < 12) return waId;
+  const ddd = waId.slice(2, 4);
+  const num = waId.slice(4);
+  const corte = num.length === 9 ? 5 : 4;
+  return `+55 (${ddd}) ${num.slice(0, corte)}-${num.slice(corte)}`;
+}
+
 // A Meta pode entregar o wa_id sem o nono dígito em números antigos.
 // Gera as duas variantes para a busca no banco cobrir os dois formatos.
 export function variantesTelefoneBR(waId: string): string[] {
