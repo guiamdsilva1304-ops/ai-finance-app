@@ -335,7 +335,9 @@ export async function POST(req: NextRequest) {
     if (!permitido) {
       await enviarMensagem(
         telefone,
-        `Você atingiu o limite de ${limite} mensagens de hoje no plano Free.\n\nAssine o Pro por R$29,90/mês e tenha 50 msgs/dia + análise completa dos seus dados 🚀\nimoney.ia.br/dashboard/pro`
+        plano === "pro"
+          ? "Você atingiu seu limite de mensagens hoje. 🚀\n\nAcesse imoney.ia.br para fazer upgrade para o Premium e ter mensagens ilimitadas."
+          : "Você atingiu seu limite de mensagens hoje. 🚀\n\nAcesse imoney.ia.br para fazer upgrade para o Pro."
       );
       return NextResponse.json({ ok: true });
     }
