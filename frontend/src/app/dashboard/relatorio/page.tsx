@@ -53,7 +53,7 @@ export default function RelatorioPage() {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/login'); return }
       const { data: p } = await supabase.from('user_profiles')
-        .select('plan, nome').eq('id', data.user.id).single()
+        .select('plan, nome').eq('user_id', data.user.id).single()
       if (p?.plan !== 'premium') { router.push('/dashboard/pro'); return }
       setPlan(p.plan)
       setNome(p?.nome || data.user.email?.split('@')[0] || '')
@@ -96,7 +96,7 @@ export default function RelatorioPage() {
     )
     setMetas(goals.map((m: any) => ({
       nome: m.nome,
-      pct: Math.min(100, Math.round(((m.valor_atual || 0) / (m.valor_meta || 1)) * 100)),
+      pct: Math.min(100, Math.round(((m.valor_atual || 0) / (m.valor_alvo || 1)) * 100)),
       cor: m.cor || '#00C853',
     })))
     setLoading(false)
