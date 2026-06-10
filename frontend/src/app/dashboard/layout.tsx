@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 import { NPSToast } from "@/components/NPSToast";
+import { StreakBadgeCompact } from "@/components/imoney/StreakBadge";
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { isDark } = useTheme();
@@ -69,6 +70,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <StreakBadgeCompact />
           {plan === 'free' && (
             <Link
               href="/dashboard/pro"

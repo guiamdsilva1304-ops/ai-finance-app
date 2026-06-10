@@ -9,6 +9,7 @@ import { Icon, type IconName } from "@/components/imoney/primitives";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "@/lib/theme";
+import { StreakBadgeCompact } from "@/components/imoney/StreakBadge";
 
 // ─── Perfis que veem Renda Variável ──────────────────────────────────────────
 
@@ -90,7 +91,10 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
       {!collapsed && (displayName || email) && (
         <div className="px-4 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
           {displayName && (
-            <p className="text-sm font-bold truncate" style={{ color: 'var(--text-1)', fontFamily: 'Nunito, sans-serif' }}>{displayName}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold truncate" style={{ color: 'var(--text-1)', fontFamily: 'Nunito, sans-serif' }}>{displayName}</p>
+              <StreakBadgeCompact />
+            </div>
           )}
           {email && (
             <p className="text-[11px] truncate" style={{ color: 'var(--text-3)' }}>{email}</p>
