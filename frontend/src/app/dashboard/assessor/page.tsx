@@ -446,7 +446,7 @@ function MessageCounter({
 
   const restantes = Math.max(0, limite - usadas)
   const pct = Math.min(100, (usadas / limite) * 100)
-  const cor = pct >= 100 ? '#FF4C4C' : pct >= 70 ? '#FF9F00' : '#1D9E75'
+  const cor = pct >= 70 && pct < 100 ? '#FF9F00' : '#1D9E75'
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -457,10 +457,10 @@ function MessageCounter({
           transition: 'width 0.3s, background 0.3s',
         }}/>
       </div>
-      <span style={{ fontSize: 11, color: pct >= 100 ? '#FF4C4C' : '#8db89d', fontWeight: 700, whiteSpace: 'nowrap' }}>
+      <span style={{ fontSize: 11, color: pct >= 100 ? '#1D9E75' : '#8db89d', fontWeight: 700, whiteSpace: 'nowrap' }}>
         {restantes > 0
           ? `${restantes} de ${limite} restantes`
-          : `Limite atingido`}
+          : `Você está progredindo rápido ⚡`}
       </span>
     </div>
   )
@@ -541,6 +541,7 @@ export default function AssessorPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [limiteAtingido, setLimiteAtingido] = useState(false);
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [infoLimite, setInfoLimite] = useState<{usadas:number;limite:number;plano:string}|null>(null);
   const [planoUsuario, setPlanoUsuario] = useState<string>("free");
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -794,8 +795,10 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 429 && data.limite_atingido) {
+          // Sem mensagem de erro no chat — o nudge de upgrade comunica
           setLimiteAtingido(true)
           setInfoLimite({ usadas: data.usadas, limite: data.limite, plano: data.plano })
+          return;
         }
         throw new Error(data.error ?? "Erro");
       }
@@ -811,6 +814,11 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
         const novoInfo = { usadas: data.usadas, limite: data.limite ?? 3, plano: data.plano ?? planoUsuario }
         setInfoLimite(novoInfo)
         setUserCtx(prev => prev ? { ...prev } : prev)
+        // Pico dopaminérgico: o limite aparece DEPOIS da resposta útil,
+        // nunca antes — resposta completa → separador → nudge
+        if (novoInfo.plano === 'free' && novoInfo.limite > 0 && novoInfo.usadas >= novoInfo.limite) {
+          setLimiteAtingido(true)
+        }
       }
       const { text: replyText, plan } = parsePlan(data.reply)
       const assistantMsg: Message = { role: "assistant", content: replyText, plan: plan ?? undefined }
@@ -948,6 +956,31 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
             </div>
           ))}
 
+          {/* Upgrade nudge no pico: resposta completa → separador → convite */}
+          {limiteAtingido && planoUsuario === 'free' && !nudgeDismissed && !loading && (
+            <div style={{ marginTop: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 14px' }}>
+                <div style={{ flex: 1, height: 1, background: 'rgba(26,58,26,0.1)' }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#8db89d', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Suas mensagens renovam amanhã</span>
+                <div style={{ flex: 1, height: 1, background: 'rgba(26,58,26,0.1)' }} />
+              </div>
+              <div style={{ background: 'linear-gradient(150deg, #1a3a1a 0%, #0d5435 60%, #1D9E75 100%)', borderRadius: 20, padding: '24px 22px', textAlign: 'center' }}>
+                <p style={{ fontSize: 18, fontWeight: 900, color: '#fff', margin: '0 0 8px', fontFamily: 'Nunito, sans-serif' }}>
+                  Você está progredindo rápido.
+                </p>
+                <p style={{ fontSize: 13, color: '#9FE1CB', margin: '0 0 18px', lineHeight: 1.6, fontWeight: 600 }}>
+                  Usuários Pro chegam ao sonho 40% mais rápido com memória financeira completa e 50 mensagens/dia.
+                </p>
+                <a href="/dashboard/pro" style={{ display: 'block', background: '#fff', color: '#0a3d28', fontWeight: 800, fontSize: 14, padding: '14px 0', borderRadius: 12, textDecoration: 'none', fontFamily: 'Nunito, sans-serif', marginBottom: 8 }}>
+                  Investir no meu plano — R$ 14,90/mês
+                </a>
+                <button onClick={() => setNudgeDismissed(true)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '8px 0', fontFamily: 'Nunito, sans-serif' }}>
+                  Voltar amanhã
+                </button>
+              </div>
+            </div>
+          )}
+
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 10 }}>
               <div style={{
@@ -1006,24 +1039,6 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
               </div>
             )
 
-            if (limiteAtingido) return (
-              <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0a3d28, #1D9E75)', borderRadius: '16px 16px 0 0', marginBottom: -8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 2 }}>
-                      Limite de hoje atingido ({infoLimite.limite} msgs)
-                    </div>
-                    <div style={{ fontSize: 12, color: '#9FE1CB' }}>
-                      Não deixe seu plano financeiro parar — o Pro tem 50 msgs/dia
-                    </div>
-                  </div>
-                  <a href="/dashboard/pro" style={{ background: '#fff', color: '#1D9E75', fontWeight: 800, fontSize: 13, padding: '10px 20px', borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                    Assinar Pro — R$ 14,90/mês
-                  </a>
-                </div>
-              </div>
-            )
-
             return null
           })()}
 
@@ -1073,7 +1088,7 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }}}
-              placeholder={isListening ? "Ouvindo..." : "Digite ou fale sua pergunta financeira..."}
+              placeholder={isListening ? "Ouvindo..." : limiteAtingido ? "Suas mensagens renovam amanhã 🌱" : "Digite ou fale sua pergunta financeira..."}
               rows={1}
               style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#0d2414', padding: '6px 8px', maxHeight: 128, fontFamily: 'Nunito, sans-serif' }}
               disabled={loading || limiteAtingido || isListening}

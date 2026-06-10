@@ -154,6 +154,25 @@ function SonhoHero({ meta, loading }: { meta: Meta | null; loading: boolean }) {
   );
 }
 
+// Loss aversion: o Free não "ganha memória" — ele está perdendo contexto a cada conversa
+function MemoriaFinanceiraCard() {
+  return (
+    <a href="/dashboard/pro" style={{ display: "block", textDecoration: "none", marginBottom: 14 }}>
+      <div style={{ background: "var(--bg-card)", borderRadius: 16, padding: "14px 16px", border: "1.5px dashed var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+          <p style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", margin: 0, fontFamily: "Nunito, sans-serif" }}>
+            🧠 Memória financeira: <span style={{ color: "var(--text-3)" }}>desativada</span>
+          </p>
+          <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 800, color: "#1D9E75", background: "rgba(0,200,83,0.1)", borderRadius: 8, padding: "3px 10px" }}>Ativar →</span>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0, lineHeight: 1.5 }}>
+          O Assessor Pro lembra cada meta, padrão e conquista sua. Sem isso, cada conversa começa do zero.
+        </p>
+      </div>
+    </a>
+  );
+}
+
 function AssessorCard({ insight }: { insight: string }) {
   return (
     <a href="/dashboard/assessor" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "var(--bg-card)", borderRadius: 16, padding: "14px 16px", marginBottom: 24, border: "1.5px solid var(--border)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
@@ -349,6 +368,7 @@ export default function DashboardPage() {
         })()}
 
         <StreakBadge />
+        {!loading && !isPro && <MemoriaFinanceiraCard />}
 
         {!loading && dash && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
@@ -446,6 +466,7 @@ export default function DashboardPage() {
       )}
 
       <StreakBadge />
+      {!loading && !isPro && <MemoriaFinanceiraCard />}
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-6">
         {[
