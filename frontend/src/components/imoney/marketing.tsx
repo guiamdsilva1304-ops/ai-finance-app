@@ -131,7 +131,7 @@ export function Hero() {
         </div>
       </div>
 
-      <PhoneMockup src="/dashboard-preview.png" />
+      <PhoneMockup src="/app-mockup.png" />
     </section>
   );
 }
