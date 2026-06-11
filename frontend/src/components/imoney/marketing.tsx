@@ -73,7 +73,7 @@ export function MarketingNavBar() {
   );
 }
 
-/* ───── Hero ───── */
+/* ───── Phone Mockup ───── */
 function PhoneMockup({ src }: { src: string }) {
   return (
     <div style={{ perspective: '1200px', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 20px' }}>
@@ -98,6 +98,8 @@ function PhoneMockup({ src }: { src: string }) {
     </div>
   );
 }
+
+/* ───── Hero ───── */
 export function Hero() {
   return (
     <section className="mkt-hero" style={{
@@ -129,31 +131,7 @@ export function Hero() {
         </div>
       </div>
 
-      <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-        <div style={{
-          background: C.green900, borderRadius: 32, padding: 24, color: '#fff',
-          width: 320, boxShadow: '0 24px 80px rgba(26,58,26,0.20)', transform: 'rotate(-2deg)',
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.6, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Meta · Viagem Europa</div>
-          <div style={{ fontSize: 36, fontWeight: 900, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', marginTop: 6 }}>R$ 8.750</div>
-          <div style={{ fontSize: 13, opacity: 0.7, marginTop: 2 }}>de R$ 10.000 · 87,5%</div>
-          <div style={{ marginTop: 14 }}><GoalProgress pct={87} dark/></div>
-          <div style={{ marginTop: 14, fontSize: 13, fontWeight: 700, color: C.green500 }}>✨ Falta 2 meses</div>
-        </div>
-        <div className="mkt-hero-bubble" style={{
-          position: 'absolute', top: 220, left: 40,
-          background: '#fff', borderRadius: 18, padding: '14px 16px',
-          boxShadow: '0 16px 40px rgba(26,58,26,0.12)',
-          display: 'flex', gap: 10, alignItems: 'center',
-          width: 290, transform: 'rotate(3deg)',
-        }}>
-          <div style={{ width: 36, height: 36, borderRadius: 999, background: C.green500, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🧭</div>
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: C.green900 }}>iMoney</div>
-            <div style={{ fontSize: 12, color: C.ink2 }}>▶ Próximo passo: guarda R$ 625 essa semana</div>
-          </div>
-        </div>
-      </div>
+      <PhoneMockup src="/dashboard-preview.png" />
     </section>
   );
 }
@@ -304,9 +282,7 @@ export function PricingTable() {
         <p className="mkt-pricing-p" style={{ fontSize: 16, color: C.ink2, maxWidth: 560, margin: '0 auto 40px', lineHeight: 1.55 }}>
           Do gratuito ao ilimitado — comece sem cartão e cresça no seu ritmo.
         </p>
-
         <div className="mkt-pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, textAlign: 'left' }}>
-
           {/* Gratuito */}
           <div style={{ background: '#fff', border: `1.5px solid ${C.divider}`, borderRadius: 20, padding: 28 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: C.ink3, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Gratuito</div>
@@ -314,13 +290,7 @@ export function PricingTable() {
             <div><Money value="0" cents="00" size={32} color={C.green900}/></div>
             <div style={{ fontSize: 13, color: C.ink3, marginTop: 4 }}>para sempre</div>
             <ul style={{ listStyle: 'none', padding: 0, margin: '20px 0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                'Dashboard completo',
-                'Metas ilimitadas',
-                'Assessor IA · 15 msgs/dia',
-                'Transações manuais',
-                'Taxas SELIC e IPCA',
-              ].map(t => (
+              {['Dashboard completo','Metas ilimitadas','Assessor IA · 15 msgs/dia','Transações manuais','Taxas SELIC e IPCA'].map(t => (
                 <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14, color: C.ink }}>
                   <Icon name="check" size={16} color={C.green500} stroke={2.4}/>{t}
                 </li>
@@ -328,34 +298,15 @@ export function PricingTable() {
             </ul>
             <Button variant="dark" full href="/login">Acesso grátis</Button>
           </div>
-
-          {/* Pro — recomendado */}
-          <div style={{
-            background: 'linear-gradient(180deg, #1a3a1a 0%, #1D9E75 100%)',
-            borderRadius: 20, padding: 28, color: '#fff',
-            boxShadow: '0 24px 60px rgba(29,158,117,0.30)', position: 'relative',
-          }}>
-            <div style={{
-              position: 'absolute', top: 16, right: 20,
-              background: C.green500, color: C.green900, padding: '4px 10px',
-              borderRadius: 999, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em',
-            }}>MAIS POPULAR</div>
+          {/* Pro */}
+          <div style={{ background: 'linear-gradient(180deg, #1a3a1a 0%, #1D9E75 100%)', borderRadius: 20, padding: 28, color: '#fff', boxShadow: '0 24px 60px rgba(29,158,117,0.30)', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: 16, right: 20, background: C.green500, color: C.green900, padding: '4px 10px', borderRadius: 999, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em' }}>MAIS POPULAR</div>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.75 }}>✨ Pro</div>
             <h3 style={{ fontSize: 24, fontWeight: 800, margin: '6px 0 14px', letterSpacing: '-0.02em' }}>Executor completo</h3>
-            <div>
-              <Money value="14" cents="90" size={32} color="#fff"/>
-              <span style={{ fontSize: 14, fontWeight: 800, marginLeft: 4, opacity: 0.85 }}>/mês</span>
-            </div>
+            <div><Money value="14" cents="90" size={32} color="#fff"/><span style={{ fontSize: 14, fontWeight: 800, marginLeft: 4, opacity: 0.85 }}>/mês</span></div>
             <div style={{ fontSize: 13, opacity: 0.65, marginTop: 4 }}>menos de R$1/dia</div>
             <ul style={{ listStyle: 'none', padding: 0, margin: '20px 0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                'Tudo do Gratuito',
-                'Assessor IA · 50 msgs/dia',
-                'Memória financeira completa',
-                'Detecção de padrões de gasto',
-                'Relatórios mensais automáticos',
-                'Suporte prioritário',
-              ].map(t => (
+              {['Tudo do Gratuito','Assessor IA · 50 msgs/dia','Memória financeira completa','Detecção de padrões de gasto','Relatórios mensais automáticos','Suporte prioritário'].map(t => (
                 <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14, color: '#fff' }}>
                   <Icon name="check" size={16} color={C.green500} stroke={2.4}/>{t}
                 </li>
@@ -363,29 +314,14 @@ export function PricingTable() {
             </ul>
             <Button variant="pro" full href="/dashboard/pro">✨ Assinar Pro →</Button>
           </div>
-
           {/* Premium */}
-          <div style={{
-            background: 'linear-gradient(180deg, #78350f 0%, #F59E0B 100%)',
-            borderRadius: 20, padding: 28, color: '#2a1a00',
-            boxShadow: '0 24px 60px rgba(245,158,11,0.25)', position: 'relative',
-          }}>
+          <div style={{ background: 'linear-gradient(180deg, #78350f 0%, #F59E0B 100%)', borderRadius: 20, padding: 28, color: '#2a1a00', boxShadow: '0 24px 60px rgba(245,158,11,0.25)', position: 'relative' }}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.75 }}>⭐ Premium</div>
             <h3 style={{ fontSize: 24, fontWeight: 800, margin: '6px 0 14px', letterSpacing: '-0.02em' }}>Controle total</h3>
-            <div>
-              <Money value="39" cents="90" size={32} color="#2a1a00"/>
-              <span style={{ fontSize: 14, fontWeight: 800, marginLeft: 4, opacity: 0.75 }}>/mês</span>
-            </div>
+            <div><Money value="39" cents="90" size={32} color="#2a1a00"/><span style={{ fontSize: 14, fontWeight: 800, marginLeft: 4, opacity: 0.75 }}>/mês</span></div>
             <div style={{ fontSize: 13, opacity: 0.65, marginTop: 4 }}>menos de R$2/dia</div>
             <ul style={{ listStyle: 'none', padding: 0, margin: '20px 0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                'Tudo do Pro',
-                'Assessor IA ilimitado · 24h',
-                'Exportação de dados em CSV',
-                'Relatório mensal em PDF',
-                'Histórico completo ilimitado',
-                'Suporte VIP',
-              ].map(t => (
+              {['Tudo do Pro','Assessor IA ilimitado · 24h','Exportação de dados em CSV','Relatório mensal em PDF','Histórico completo ilimitado','Suporte VIP'].map(t => (
                 <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14, color: '#2a1a00' }}>
                   <Icon name="check" size={16} color="#2a1a00" stroke={2.4}/>{t}
                 </li>
@@ -393,7 +329,6 @@ export function PricingTable() {
             </ul>
             <Button variant="pro" full href="/dashboard/premium">⭐ Começar Premium →</Button>
           </div>
-
         </div>
       </div>
     </section>
@@ -412,7 +347,6 @@ const BLOG_CATS: Record<string, { label: string; emoji: string }> = {
   'planejamento':        { label: 'Planejamento',  emoji: '🗓️' },
 };
 
-// Fallback se a busca de posts falhar ou o blog estiver vazio — a seção nunca quebra a landing
 const BLOG_FALLBACK = [
   { eb: 'Sonhos financeiros',   title: 'Como juntar dinheiro para a casa própria em 5 anos', read: '6 min', emoji: '🏠', href: '/blog' },
   { eb: 'Metas e planejamento', title: 'Método 50-30-20 explicado pro brasileiro real',       read: '5 min', emoji: '🎯', href: '/blog' },
@@ -423,13 +357,7 @@ export function BlogPreview({ posts: realPosts = [] }: { posts?: BlogPreviewPost
   const posts = realPosts.length > 0
     ? realPosts.map(p => {
         const cat = p.category ? BLOG_CATS[p.category] : undefined;
-        return {
-          eb: cat?.label ?? p.category ?? 'Finanças',
-          title: p.title,
-          read: `${p.reading_time_min ?? 3} min`,
-          emoji: cat?.emoji ?? '📚',
-          href: `/blog/${p.slug}`,
-        };
+        return { eb: cat?.label ?? p.category ?? 'Finanças', title: p.title, read: `${p.reading_time_min ?? 3} min`, emoji: cat?.emoji ?? '📚', href: `/blog/${p.slug}` };
       })
     : BLOG_FALLBACK;
   return (
@@ -445,14 +373,14 @@ export function BlogPreview({ posts: realPosts = [] }: { posts?: BlogPreviewPost
         <div className="mkt-blog-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
           {posts.map(p => (
             <a key={p.title} href={p.href} style={{ textDecoration: 'none' }}>
-            <Card style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
-              <div style={{ height: 140, background: C.green50, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 56 }}>{p.emoji}</div>
-              <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: C.green500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{p.eb}</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: C.green900, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.title}</div>
-                <div style={{ fontSize: 12, color: C.ink3, fontWeight: 700, marginTop: 'auto' }}>{p.read} de leitura</div>
-              </div>
-            </Card>
+              <Card style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
+                <div style={{ height: 140, background: C.green50, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 56 }}>{p.emoji}</div>
+                <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: C.green500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{p.eb}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: C.green900, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.title}</div>
+                  <div style={{ fontSize: 12, color: C.ink3, fontWeight: 700, marginTop: 'auto' }}>{p.read} de leitura</div>
+                </div>
+              </Card>
             </a>
           ))}
         </div>
@@ -464,30 +392,15 @@ export function BlogPreview({ posts: realPosts = [] }: { posts?: BlogPreviewPost
 /* ───── MascotBussola ───── */
 export function MascotBussola({ size = 120 }: { size?: number }) {
   return (
-    <img
-      src="/imoney/mascot-compass.svg"
-      alt="Bússola — mascote da iMoney"
-      width={size}
-      height={size}
-      style={{ display: 'block' }}
-    />
+    <img src="/imoney/mascot-compass.svg" alt="Bússola — mascote da iMoney" width={size} height={size} style={{ display: 'block' }}/>
   );
 }
 
 /* ───── BrandVoice ───── */
 const VOICE_PAIRS = [
-  {
-    evitar: '"Suas despesas superaram o orçamento em 23%."',
-    usar:   '"Ei! Você gastou um pouco mais este mês — quer ajustar sua meta?"',
-  },
-  {
-    evitar: '"Você cometeu um erro financeiro."',
-    usar:   '"Esse mês saiu diferente do planejado. Sem problema — vamos recalcular a rota."',
-  },
-  {
-    evitar: '"Recomendamos diversificação do portfólio."',
-    usar:   '"Que tal começar a investir? Com R$100/mês você já dá um passo enorme."',
-  },
+  { evitar: '"Suas despesas superaram o orçamento em 23%."', usar: '"Ei! Você gastou um pouco mais este mês — quer ajustar sua meta?"' },
+  { evitar: '"Você cometeu um erro financeiro."', usar: '"Esse mês saiu diferente do planejado. Sem problema — vamos recalcular a rota."' },
+  { evitar: '"Recomendamos diversificação do portfólio."', usar: '"Que tal começar a investir? Com R$100/mês você já dá um passo enorme."' },
 ];
 export function BrandVoice() {
   return (
@@ -499,17 +412,11 @@ export function BrandVoice() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {VOICE_PAIRS.map((pair, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div style={{
-                background: '#fff5f5', borderLeft: '4px solid #c62828',
-                borderRadius: '0 12px 12px 0', padding: '16px 20px',
-              }}>
+              <div style={{ background: '#fff5f5', borderLeft: '4px solid #c62828', borderRadius: '0 12px 12px 0', padding: '16px 20px' }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: '#c62828', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Evitar</div>
                 <div style={{ fontSize: 14.5, color: '#3d1515', lineHeight: 1.55 }}>{pair.evitar}</div>
               </div>
-              <div style={{
-                background: C.green50, borderLeft: `4px solid ${C.green500}`,
-                borderRadius: '0 12px 12px 0', padding: '16px 20px',
-              }}>
+              <div style={{ background: C.green50, borderLeft: `4px solid ${C.green500}`, borderRadius: '0 12px 12px 0', padding: '16px 20px' }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: C.green500, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Usar</div>
                 <div style={{ fontSize: 14.5, color: C.green900, lineHeight: 1.55 }}>{pair.usar}</div>
               </div>
@@ -549,18 +456,11 @@ export function Footer() {
           </div>
         ))}
       </div>
-      <div className="mkt-footer-bottom" style={{
-        borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 48, paddingTop: 20,
-        display: 'flex', justifyContent: 'space-between', maxWidth: 1100, margin: '48px auto 0',
-        fontSize: 12, color: 'rgba(255,255,255,0.5)',
-      }}>
+      <div className="mkt-footer-bottom" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 48, paddingTop: 20, display: 'flex', justifyContent: 'space-between', maxWidth: 1100, margin: '48px auto 0', fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
         <span>© 2026 iMoney · imoney.ia.br</span>
         <span>gui@imoney.ia.br</span>
       </div>
-      <p style={{
-        maxWidth: 1100, margin: '16px auto 0', textAlign: 'center',
-        fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6,
-      }}>
+      <p style={{ maxWidth: 1100, margin: '16px auto 0', textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
         67.214.549 Guilherme de Almeida Moreira da Silva · CNPJ: 67.214.549/0001-50 · Rua Macedo Sobrinho, 46 – Humaitá, Rio de Janeiro – RJ · CEP 22271-080
       </p>
     </footer>
