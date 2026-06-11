@@ -13,9 +13,10 @@ const supabase = createClient(
 // O trigger 'onboarding-email' (com secret) usa /api/webhooks/supabase.
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-webhook-secret')
-  const expected = process.env.WEBHOOK_SECRET ?? 'imoney-webhook-secret-2025'
+  const expected = process.env.WEBHOOK_SECRET
 
-  // Rejeita apenas se enviou um secret errado; sem secret é aceito (trigger legado)
+  // Rejeita apenas se enviou um secret errado; sem secret é aceito (trigger legado).
+  // Removido o fallback público: se um secret for enviado, precisa bater com o real.
   if (secret && secret !== expected) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

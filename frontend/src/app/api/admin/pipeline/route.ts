@@ -11,7 +11,7 @@ const supabase = createClient(
 function checkAuth(req: NextRequest): boolean {
   const auth = req.headers.get('x-admin-key')
   const cookie = req.cookies.get('imoney_admin_session')?.value
-  const SECRET = process.env.ADMIN_SESSION_SECRET || 'imoney-admin-secret-2025'
+  const SECRET = process.env.ADMIN_SESSION_SECRET
   return auth === SECRET || cookie === SECRET
 }
 

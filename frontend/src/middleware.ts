@@ -11,9 +11,10 @@ export async function middleware(req: NextRequest) {
     if (pathname === "/admin/login") return res;
 
     const adminCookie = req.cookies.get("imoney_admin_session");
-    const sessionSecret = process.env.ADMIN_SESSION_SECRET || "imoney-admin-secret-2025";
+    const sessionSecret = process.env.ADMIN_SESSION_SECRET;
 
-    if (adminCookie?.value !== sessionSecret) {
+    // Fail-closed: sem o segredo configurado, redireciona sempre para o login.
+    if (!sessionSecret || adminCookie?.value !== sessionSecret) {
       const url = new URL("/admin/login", req.url);
       url.searchParams.set("from", pathname);
       return NextResponse.redirect(url);

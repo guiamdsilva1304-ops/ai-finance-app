@@ -10,9 +10,10 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-webhook-secret')
-  const expected = process.env.WEBHOOK_SECRET ?? 'imoney-webhook-secret-2025'
+  const expected = process.env.WEBHOOK_SECRET
 
-  if (secret !== expected) {
+  // Fail-closed: sem o segredo configurado, rejeita todas as requisições.
+  if (!expected || secret !== expected) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
