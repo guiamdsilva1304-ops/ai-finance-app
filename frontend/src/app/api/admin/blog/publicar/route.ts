@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { adminGuard } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +10,8 @@ const supabase = createClient(
 )
 
 export async function POST(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   try {
     const { titulo, slug, meta_description, conteudo, publicar_automaticamente } = await req.json()
     if (!titulo || !slug || !conteudo)
@@ -63,7 +66,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   try {
     const { data, error } = await supabase
       .from('blog_posts')

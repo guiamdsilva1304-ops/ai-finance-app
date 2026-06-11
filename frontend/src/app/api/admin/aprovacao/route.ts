@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { adminGuard } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +10,8 @@ const supabase = createClient(
 )
 
 export async function GET(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   const status = req.nextUrl.searchParams.get('status') ?? 'pendente'
   const { data, error } = await supabase
     .from('approval_queue')
@@ -22,6 +25,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   try {
     const { agent_id, tipo, titulo, conteudo, metadata } = await req.json()
     if (!agent_id || !tipo || !titulo || !conteudo)
@@ -42,6 +47,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   try {
     const { id, acao, motivo } = await req.json()
     if (!id || !acao) return NextResponse.json({ error: 'id e acao obrigatorios' }, { status: 400 })

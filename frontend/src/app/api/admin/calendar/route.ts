@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import { adminGuard } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -12,6 +13,8 @@ const supabase = createClient(
 );
 
 export async function POST(req: NextRequest) {
+  const denied = adminGuard(req);
+  if (denied) return denied;
   try {
     const { month, year, platform, audience, aesthetic } = await req.json();
 

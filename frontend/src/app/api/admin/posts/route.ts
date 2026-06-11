@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { adminGuard } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = adminGuard(req);
+  if (denied) return denied;
   const { data, error } = await supabase
     .from("admin_posts")
     .select("*")
@@ -19,6 +22,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = adminGuard(req);
+  if (denied) return denied;
   const body = await req.json();
   const { data, error } = await supabase
     .from("admin_posts")
@@ -30,6 +35,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const denied = adminGuard(req);
+  if (denied) return denied;
   const { id, ...updates } = await req.json();
   const { data, error } = await supabase
     .from("admin_posts")
@@ -42,6 +49,8 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const denied = adminGuard(req);
+  if (denied) return denied;
   const { id } = await req.json();
   const { error } = await supabase
     .from("admin_posts")

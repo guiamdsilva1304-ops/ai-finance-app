@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { adminGuard } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +122,8 @@ function proConversionEmail() {
 // POST — envia email para tipo especifico
 // GET — envia campanha Pro para todos os usuarios
 export async function POST(req: NextRequest) {
+  const denied = adminGuard(req);
+  if (denied) return denied;
   try {
     const { type, to } = await req.json();
     
@@ -137,6 +140,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const denied = adminGuard(req);
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type") || "pro";

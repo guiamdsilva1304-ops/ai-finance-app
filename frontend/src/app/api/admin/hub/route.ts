@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
+import { adminGuard } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,7 +53,9 @@ async function executarAcoesGrowth(acoes: Array<{ tipo: string; descricao: strin
   return executadas.map(a => `✓ ${a.tipo}: ${a.descricao}`).join('\n')
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   const { data, error } = await supabase
     .from('agent_missions')
     .select('*')
@@ -63,6 +66,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   let missao_id: string | undefined
   try {
     const body = await req.json()

@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { adminGuard } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +9,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-key'
 )
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   try {
     const { data } = await supabase.rpc('get_hub_metrics').single()
 

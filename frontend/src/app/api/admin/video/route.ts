@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { adminGuard } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,6 +56,8 @@ async function verificarVideo(taskId: string): Promise<{ status: string; url?: s
 }
 
 export async function POST(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   try {
     const { roteiro, legenda, hashtags, formato = 'Reels', duracao = 8 } = await req.json()
     if (!roteiro) return NextResponse.json({ error: 'roteiro obrigatório' }, { status: 400 })
@@ -89,6 +92,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   const taskId = req.nextUrl.searchParams.get('task_id')
   const id = req.nextUrl.searchParams.get('id')
 
@@ -126,6 +131,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   try {
     const { id, aprovado } = await req.json()
     if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 })

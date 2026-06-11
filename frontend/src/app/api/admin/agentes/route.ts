@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
+import { adminGuard } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -132,6 +133,8 @@ Para analises responda em markdown.`,
 }
 
 export async function GET(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   const agentId = req.nextUrl.searchParams.get('agentId')
   if (!agentId) return NextResponse.json({ messages: [] })
   const messages = await carregarMemoria(agentId)
@@ -139,6 +142,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = adminGuard(req)
+  if (denied) return denied
   try {
     const { messages, systemPrompt, agentId } = await req.json()
     if (!messages || !Array.isArray(messages))
