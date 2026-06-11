@@ -533,6 +533,12 @@ export function Footer() {
         <span>© 2026 iMoney · imoney.ia.br</span>
         <span>gui@imoney.ia.br</span>
       </div>
+      <p style={{
+        maxWidth: 1100, margin: '16px auto 0', textAlign: 'center',
+        fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6,
+      }}>
+        67.214.549 Guilherme de Almeida Moreira da Silva · CNPJ: 67.214.549/0001-50 · Rua Macedo Sobrinho, 46 – Humaitá, Rio de Janeiro – RJ · CEP 22271-080
+      </p>
     </footer>
   );
 }
