@@ -74,6 +74,30 @@ export function MarketingNavBar() {
 }
 
 /* ───── Hero ───── */
+function PhoneMockup({ src }: { src: string }) {
+  return (
+    <div style={{ perspective: '1200px', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 20px' }}>
+      <div style={{
+        position: 'relative', width: 260, height: 530,
+        borderRadius: 46, background: 'linear-gradient(145deg,#2a2a2a,#111)',
+        padding: 10,
+        boxShadow: '0 0 0 1px rgba(255,255,255,0.08),0 0 0 2px rgba(0,0,0,0.6),24px 48px 96px rgba(0,0,0,0.35)',
+        transform: 'rotateY(-18deg) rotateX(4deg)',
+        animation: 'phonefloat 5s ease-in-out infinite',
+      }}>
+        <div style={{ width: '100%', height: '100%', borderRadius: 38, overflow: 'hidden', background: '#000', position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 88, height: 26, background: '#111', borderRadius: '0 0 18px 18px', zIndex: 10 }}/>
+          <img src={src} alt="iMoney app" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }}/>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,rgba(255,255,255,0.06) 0%,transparent 50%)', pointerEvents: 'none', borderRadius: 38 }}/>
+        </div>
+        <div style={{ position: 'absolute', right: -5, top: 110, width: 5, height: 64, background: '#2a2a2a', borderRadius: '0 4px 4px 0' }}/>
+        <div style={{ position: 'absolute', left: -5, top: 88, width: 5, height: 34, background: '#2a2a2a', borderRadius: '4px 0 0 4px' }}/>
+        <div style={{ position: 'absolute', left: -5, top: 132, width: 5, height: 34, background: '#2a2a2a', borderRadius: '4px 0 0 4px' }}/>
+      </div>
+      <style>{`@keyframes phonefloat{0%,100%{transform:rotateY(-18deg) rotateX(4deg) translateY(0)}50%{transform:rotateY(-18deg) rotateX(4deg) translateY(-14px)}}`}</style>
+    </div>
+  );
+}
 export function Hero() {
   return (
     <section className="mkt-hero" style={{
