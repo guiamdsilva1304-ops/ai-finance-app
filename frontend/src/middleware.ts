@@ -69,13 +69,8 @@ export async function middleware(req: NextRequest) {
     pathname !== "/verificacao-2fa"
   ) {
     return NextResponse.redirect(new URL("/verificacao-2fa", req.url));
-  }
-
-  return res;
-}
-
-export const config = {
+  }export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|logo\\.png|logo\\.svg|logo-white\\.svg|icon\\.svg|og-image\\.png|og-image\\.svg).*)",
+    "/((?!_next/static|_next/image|favicon.ico|logo\\.png|logo\\.svg|logo-white\\.svg|icon\\.svg|og-image\\.png|og-image\\.svg|dashboard-preview\\.png).*)",
   ],
 };
