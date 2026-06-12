@@ -37,7 +37,7 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
   // Rotas públicas — sempre permitidas
-  const publicPaths = ["/", "/login", "/privacidade", "/termos", "/blog", "/esqueci-senha", "/onboarding", "/redefinir-senha"];
+  const publicPaths = ["/", "/login", "/privacidade", "/termos", "/blog", "/esqueci-senha", "/onboarding", "/redefinir-senha", "/bolao"];
   const isPublic =
     publicPaths.some((p) => pathname === p || pathname.startsWith("/blog/")) ||
     pathname.startsWith("/api/") ||
