@@ -191,9 +191,17 @@ export default function OnboardingPage() {
 
   const particles = useConfetti(showCelebracao);
 
-  function continuarDaCelebracao() {
-    setShowCelebracao(false);
-    setStep(5);
+  async function continuarDaCelebracao() {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+      await salvarPerfil(user.id);
+      await supabase.from("user_profiles").update({ onboarding_completo: true, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+      router.push("/dashboard/assessor?from=onboarding");
+    } catch {
+      router.push("/dashboard/assessor?from=onboarding");
+    } finally { setLoading(false); }
   }
 
   const progresso = (step / STEPS.length) * 100;
