@@ -60,6 +60,31 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg-page)' }}>
+      {/* ── Bolão Copa 2026 — banner permanente ── */}
+      {new Date() < new Date('2026-07-20') && (
+        <Link
+          href="/dashboard/bolao"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 10, padding: '7px 16px', textDecoration: 'none',
+            background: 'linear-gradient(90deg, #0d1f0d 0%, #1a3a1a 50%, #0d1f0d 100%)',
+            borderBottom: '1px solid rgba(0,200,83,0.2)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ fontSize: 14, flexShrink: 0 }}>⚽</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#e8f0e8', fontFamily: 'Nunito, sans-serif', letterSpacing: 0.3 }}>
+            Bolão Copa 2026
+          </span>
+          <span style={{ fontSize: 11, color: '#5a8a5a', fontFamily: 'Nunito, sans-serif', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: '#00C853', boxShadow: '0 0 4px #00C853' }} />
+            Palpite e concorra ao Premium vitalício
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: '#00C853', fontFamily: 'Nunito, sans-serif', letterSpacing: 0.3 }}>
+            Jogar agora →
+          </span>
+        </Link>
+      )}
       <div className="md:hidden border-b px-4 py-3 flex items-center justify-between" style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}>
         <div className="flex items-center gap-2">
           <Logo size={100} showText={false} showTagline={false} />
