@@ -31,6 +31,8 @@ export default function AuthPage() {
 
   useEffect(() => {
     setMounted(true);
+    const _qp = new URLSearchParams(window.location.search);
+    if (_qp.get('tab') === 'register') setTab('register');
     const supabase = createSupabaseBrowser();
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) window.location.href = "/dashboard";
@@ -92,7 +94,8 @@ export default function AuthPage() {
           return;
         }
         setSuccess("Login realizado! Redirecionando...");
-        setTimeout(() => { window.location.href = "/dashboard"; }, 500);
+        const _nextLogin = new URLSearchParams(window.location.search).get('next') || '/dashboard';
+        setTimeout(() => { window.location.href = _nextLogin; }, 500);
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro inesperado.");
@@ -137,7 +140,9 @@ export default function AuthPage() {
           "Notification Opt-In": true,
         });
         setSuccess("Conta criada! Redirecionando...");
-        setTimeout(() => { window.location.href = "/onboarding"; }, 500);
+        const _nextReg = new URLSearchParams(window.location.search).get('next') || '';
+        const _destReg = _nextReg ? `/onboarding?next=${encodeURIComponent(_nextReg)}` : '/onboarding';
+        setTimeout(() => { window.location.href = _destReg; }, 500);
       } else {
         setSuccess("Conta criada! Verifique seu email para confirmar e depois faça login.");
         setTab("login"); setPassword(""); setConfirmPassword("");
