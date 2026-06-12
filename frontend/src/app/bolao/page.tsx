@@ -257,7 +257,7 @@ export default function BolaoPage() {
           <p className="hero-sub">
             Palpite jogo a jogo, suba no ranking e concorra a uma{' '}
             <strong>assinatura vitalícia da iMoney.</strong><br />
-            3 vencedores. Totalmente grátis para participar.
+            Top 3 ganham prêmios reais. Totalmente grátis para participar.
           </p>
 
           <a href="/login" className="btn-hero">
@@ -311,7 +311,7 @@ export default function BolaoPage() {
             <span className="step-num" aria-hidden="true">4</span>
             <span className="step-icon">🏆</span>
             <h3 className="step-title">Ganhe vitalício</h3>
-            <p className="step-desc">Os 3 primeiros colocados ganham acesso vitalício ao iMoney Pro — sem pagar nunca mais.</p>
+            <p className="step-desc">Top 3 ganham prêmios reais: Premium vitalício, Pro vitalício e desconto exclusivo de 1 ano.</p>
           </div>
         </div>
       </section>
@@ -345,14 +345,20 @@ export default function BolaoPage() {
         <h2 className="section-title" id="premio" style={{ marginBottom: '40px' }}>Vale mais que um título</h2>
         <div className="premio-card">
           <span className="trophy" aria-hidden="true">🏆</span>
-          <div className="premio-titulo">VITALÍCIO IMONEY PRO</div>
+          <div className="premio-titulo">PRÊMIOS QUE VALEM</div>
           <p className="premio-desc">
-            Os 3 melhores do bolão ganham acesso <strong>para sempre</strong> ao iMoney Pro — sem mensalidade, sem prazo de validade.
+            Quanto mais alto você terminar, maior o prêmio. E o campeão leva o <strong>topo da linha.</strong>
           </p>
           <div className="premio-vencedores">
-            <div className="vencedor-badge"><span className="pos">1°</span> Lugar · Vitalício Pro</div>
-            <div className="vencedor-badge"><span className="pos">2°</span> Lugar · Vitalício Pro</div>
-            <div className="vencedor-badge"><span className="pos">3°</span> Lugar · Vitalício Pro</div>
+            <div className="vencedor-badge" style={{background:'rgba(249,168,37,0.15)', borderColor:'rgba(249,168,37,0.5)'}}>
+              <span className="pos">🥇</span> Premium vitalício
+            </div>
+            <div className="vencedor-badge">
+              <span className="pos">🥈</span> Pro vitalício
+            </div>
+            <div className="vencedor-badge" style={{background:'rgba(0,200,83,0.06)', fontSize:'0.82rem'}}>
+              <span className="pos">🥉</span> 30% off Pro <em>ou</em> 50% off Premium · 1 ano
+            </div>
           </div>
           <a href="/login" className="btn-hero" style={{ display: 'inline-flex' }}>
             Quero participar
@@ -395,7 +401,7 @@ export default function BolaoPage() {
           <span className="verde">PRECISA</span><br />
           DE VOCÊ
         </h2>
-        <p className="cta-sub">Crie sua conta, palpite nos próximos jogos e dispute o vitalício.</p>
+        <p className="cta-sub">Palpite nos jogos e dispute o Premium vitalício.</p>
         <a href="/login" className="btn-hero" style={{ display: 'inline-flex' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
