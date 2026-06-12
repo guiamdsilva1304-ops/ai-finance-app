@@ -221,7 +221,7 @@ export default function BolaoPage() {
               ⚽ Bolão Copa 2026
             </h1>
             <p style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 4, marginBottom: 0 }}>
-              Palpite nos jogos · Top 3 ganham vitalício Pro
+              Palpite nos jogos · Top 3 ganham prêmios reais
             </p>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -455,7 +455,7 @@ export default function BolaoPage() {
           </div>
 
           <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-3)', marginTop: 16 }}>
-            Top 3 ao final da Copa ganham vitalício iMoney Pro 🏆
+            🥇 Premium vitalício · 🥈 Pro vitalício · 🥉 30% off Pro ou 50% off Premium por 1 ano
           </p>
         </div>
       )}
