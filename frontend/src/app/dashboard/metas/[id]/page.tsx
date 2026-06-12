@@ -58,6 +58,19 @@ export default function MetaDetailPage() {
     setCompleting(false);
   }
 
+  async function registrarShare(canal: string) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !meta) return;
+      await supabase.from("share_events").insert({
+        user_id: user.id,
+        tipo: "conquista",
+        meta_id: meta.id,
+        canal,
+      });
+    } catch { /* tracking não deve bloquear o fluxo */ }
+  }
+
   async function compartilhar() {
     if (!meta) return;
     const nome = metaNomeLimpo(meta.nome);
@@ -65,11 +78,15 @@ export default function MetaDetailPage() {
     try {
       if (navigator.share) {
         await navigator.share({ title: "Conquista iMoney", text: texto, url: "https://imoney.ia.br" });
+        registrarShare("web_share");
       } else {
         await navigator.clipboard.writeText(`${texto} https://imoney.ia.br`);
+        registrarShare("clipboard");
         alert("Conquista copiada! Cole onde quiser compartilhar. 💚");
       }
-    } catch { /* usuário cancelou */ }
+    } catch {
+      registrarShare("cancelado");
+    }
   }
 
   async function handleTogglePrincipal() {
