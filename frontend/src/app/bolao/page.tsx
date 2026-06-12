@@ -222,7 +222,7 @@ export default function BolaoPage() {
           <span className="nav-logo-text">i<span>Money</span></span>
         </a>
         <span className="nav-badge">⚽ Copa 2026</span>
-        <a href="/login" className="btn-nav">Participar grátis</a>
+        <a href="/login?tab=register&next=/dashboard/bolao" className="btn-nav">Participar grátis</a>
       </nav>
 
       <section className="hero" aria-label="Bolão iMoney Copa do Mundo 2026">
@@ -260,7 +260,7 @@ export default function BolaoPage() {
             Top 3 ganham prêmios reais. Totalmente grátis para participar.
           </p>
 
-          <a href="/login" className="btn-hero">
+          <a href="/login?tab=register&next=/dashboard/bolao" className="btn-hero">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
             </svg>
@@ -269,7 +269,7 @@ export default function BolaoPage() {
 
           <p className="hero-note">
             Já tem conta?{' '}
-            <a href="/login" style={{ color: 'var(--verde)', textDecoration: 'none', fontWeight: 700 }}>
+            <a href="/login?next=/dashboard/bolao" style={{ color: 'var(--verde)', textDecoration: 'none', fontWeight: 700 }}>
               Entre e palpite agora →
             </a>
           </p>
@@ -360,7 +360,7 @@ export default function BolaoPage() {
               <span className="pos">🥉</span> 30% off Pro <em>ou</em> 50% off Premium · 1 ano
             </div>
           </div>
-          <a href="/login" className="btn-hero" style={{ display: 'inline-flex' }}>
+          <a href="/login?tab=register&next=/dashboard/bolao" className="btn-hero" style={{ display: 'inline-flex' }}>
             Quero participar
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px', marginLeft: '8px' }}>
               <path d="M5 12h14M12 5l7 7-7 7" />
@@ -388,7 +388,7 @@ export default function BolaoPage() {
         </div>
         <div className="ranking-overlay">
           <p>Crie sua conta para entrar no ranking.</p>
-          <a href="/login" className="btn-hero" style={{ display: 'inline-flex', fontSize: '0.95rem', padding: '14px 28px' }}>
+          <a href="/login?tab=register&next=/dashboard/bolao" className="btn-hero" style={{ display: 'inline-flex', fontSize: '0.95rem', padding: '14px 28px' }}>
             Entrar no ranking
           </a>
         </div>
