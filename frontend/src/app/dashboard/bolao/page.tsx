@@ -12,14 +12,10 @@ type Match = {
   home_score: number | null; away_score: number | null;
   status: 'scheduled' | 'live' | 'finished';
 };
-
 type Prediction = {
-  match_id: number;
-  home_score_pred: number;
-  away_score_pred: number;
-  points_earned: number | null;
+  match_id: number; home_score_pred: number;
+  away_score_pred: number; points_earned: number | null;
 };
-
 type RankRow = {
   user_id: string; display_name: string;
   total_points: number; exact_scores: number;
@@ -39,8 +35,7 @@ const FLAGS: Record<string, string> = {
   'Paraguai':'🇵🇾','Haiti':'🇭🇹','Panamá':'🇵🇦','Nova Zelândia':'🇳🇿','Kosovo':'🇽🇰',
   'Bósnia-Herzegovina':'🇧🇦','Curaçao':'🇨🇼','Uzbequistão':'🇺🇿','TBD':'🏳️',
 };
-
-function flag(team: string) { return FLAGS[team] ?? '🏳️'; }
+function flag(t: string) { return FLAGS[t] ?? '🏳️'; }
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', {
@@ -49,8 +44,21 @@ function fmtDate(iso: string) {
     hour: '2-digit', minute: '2-digit',
   });
 }
-
 function isUpcoming(iso: string) { return new Date(iso) > new Date(); }
+
+function getRound(n: number): string {
+  if (n <= 24) return '1ª Rodada';
+  if (n <= 48) return '2ª Rodada';
+  if (n <= 72) return '3ª Rodada';
+  return '';
+}
+
+const STAGE_ORDER = [
+  'Grupo A','Grupo B','Grupo C','Grupo D','Grupo E','Grupo F',
+  'Grupo G','Grupo H','Grupo I','Grupo J','Grupo K','Grupo L',
+  'Oitavas','Quartas','Semifinal','3º Lugar','Final',
+];
+const KNOCKOUT = ['Oitavas','Quartas','Semifinal','3º Lugar','Final'];
 
 function pointsLabel(pts: number | null) {
   if (pts === null) return null;
@@ -59,36 +67,79 @@ function pointsLabel(pts: number | null) {
   return { text: '❌ 0 pts', color: C.ink3 };
 }
 
-// Stepper component
+// ── Stepper ────────────────────────────────────────────────────
 function Stepper({ value, onChange, disabled }: { value: number; onChange: (v: number) => void; disabled?: boolean }) {
   const btn = (label: string, fn: () => void) => (
-    <button
-      onClick={fn}
-      disabled={disabled}
-      style={{
-        width: 32, height: 32, borderRadius: 8, border: `1px solid var(--border)`,
-        background: disabled ? 'var(--bg-page)' : 'var(--bg-card)',
-        color: disabled ? 'var(--text-3)' : 'var(--text-1)',
-        fontSize: 18, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'background 0.15s',
-        fontFamily: FONT,
-      }}
-    >{label}</button>
+    <button onClick={fn} disabled={disabled} style={{
+      width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border)',
+      background: disabled ? 'var(--bg-page)' : 'var(--bg-card)',
+      color: disabled ? 'var(--text-3)' : 'var(--text-1)',
+      fontSize: 18, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: FONT,
+    }}>{label}</button>
   );
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       {btn('−', () => onChange(Math.max(0, value - 1)))}
-      <span style={{
-        width: 36, textAlign: 'center', fontSize: 22, fontWeight: 900,
-        color: disabled ? 'var(--text-3)' : C.green500, fontFamily: FONT,
-      }}>{value}</span>
+      <span style={{ width: 36, textAlign: 'center', fontSize: 22, fontWeight: 900, color: disabled ? 'var(--text-3)' : C.green500, fontFamily: FONT }}>{value}</span>
       {btn('+', () => onChange(Math.min(20, value + 1)))}
     </div>
   );
 }
 
-// ── Main page ──────────────────────────────────────────────────
+// ── Match Card ─────────────────────────────────────────────────
+function MatchCard({
+  m, inp, hasPred, isSaving, wasSaved,
+  onSave, onChangeHome, onChangeAway,
+}: {
+  m: Match;
+  inp: { home: number; away: number };
+  hasPred: boolean; isSaving: boolean; wasSaved: boolean;
+  onSave: () => void;
+  onChangeHome: (v: number) => void;
+  onChangeAway: (v: number) => void;
+}) {
+  return (
+    <div style={{
+      background: 'var(--bg-card)',
+      border: `1px solid ${hasPred ? C.green500 + '40' : 'var(--border)'}`,
+      borderRadius: 14, padding: '16px 16px 14px', marginBottom: 10,
+    }}>
+      <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 12 }}>
+        {fmtDate(m.match_date)}{m.venue ? ` · ${m.venue}` : ''}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 72 }}>
+          <div style={{ fontSize: 26, marginBottom: 2 }}>{flag(m.home_team)}</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)', lineHeight: 1.2 }}>{m.home_team}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <Stepper value={inp.home} onChange={onChangeHome} />
+          <span style={{ fontSize: 16, fontWeight: 900, color: 'var(--text-3)' }}>×</span>
+          <Stepper value={inp.away} onChange={onChangeAway} />
+        </div>
+        <div style={{ flex: 1, minWidth: 72, textAlign: 'right' }}>
+          <div style={{ fontSize: 26, marginBottom: 2 }}>{flag(m.away_team)}</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)', lineHeight: 1.2 }}>{m.away_team}</div>
+        </div>
+      </div>
+      <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={onSave} disabled={isSaving} style={{
+          padding: '8px 18px', borderRadius: 10, border: 'none', cursor: isSaving ? 'wait' : 'pointer',
+          fontFamily: FONT, fontWeight: 800, fontSize: 12,
+          background: wasSaved ? C.green900 : C.green500,
+          color: wasSaved ? C.green500 : '#000',
+          transition: 'background 0.2s, color 0.2s', minWidth: 130,
+        }}>
+          {wasSaved ? '✓ Salvo!' : isSaving ? 'Salvando…' : hasPred ? '✎ Atualizar' : '✓ Salvar palpite'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main ───────────────────────────────────────────────────────
 export default function BolaoPage() {
   const supabase = createSupabaseBrowser();
   const [userId, setUserId] = useState<string | null>(null);
@@ -101,6 +152,7 @@ export default function BolaoPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<number | null>(null);
   const [saved, setSaved] = useState<Set<number>>(new Set());
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -109,7 +161,7 @@ export default function BolaoPage() {
     setUserId(user.id);
 
     const [mRes, pRes, rRes] = await Promise.all([
-      supabase.from('world_cup_matches').select('*').neq('home_team', 'TBD').order('match_date'),
+      supabase.from('world_cup_matches').select('*').neq('home_team', 'TBD').order('match_number'),
       supabase.from('world_cup_predictions').select('*').eq('user_id', user.id),
       supabase.from('world_cup_ranking').select('*').order('ranking').limit(30),
     ]);
@@ -126,7 +178,6 @@ export default function BolaoPage() {
       predMap.set(p.match_id, p);
       inpMap.set(p.match_id, { home: p.home_score_pred, away: p.away_score_pred });
     });
-    // Init inputs for unplayed matches
     mList.filter(m => isUpcoming(m.match_date) && !predMap.has(m.id))
       .forEach(m => inpMap.set(m.id, { home: 0, away: 0 }));
 
@@ -134,6 +185,12 @@ export default function BolaoPage() {
     setInputs(inpMap);
     setRanking(rList);
     setMyRank(rList.find(r => r.user_id === user.id) ?? null);
+
+    // Abrir por padrão: grupos com jogo ainda aberto
+    const upcoming = mList.filter(m => isUpcoming(m.match_date));
+    const openSet = new Set<string>(upcoming.map(m => m.stage));
+    setOpenGroups(openSet);
+
     setLoading(false);
   }, []);
 
@@ -164,40 +221,33 @@ export default function BolaoPage() {
     });
   }
 
-  // ── Group matches by date ──
-  function groupByDate(list: Match[]) {
-    const map = new Map<string, Match[]>();
-    list.forEach(m => {
-      const day = new Date(m.match_date).toLocaleDateString('pt-BR', {
-        timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: 'long',
-      });
-      if (!map.has(day)) map.set(day, []);
-      map.get(day)!.push(m);
+  function toggleGroup(stage: string) {
+    setOpenGroups(prev => {
+      const n = new Set(prev);
+      n.has(stage) ? n.delete(stage) : n.add(stage);
+      return n;
     });
-    return map;
+  }
+
+  // ── Group matches: stage → round → matches
+  function buildGroups(list: Match[]) {
+    const stageMap = new Map<string, Map<string, Match[]>>();
+    list.forEach(m => {
+      if (!stageMap.has(m.stage)) stageMap.set(m.stage, new Map());
+      const roundKey = KNOCKOUT.includes(m.stage) ? m.stage : getRound(m.match_number);
+      const roundMap = stageMap.get(m.stage)!;
+      if (!roundMap.has(roundKey)) roundMap.set(roundKey, []);
+      roundMap.get(roundKey)!.push(m);
+    });
+    // Sort stages
+    const sorted = new Map<string, Map<string, Match[]>>();
+    STAGE_ORDER.forEach(s => { if (stageMap.has(s)) sorted.set(s, stageMap.get(s)!); });
+    return sorted;
   }
 
   const upcoming = matches.filter(m => isUpcoming(m.match_date));
   const past = matches.filter(m => !isUpcoming(m.match_date)).reverse();
-
-  // ── Styles ──
-  const card: React.CSSProperties = {
-    background: 'var(--bg-card)',
-    border: '1px solid var(--border)',
-    borderRadius: 16,
-    padding: '20px 20px',
-    marginBottom: 12,
-    fontFamily: FONT,
-  };
-
-  const stagePill: React.CSSProperties = {
-    display: 'inline-block',
-    fontSize: 10, fontWeight: 800, letterSpacing: 1.5,
-    textTransform: 'uppercase', padding: '2px 8px',
-    borderRadius: 6, background: 'var(--bg-page)',
-    color: 'var(--text-3)', border: '1px solid var(--border)',
-    marginBottom: 12,
-  };
+  const upcomingGroups = buildGroups(upcoming);
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
@@ -207,8 +257,7 @@ export default function BolaoPage() {
   );
 
   const totalPts = myRank?.total_points ?? 0;
-  const rankPos = myRank?.ranking ?? '—';
-  const totalPreds = preds.size;
+  const rankPos = myRank?.ranking;
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: 'clamp(16px,4vw,32px)', fontFamily: FONT }}>
@@ -217,41 +266,23 @@ export default function BolaoPage() {
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-1)', margin: 0 }}>
-              ⚽ Bolão Copa 2026
-            </h1>
-            <p style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 4, marginBottom: 0 }}>
-              Palpite nos jogos · Top 3 ganham prêmios reais
-            </p>
+            <h1 style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-1)', margin: 0 }}>⚽ Bolão Copa 2026</h1>
+            <p style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 4, marginBottom: 0 }}>Palpite nos jogos · Top 3 ganham prêmios reais</p>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{
-              textAlign: 'center', padding: '10px 16px',
-              background: 'var(--bg-card)', border: `1px solid var(--border)`, borderRadius: 12,
-            }}>
+            <div style={{ textAlign: 'center', padding: '10px 16px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 900, color: C.green500 }}>{totalPts}</div>
               <div style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>pontos</div>
             </div>
-            <div style={{
-              textAlign: 'center', padding: '10px 16px',
-              background: 'var(--bg-card)', border: `1px solid ${rankPos !== '—' && Number(rankPos) <= 3 ? C.gold : 'var(--border)'}`, borderRadius: 12,
-            }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: C.gold }}>
-                {rankPos !== '—' ? `#${rankPos}` : '—'}
-              </div>
+            <div style={{ textAlign: 'center', padding: '10px 16px', background: 'var(--bg-card)', border: `1px solid ${rankPos && rankPos <= 3 ? C.gold : 'var(--border)'}`, borderRadius: 12 }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: C.gold }}>{rankPos ? `#${rankPos}` : '—'}</div>
               <div style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>ranking</div>
             </div>
           </div>
         </div>
-
-        {/* Progress bar */}
-        <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-3)' }}>
-            {totalPreds} {totalPreds === 1 ? 'palpite enviado' : 'palpites enviados'}
-          </span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: upcoming.length > 0 ? C.green500 : 'var(--text-3)' }}>
-            {upcoming.length} jogos abertos
-          </span>
+        <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          <span style={{ fontSize: 13, color: 'var(--text-3)' }}>{preds.size} {preds.size === 1 ? 'palpite enviado' : 'palpites enviados'}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: upcoming.length > 0 ? C.green500 : 'var(--text-3)' }}>{upcoming.length} jogos abertos</span>
         </div>
       </div>
 
@@ -273,75 +304,85 @@ export default function BolaoPage() {
       {/* ── TAB: PALPITAR ── */}
       {tab === 'palpitar' && (
         <div>
-          {upcoming.length === 0 && (
+          {upcomingGroups.size === 0 && (
             <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-3)' }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>🏁</div>
               <p style={{ fontWeight: 700 }}>Todos os jogos já começaram!</p>
             </div>
           )}
-          {Array.from(groupByDate(upcoming)).map(([day, dayMatches]) => (
-            <div key={day}>
-              <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: 'var(--text-3)', marginBottom: 12, marginTop: 8 }}>
-                {day}
-              </div>
-              {dayMatches.map(m => {
-                const inp = inputs.get(m.id) ?? { home: 0, away: 0 };
-                const hasPred = preds.has(m.id);
-                const isSaving = saving === m.id;
-                const wasSaved = saved.has(m.id);
-                return (
-                  <div key={m.id} style={{ ...card, border: hasPred ? `1px solid ${C.green500}40` : '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-                      <span style={stagePill}>{m.stage}</span>
-                      <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
-                        {fmtDate(m.match_date)} · {m.venue}
-                      </span>
-                    </div>
 
-                    {/* Teams + inputs */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                      {/* Home */}
-                      <div style={{ flex: 1, minWidth: 80 }}>
-                        <div style={{ fontSize: 28, marginBottom: 4 }}>{flag(m.home_team)}</div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', lineHeight: 1.2 }}>{m.home_team}</div>
-                      </div>
+          {Array.from(upcomingGroups).map(([stage, roundMap]) => {
+            const isOpen = openGroups.has(stage);
+            const isKnockout = KNOCKOUT.includes(stage);
+            const totalInStage = Array.from(roundMap.values()).flat().length;
+            const predictedInStage = Array.from(roundMap.values()).flat().filter(m => preds.has(m.id)).length;
 
-                      {/* Inputs */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                        <Stepper value={inp.home} onChange={v => setInp(m.id, 'home', v)} />
-                        <span style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-3)', margin: '0 4px' }}>×</span>
-                        <Stepper value={inp.away} onChange={v => setInp(m.id, 'away', v)} />
-                      </div>
-
-                      {/* Away */}
-                      <div style={{ flex: 1, minWidth: 80, textAlign: 'right' }}>
-                        <div style={{ fontSize: 28, marginBottom: 4 }}>{flag(m.away_team)}</div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', lineHeight: 1.2 }}>{m.away_team}</div>
-                      </div>
-                    </div>
-
-                    {/* Save button */}
-                    <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
-                      <button
-                        onClick={() => save(m.id)}
-                        disabled={isSaving}
-                        style={{
-                          padding: '9px 20px', borderRadius: 10, border: 'none', cursor: isSaving ? 'wait' : 'pointer',
-                          fontFamily: FONT, fontWeight: 800, fontSize: 13,
-                          background: wasSaved ? C.green900 : C.green500,
-                          color: wasSaved ? C.green500 : '#000',
-                          transition: 'background 0.2s, color 0.2s',
-                          minWidth: 140,
-                        }}
-                      >
-                        {wasSaved ? '✓ Salvo!' : isSaving ? 'Salvando…' : hasPred ? '✎ Atualizar palpite' : '✓ Salvar palpite'}
-                      </button>
-                    </div>
+            return (
+              <div key={stage} style={{ marginBottom: 12 }}>
+                {/* Group header */}
+                <button
+                  onClick={() => toggleGroup(stage)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 16px', borderRadius: isOpen ? '12px 12px 0 0' : 12,
+                    background: 'var(--bg-card)', border: '1px solid var(--border)',
+                    borderBottom: isOpen ? 'none' : '1px solid var(--border)',
+                    cursor: 'pointer', fontFamily: FONT,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-1)' }}>{stage}</span>
+                    <span style={{
+                      fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 6,
+                      background: predictedInStage === totalInStage ? `${C.green500}20` : 'var(--bg-page)',
+                      color: predictedInStage === totalInStage ? C.green500 : 'var(--text-3)',
+                      border: `1px solid ${predictedInStage === totalInStage ? C.green500 + '40' : 'var(--border)'}`,
+                    }}>
+                      {predictedInStage}/{totalInStage} palpites
+                    </span>
                   </div>
-                );
-              })}
-            </div>
-          ))}
+                  <span style={{ fontSize: 12, color: 'var(--text-3)', transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                </button>
+
+                {/* Rounds inside group */}
+                {isOpen && (
+                  <div style={{ border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '16px 16px 8px' }}>
+                    {Array.from(roundMap).map(([round, roundMatches]) => (
+                      <div key={round}>
+                        {!isKnockout && (
+                          <div style={{
+                            fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2,
+                            color: C.green500, marginBottom: 10, marginTop: 4,
+                            display: 'flex', alignItems: 'center', gap: 8,
+                          }}>
+                            <span style={{ flex: 1, height: 1, background: 'var(--border)', display: 'inline-block' }} />
+                            {round}
+                            <span style={{ flex: 1, height: 1, background: 'var(--border)', display: 'inline-block' }} />
+                          </div>
+                        )}
+                        {roundMatches.map(m => {
+                          const inp = inputs.get(m.id) ?? { home: 0, away: 0 };
+                          return (
+                            <MatchCard
+                              key={m.id}
+                              m={m}
+                              inp={inp}
+                              hasPred={preds.has(m.id)}
+                              isSaving={saving === m.id}
+                              wasSaved={saved.has(m.id)}
+                              onSave={() => save(m.id)}
+                              onChangeHome={v => setInp(m.id, 'home', v)}
+                              onChangeAway={v => setInp(m.id, 'away', v)}
+                            />
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -354,55 +395,50 @@ export default function BolaoPage() {
               <p style={{ fontWeight: 700 }}>Nenhum jogo encerrado ainda.</p>
             </div>
           )}
-          {past.map(m => {
-            const pred = preds.get(m.id);
-            const pts = pointsLabel(pred?.points_earned ?? null);
-            const finished = m.status === 'finished';
-            return (
-              <div key={m.id} style={{ ...card, opacity: finished ? 1 : 0.75 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-                  <span style={stagePill}>{m.stage}</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{fmtDate(m.match_date)}</span>
-                </div>
-
-                {/* Result */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 14 }}>
-                  <div style={{ textAlign: 'right', flex: 1 }}>
-                    <div style={{ fontSize: 22 }}>{flag(m.home_team)}</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)' }}>{m.home_team}</div>
-                  </div>
-                  <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                    {finished ? (
-                      <div style={{ fontSize: 28, fontWeight: 900, color: C.green500, fontFamily: FONT, letterSpacing: 4 }}>
-                        {m.home_score} – {m.away_score}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 18, color: 'var(--text-3)', fontWeight: 700 }}>– vs –</div>
-                    )}
-                  </div>
-                  <div style={{ textAlign: 'left', flex: 1 }}>
-                    <div style={{ fontSize: 22 }}>{flag(m.away_team)}</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)' }}>{m.away_team}</div>
-                  </div>
-                </div>
-
-                {/* Prediction result */}
-                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                  {pred ? (
-                    <>
-                      <span style={{ fontSize: 13, color: 'var(--text-3)' }}>
-                        Seu palpite: <strong style={{ color: 'var(--text-1)' }}>{pred.home_score_pred} – {pred.away_score_pred}</strong>
-                      </span>
-                      {pts && <span style={{ fontSize: 13, fontWeight: 800, color: pts.color }}>{pts.text}</span>}
-                      {!pts && finished && <span style={{ fontSize: 13, color: 'var(--text-3)' }}>Calculando…</span>}
-                    </>
-                  ) : (
-                    <span style={{ fontSize: 13, color: 'var(--text-3)', fontStyle: 'italic' }}>Você não palpitou neste jogo.</span>
+          {Array.from(buildGroups(past)).map(([stage, roundMap]) => (
+            <div key={stage} style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: 'var(--text-3)', marginBottom: 12 }}>{stage}</div>
+              {Array.from(roundMap).map(([round, roundMatches]) => (
+                <div key={round}>
+                  {!KNOCKOUT.includes(stage) && (
+                    <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: C.green500, marginBottom: 8, opacity: 0.8 }}>{round}</div>
                   )}
+                  {roundMatches.map(m => {
+                    const pred = preds.get(m.id);
+                    const pts = pointsLabel(pred?.points_earned ?? null);
+                    return (
+                      <div key={m.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 10 }}>{fmtDate(m.match_date)}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 10 }}>
+                          <div style={{ textAlign: 'right', flex: 1 }}>
+                            <div style={{ fontSize: 20 }}>{flag(m.home_team)}</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)' }}>{m.home_team}</div>
+                          </div>
+                          <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                            {m.status === 'finished'
+                              ? <div style={{ fontSize: 22, fontWeight: 900, color: C.green500, fontFamily: FONT, letterSpacing: 3 }}>{m.home_score} – {m.away_score}</div>
+                              : <div style={{ fontSize: 14, color: 'var(--text-3)', fontWeight: 700 }}>– vs –</div>
+                            }
+                          </div>
+                          <div style={{ textAlign: 'left', flex: 1 }}>
+                            <div style={{ fontSize: 20 }}>{flag(m.away_team)}</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)' }}>{m.away_team}</div>
+                          </div>
+                        </div>
+                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                          {pred
+                            ? <><span style={{ fontSize: 13, color: 'var(--text-3)' }}>Seu palpite: <strong style={{ color: 'var(--text-1)' }}>{pred.home_score_pred} – {pred.away_score_pred}</strong></span>
+                                {pts && <span style={{ fontSize: 13, fontWeight: 800, color: pts.color }}>{pts.text}</span>}</>
+                            : <span style={{ fontSize: 13, color: 'var(--text-3)', fontStyle: 'italic' }}>Você não palpitou neste jogo.</span>
+                          }
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          ))}
         </div>
       )}
 
@@ -416,16 +452,8 @@ export default function BolaoPage() {
             </div>
           )}
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
-            {/* Header */}
-            <div style={{
-              display: 'grid', gridTemplateColumns: '44px 1fr 60px 60px',
-              padding: '10px 16px', background: 'var(--bg-page)',
-              fontSize: 10, fontWeight: 800, letterSpacing: 1.5,
-              textTransform: 'uppercase', color: 'var(--text-3)',
-            }}>
-              <span>#</span><span>Participante</span>
-              <span style={{ textAlign: 'center' }}>Exatos</span>
-              <span style={{ textAlign: 'right' }}>Pts</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr 60px 60px', padding: '10px 16px', background: 'var(--bg-page)', fontSize: 10, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--text-3)' }}>
+              <span>#</span><span>Participante</span><span style={{ textAlign: 'center' }}>Exatos</span><span style={{ textAlign: 'right' }}>Pts</span>
             </div>
             {ranking.map((r, i) => {
               const isMe = r.user_id === userId;
@@ -437,23 +465,14 @@ export default function BolaoPage() {
                   borderTop: i > 0 ? '1px solid var(--border)' : 'none',
                   background: isMe ? `${C.green500}10` : 'transparent',
                 }}>
-                  <span style={{ fontFamily: FONT, fontWeight: 900, fontSize: 16, color: medal ? C.gold : 'var(--text-3)' }}>
-                    {medal ?? `${r.ranking}`}
-                  </span>
-                  <span style={{ fontWeight: isMe ? 800 : 600, fontSize: 14, color: isMe ? C.green500 : 'var(--text-1)' }}>
-                    {r.display_name}{isMe ? ' (você)' : ''}
-                  </span>
-                  <span style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-3)' }}>
-                    {r.exact_scores}
-                  </span>
-                  <span style={{ textAlign: 'right', fontFamily: FONT, fontSize: 18, fontWeight: 900, color: C.green500 }}>
-                    {r.total_points}
-                  </span>
+                  <span style={{ fontFamily: FONT, fontWeight: 900, fontSize: 16, color: medal ? C.gold : 'var(--text-3)' }}>{medal ?? `${r.ranking}`}</span>
+                  <span style={{ fontWeight: isMe ? 800 : 600, fontSize: 14, color: isMe ? C.green500 : 'var(--text-1)' }}>{r.display_name}{isMe ? ' (você)' : ''}</span>
+                  <span style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-3)' }}>{r.exact_scores}</span>
+                  <span style={{ textAlign: 'right', fontFamily: FONT, fontSize: 18, fontWeight: 900, color: C.green500 }}>{r.total_points}</span>
                 </div>
               );
             })}
           </div>
-
           <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-3)', marginTop: 16 }}>
             🥇 Premium vitalício · 🥈 Pro vitalício · 🥉 30% off Pro ou 50% off Premium por 1 ano
           </p>
