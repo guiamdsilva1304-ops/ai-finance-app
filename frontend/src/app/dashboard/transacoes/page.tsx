@@ -40,6 +40,30 @@ type DisplayItem =
   | { kind: "single"; transaction: Transaction }
   | { kind: "group"; parcelamentoId: string; transactions: Transaction[] };
 
+// Educação contextual: dica útil quando um gasto pesa no orçamento.
+// Só dispara se o gasto for >= 15% da renda mensal (gasto que realmente importa).
+function dicaContextual(categoria: string, valor: number, renda: number): string | null {
+  if (!renda || renda <= 0) return null;
+  const peso = valor / renda;
+  if (peso < 0.15) return null;
+
+  const pct = Math.round(peso * 100);
+  const cat = (categoria || "").toLowerCase();
+
+  if (cat.includes("aliment") || cat.includes("delivery") || cat.includes("restaurante"))
+    return `Esse gasto foi ${pct}% da sua renda. Alimentação fora pesa fácil — planejar a semana costuma cortar até 30% sem abrir mão do que importa. 🍽️`;
+  if (cat.includes("transporte") || cat.includes("uber") || cat.includes("combust"))
+    return `${pct}% da renda em transporte. Vale comparar: às vezes um plano mensal ou rota fixa sai bem mais em conta. 🚗`;
+  if (cat.includes("lazer") || cat.includes("entreten"))
+    return `Lazer é importante e merece espaço no orçamento. Esse foi ${pct}% da renda — o segredo é caber no plano, não cortar. 🎬`;
+  if (cat.includes("compras") || cat.includes("vestuár") || cat.includes("roupa"))
+    return `${pct}% da renda numa compra. Uma regra que ajuda: espere 24h antes de itens acima de um valor que te faça pensar. 🛍️`;
+  if (cat.includes("saúde") || cat.includes("educa"))
+    return `Investir em ${categoria.toLowerCase()} costuma valer a pena a longo prazo. Esse foi ${pct}% da renda — só fique de olho pra não comprometer a meta. 📚`;
+
+  return `Esse gasto foi ${pct}% da sua renda este mês. Vale conferir se ainda sobra espaço pro seu sonho. 💡`;
+}
+
 export default function TransacoesPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +82,8 @@ export default function TransacoesPage() {
   const [streakToast, setStreakToast] = useState<string | null>(null);
   const [metaToastValor, setMetaToastValor] = useState<number | null>(null);
   const [mainMeta, setMainMeta] = useState<{ id: string; nome: string; valor_alvo: number; valor_atual: number } | null>(null);
+  const [rendaMensal, setRendaMensal] = useState<number>(0);
+  const [dicaToast, setDicaToast] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // Form state
@@ -82,13 +108,15 @@ export default function TransacoesPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const [{ data }, { data: perfil }, { data: metas }] = await Promise.all([
+    const [{ data }, { data: perfil }, { data: metas }, { data: mem }] = await Promise.all([
       supabase.from("transactions").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(500),
       supabase.from("user_profiles").select("plan").eq("user_id", user.id).single(),
       supabase.from("metas").select("id,nome,valor_alvo,valor_atual,principal").eq("user_id", user.id).eq("concluida", false).order("created_at", { ascending: false }),
+      supabase.from("user_memory").select("last_renda").eq("user_id", user.id).maybeSingle(),
     ]);
     setTransactions(data ?? []);
     if (perfil?.plan) setPlan(perfil.plan);
+    if (mem?.last_renda) setRendaMensal(Number(mem.last_renda) || 0);
     const principal = (metas ?? []).find(m => m.principal) ?? (metas ?? [])[0] ?? null;
     setMainMeta(principal);
     setLoading(false);
@@ -202,6 +230,10 @@ export default function TransacoesPage() {
       // Micro-celebração: progresso da meta no card, não toast genérico
       if (mainMeta && mainMeta.valor_alvo > 0) setMetaToastValor(v);
       else setStreakToast(`R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} registrados! Continue assim 💪`);
+    } else if (!isParcelado) {
+      // Educação contextual: dica quando o gasto pesa no orçamento
+      const dica = dicaContextual(cat, v, rendaMensal);
+      if (dica) setDicaToast(dica);
     }
     load();
   }
@@ -344,6 +376,13 @@ export default function TransacoesPage() {
           mensagem={streakToast}
           emoji="💰"
           onClose={() => setStreakToast(null)}
+        />
+      )}
+      {dicaToast && (
+        <StreakToast
+          mensagem={dicaToast}
+          emoji="💡"
+          onClose={() => setDicaToast(null)}
         />
       )}
       {metaToastValor !== null && mainMeta && (
