@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { captureRefFromUrl, saveRefManual, getStoredRef } from '@/lib/referral';
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
@@ -144,7 +145,21 @@ footer { padding: 32px clamp(1rem,5vw,3rem); border-top: 1px solid var(--borda);
 `;
 
 export default function BolaoPage() {
+  const [refCode, setRefCode] = useState('');
+
+  function handleRefChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+    setRefCode(val);
+  }
+
+  function handleRefBlur() {
+    if (refCode) saveRefManual(refCode);
+  }
+
   useEffect(() => {
+    captureRefFromUrl();
+    const stored = getStoredRef();
+    if (stored) setRefCode(stored);
     const partidas: Array<{
       casa: string; casaNome: string; fora: string; foraNome: string;
       golC: number; golF: number; min: number;
@@ -402,6 +417,33 @@ export default function BolaoPage() {
           DE VOCÊ
         </h2>
         <p className="cta-sub">Palpite nos jogos e dispute o Premium vitalício.</p>
+        <div style={{ margin: '0 auto 24px', maxWidth: '320px', textAlign: 'left' }}>
+          <label htmlFor="ref-code" style={{ display: 'block', fontSize: '0.8rem', color: 'var(--texto-muted)', marginBottom: '6px' }}>
+            Tem um código de indicação? <span style={{ fontWeight: 400 }}>(opcional)</span>
+          </label>
+          <input
+            id="ref-code"
+            type="text"
+            value={refCode}
+            onChange={handleRefChange}
+            onBlur={handleRefBlur}
+            maxLength={7}
+            placeholder="Ex: ABC1234"
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              background: 'var(--superficie)',
+              border: '1px solid var(--borda)',
+              borderRadius: '10px',
+              color: 'var(--texto)',
+              fontSize: '1rem',
+              fontFamily: 'inherit',
+              letterSpacing: '2px',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
         <a href="/login" className="btn-hero" style={{ display: 'inline-flex' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />

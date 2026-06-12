@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getStoredRef, clearStoredRef } from "@/lib/referral";
 
 type Tab = "login" | "register";
 
@@ -143,6 +144,25 @@ export default function AuthPage() {
         const _nextReg = new URLSearchParams(window.location.search).get('next') || '';
         const _destReg = _nextReg || '/onboarding';
         setTimeout(() => { window.location.href = _destReg; }, 500);
+        const ref = getStoredRef();
+        if (ref) {
+          supabase
+            .from("user_profiles")
+            .select("referral_code")
+            .eq("user_id", ld.user.id)
+            .maybeSingle()
+            .then(({ data: myProfile }) => {
+              if (!myProfile?.referral_code || myProfile.referral_code !== ref) {
+                supabase
+                  .from("user_profiles")
+                  .update({ referred_by: ref })
+                  .eq("user_id", ld.user.id)
+                  .is("referred_by", null)
+                  .then(() => {});
+              }
+              clearStoredRef();
+            });
+        }
       } else {
         setSuccess("Conta criada! Verifique seu email para confirmar e depois faça login.");
         setTab("login"); setPassword(""); setConfirmPassword("");
