@@ -58,6 +58,20 @@ export default function MetaDetailPage() {
     setCompleting(false);
   }
 
+  async function compartilhar() {
+    if (!meta) return;
+    const nome = metaNomeLimpo(meta.nome);
+    const texto = `Realizei meu sonho: ${nome}! ✨ Meu plano deu certo com a iMoney.`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Conquista iMoney", text: texto, url: "https://imoney.ia.br" });
+      } else {
+        await navigator.clipboard.writeText(`${texto} https://imoney.ia.br`);
+        alert("Conquista copiada! Cole onde quiser compartilhar. 💚");
+      }
+    } catch { /* usuário cancelou */ }
+  }
+
   async function handleTogglePrincipal() {
     if (!meta) return;
     const { data: { user } } = await supabase.auth.getUser();
@@ -116,20 +130,37 @@ export default function MetaDetailPage() {
     <div style={{ minHeight: "100vh", background: "#f7fdf9", fontFamily: FONT, paddingBottom: 100 }}>
       {/* Celebration overlay */}
       {showCelebration && (
-        <div style={{ position: "fixed", inset: 0, background: "#0a3d28", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32 }}>
-          <div style={{ fontSize: 72, marginBottom: 16 }}>🎉</div>
-          <p style={{ fontSize: 13, fontWeight: 700, color: "#f9a825", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 12 }}>PARABÉNS!</p>
-          <p style={{ fontSize: 28, fontWeight: 900, color: "#fff", textAlign: "center", marginBottom: 12, lineHeight: 1.2 }}>Você realizou sua meta.</p>
-          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.7)", textAlign: "center", marginBottom: 40 }}>
-            {meta.nome}: R$ {fmtBRL(meta.valor_alvo)} guardados. Qual é o próximo sonho?
-          </p>
+        <div style={{ position: "fixed", inset: 0, background: "radial-gradient(circle at 50% 30%, #0e5237 0%, #0a3d28 60%, #062a1c 100%)", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          {/* Card-troféu — esta é a área que vira print */}
+          <div style={{ width: "100%", maxWidth: 360, background: "linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))", border: "1px solid rgba(249,168,37,0.35)", borderRadius: 28, padding: "40px 28px", display: "flex", flexDirection: "column", alignItems: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#f9a825", textTransform: "uppercase", letterSpacing: "0.18em", marginBottom: 20 }}>★ Sonho realizado ★</div>
+            <div style={{ width: 110, height: 110, borderRadius: "50%", background: "radial-gradient(circle at 40% 35%, #f9a825, #d98a00)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56, marginBottom: 24, boxShadow: "0 0 0 8px rgba(249,168,37,0.12), 0 8px 30px rgba(249,168,37,0.3)" }}>
+              {metaEmoji(meta.nome)}
+            </div>
+            <p style={{ fontSize: 30, fontWeight: 900, color: "#fff", textAlign: "center", margin: "0 0 14px", lineHeight: 1.15, fontFamily: FONT }}>
+              {metaNomeLimpo(meta.nome)}
+            </p>
+            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.75)", textAlign: "center", margin: "0 0 28px", lineHeight: 1.5, fontFamily: FONT }}>
+              {userName ? `${userName}, você` : "Você"} é alguém que <strong style={{ color: "#fff" }}>transforma sonho em plano</strong> — e plano em conquista. ✨
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, opacity: 0.85 }}>
+              <span style={{ fontSize: 18 }}>🧭</span>
+              <span style={{ fontSize: 15, fontWeight: 900, color: "#00C853", fontFamily: FONT, letterSpacing: "-0.02em" }}>iMoney</span>
+            </div>
+          </div>
+
+          {/* Ações — fora do card, não entram no print */}
+          <button onClick={compartilhar}
+            style={{ background: "linear-gradient(135deg, #f9a825, #f57f17)", color: "#3a2500", border: "none", borderRadius: 16, padding: "16px 32px", fontWeight: 900, fontSize: 15, fontFamily: FONT, cursor: "pointer", marginTop: 28, marginBottom: 12, width: "100%", maxWidth: 360, boxShadow: "0 6px 20px rgba(249,168,37,0.35)" }}>
+            📲 Compartilhar conquista
+          </button>
           <button onClick={() => { setShowCelebration(false); router.push("/dashboard/metas?add=true"); }}
-            style={{ background: "#1D9E75", color: "#fff", border: "none", borderRadius: 16, padding: "16px 32px", fontWeight: 800, fontSize: 15, fontFamily: FONT, cursor: "pointer", marginBottom: 12, width: "100%", maxWidth: 320 }}>
-            ✨ Criar nova meta
+            style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "none", borderRadius: 16, padding: "14px 32px", fontWeight: 700, fontSize: 14, fontFamily: FONT, cursor: "pointer", marginBottom: 10, width: "100%", maxWidth: 360 }}>
+            ✨ Criar próximo sonho
           </button>
           <button onClick={() => setShowCelebration(false)}
-            style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", border: "none", borderRadius: 16, padding: "14px 32px", fontWeight: 700, fontSize: 14, fontFamily: FONT, cursor: "pointer", width: "100%", maxWidth: 320 }}>
-            Ver minhas metas
+            style={{ background: "transparent", color: "rgba(255,255,255,0.5)", border: "none", padding: "8px", fontWeight: 600, fontSize: 13, fontFamily: FONT, cursor: "pointer" }}>
+            Fechar
           </button>
         </div>
       )}
