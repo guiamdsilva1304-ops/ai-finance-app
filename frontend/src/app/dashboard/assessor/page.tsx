@@ -594,6 +594,8 @@ export default function AssessorPage() {
   const searchParams = useSearchParams();
   const fromScore = searchParams.get("from") === "score";
   const fromOnboarding = searchParams.get("from") === "onboarding";
+  const qInicial = searchParams.get("q") || "";
+  const autoSentRef = useRef(false);
 
   // ─── Voice: inicializa Web Speech API ────────────────────────────────────
   const isPro = planoUsuario === 'pro' || planoUsuario === 'premium';
@@ -797,6 +799,14 @@ Seja humano, direto e específico. Não faça questionário, faça conversa.`;
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Auto-envia a pergunta vinda do dashboard (?q=) uma única vez
+  useEffect(() => {
+    if (!historyLoaded || autoSentRef.current) return;
+    if (!qInicial) return;
+    autoSentRef.current = true;
+    send(qInicial);
+  }, [historyLoaded, qInicial, send]);
 
   const send = useCallback(async (text: string) => {
     const content = text.trim();
