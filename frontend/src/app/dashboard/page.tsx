@@ -35,31 +35,51 @@ function scoreNivelLabel(score: number) {
 }
 
 
-function gerarInsight(nome: string, dash: DashData | null, meta: Meta | null, hora: number): string {
+type Insight = { texto: string; prompt: string };
+
+function gerarInsight(nome: string, dash: DashData | null, meta: Meta | null, hora: number): Insight {
   const firstName = nome || "você";
-  if (!dash && !meta) return `Bem-vindo à iMoney, ${firstName}! Crie sua primeira meta e veja seu plano tomar forma. 🌱`;
+  if (!dash && !meta)
+    return { texto: `Bem-vindo à iMoney, ${firstName}! Crie sua primeira meta e veja seu plano tomar forma. 🌱`, prompt: "Quero criar minha primeira meta. Me ajuda a definir um sonho e montar o plano." };
 
   const pct = meta && meta.valor_alvo > 0
     ? Math.round((meta.valor_atual / meta.valor_alvo) * 100)
     : null;
 
+  // 1. No vermelho — prioridade máxima
   if (dash && dash.sobra < 0)
-    return `Seus gastos estão acima da renda este mês. Quer entender onde cortar? 🔍`;
+    return { texto: `Seus gastos passaram a renda este mês. Quer ver onde dá pra cortar sem sofrer? 🔍`, prompt: "Meus gastos passaram da minha renda este mês. Analisa minhas categorias e me mostra onde cortar de forma inteligente." };
 
-  if (pct !== null && pct >= 75)
-    return `${firstName}, você está quase lá! ${pct}% da meta "${meta!.nome}" concluída. 🔥`;
-
-  if (pct !== null && pct >= 50)
-    return `Metade do caminho! ${pct}% de "${meta!.nome}" realizado. Continue assim! ⚡`;
-
-  if (dash && dash.sobra > 0 && meta) {
-    const aporte = Math.round((meta.valor_alvo - meta.valor_atual) / Math.max(1, meta.prazo_meses));
-    return `Guardando R$ ${fmtInt(aporte)}/mês você chega em "${meta.nome}" no prazo. Está conseguindo? 💪`;
+  // 2. Insight de categoria — "percebi que você gastou X com Y"
+  if (dash && dash.gastosCat) {
+    const cats = Object.entries(dash.gastosCat).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+    if (cats.length > 0 && dash.gastos > 0) {
+      const [catNome, catValor] = cats[0];
+      const pctCat = Math.round((catValor / dash.gastos) * 100);
+      if (pctCat >= 35) {
+        return { texto: `${firstName}, ${catNome} já levou R$ ${fmtInt(catValor)} este mês — ${pctCat}% de tudo que você gastou. Quer revisar? 👀`, prompt: `Minha maior categoria de gasto este mês é ${catNome}, com R$ ${fmtInt(catValor)} (${pctCat}% do total). Isso está saudável? Como posso equilibrar sem perder qualidade de vida?` };
+      }
+    }
   }
 
-  if (hora < 12) return `Bom dia, ${firstName}! Que tal registrar seus gastos de ontem? 📝`;
-  if (hora < 18) return `Como estão suas finanças hoje, ${firstName}? Posso analisar para você. 📊`;
-  return `Boa noite, ${firstName}! Revise seus gastos do dia antes de dormir. 🌙`;
+  // 3. Meta quase batida
+  if (pct !== null && pct >= 75)
+    return { texto: `${firstName}, você está quase lá! ${pct}% da meta "${meta!.nome}" concluída. 🔥`, prompt: `Já estou com ${pct}% da meta "${meta!.nome}". Como acelero pra fechar os últimos ${100 - pct}%?` };
+
+  // 4. Meio do caminho
+  if (pct !== null && pct >= 50)
+    return { texto: `Metade do caminho! ${pct}% de "${meta!.nome}" realizado. Continue assim! ⚡`, prompt: `Já realizei ${pct}% da meta "${meta!.nome}". Me mostra o que falta e como manter o ritmo.` };
+
+  // 5. Ritmo de aporte
+  if (dash && dash.sobra > 0 && meta) {
+    const aporte = Math.round((meta.valor_alvo - meta.valor_atual) / Math.max(1, meta.prazo_meses));
+    return { texto: `Guardando R$ ${fmtInt(aporte)}/mês você chega em "${meta.nome}" no prazo. Está conseguindo? 💪`, prompt: `Pra bater a meta "${meta.nome}" no prazo preciso guardar cerca de R$ ${fmtInt(aporte)}/mês. Me ajuda a encaixar isso no meu orçamento.` };
+  }
+
+  // 6. Fallback por horário
+  if (hora < 12) return { texto: `Bom dia, ${firstName}! Que tal registrar seus gastos de ontem? 📝`, prompt: "Bom dia! Quero revisar e registrar meus gastos recentes. Por onde começo?" };
+  if (hora < 18) return { texto: `Como estão suas finanças hoje, ${firstName}? Posso analisar para você. 📊`, prompt: "Faz uma análise geral da minha situação financeira hoje e me diz o ponto mais importante pra cuidar." };
+  return { texto: `Boa noite, ${firstName}! Revise seus gastos do dia antes de dormir. 🌙`, prompt: "Boa noite! Me ajuda a revisar rapidamente como foi meu dia financeiro." };
 }
 
 // Saudação dinâmica: manhã = plano em dia; tarde = proximidade da conquista;
@@ -193,14 +213,15 @@ function MemoriaFinanceiraCard() {
   );
 }
 
-function AssessorCard({ insight }: { insight: string }) {
+function AssessorCard({ insight }: { insight: Insight }) {
+  const href = `/dashboard/assessor?q=${encodeURIComponent(insight.prompt)}`;
   return (
-    <a href="/dashboard/assessor" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "var(--bg-card)", borderRadius: 16, padding: "14px 16px", marginBottom: 24, border: "1.5px solid var(--border)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+    <a href={href} style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", background: "var(--bg-card)", borderRadius: 16, padding: "14px 16px", marginBottom: 24, border: "1.5px solid var(--border)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
       <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #0a3d28, #1D9E75)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0, boxShadow: "0 0 0 3px rgba(0,200,83,0.15)" }}>🧭</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 11, fontWeight: 700, color: "#00C853", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 3px" }}>Assessor IA · online</p>
-        <p style={{ fontSize: 13, color: "var(--text-1)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600, fontFamily: "Nunito, sans-serif" }}>
-          {insight}
+        <p style={{ fontSize: 13, color: "var(--text-1)", margin: 0, fontWeight: 600, fontFamily: "Nunito, sans-serif", lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {insight.texto}
         </p>
       </div>
       <span style={{ color: "#1D9E75", fontSize: 18, flexShrink: 0 }}>›</span>
