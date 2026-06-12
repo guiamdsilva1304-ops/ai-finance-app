@@ -42,7 +42,8 @@ export async function middleware(req: NextRequest) {
     publicPaths.some((p) => pathname === p || pathname.startsWith("/blog/")) ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/auth/") ||
-    pathname.startsWith("/_next/");
+    pathname.startsWith("/_next/") ||
+    /\.(png|jpg|jpeg|svg|ico|webp|gif|woff|woff2|ttf|otf)$/.test(pathname);
   if (isPublic) return res;
   // Sem sessão → redireciona para login
   if (!session) {
