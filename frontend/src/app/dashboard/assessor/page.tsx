@@ -593,6 +593,7 @@ export default function AssessorPage() {
   const supabase = createSupabaseBrowser();
   const searchParams = useSearchParams();
   const fromScore = searchParams.get("from") === "score";
+  const fromOnboarding = searchParams.get("from") === "onboarding";
 
   // ─── Voice: inicializa Web Speech API ────────────────────────────────────
   const isPro = planoUsuario === 'pro' || planoUsuario === 'premium';
@@ -744,10 +745,54 @@ Escreva uma mensagem de abertura como Assessor IA pessoal dele: acolhedora, espe
         } catch { /* silencioso */ }
       }
 
+      if (fromOnboarding && (!historyData?.length)) {
+        const nome = (perfil?.nome_preferido as string) || (perfil?.nome as string)?.split(" ")[0] || "você";
+        const metaP = metas?.[0];
+        const metaNomeP = metaP?.nome ?? "seu sonho";
+        const alvo = metaP?.valor_alvo ?? 0;
+        const prazoP = metaP?.prazo ?? "";
+
+        const contexto = [
+          `Meta principal: ${metaNomeP}`,
+          alvo > 0 ? `Valor alvo: R$ ${alvo.toLocaleString("pt-BR")}` : "",
+          prazoP ? `Prazo: ${prazoP}` : "",
+          renda > 0 ? `Renda: R$ ${renda.toLocaleString("pt-BR")}` : "",
+          gastos > 0 ? `Gastos: R$ ${gastos.toLocaleString("pt-BR")}` : "",
+        ].filter(Boolean).join(" | ");
+
+        const prompt = `O usuário ${nome} acabou de criar sua primeira meta no onboarding e foi trazido direto até você. ${contexto}.
+Escreva uma mensagem de abertura como Assessor IA pessoal dele. Faça assim, nesta ordem:
+1. Comemore de forma curta e genuína que o plano para "${metaNomeP}" está pronto.
+2. Entregue o plano concreto em formato de cards usando um bloco \`\`\`plano com as fases para alcançar a meta (use os dados de renda, gastos e prazo).
+3. Termine com UMA pergunta concreta para afinar o plano (ex: qual o maior objetivo hoje, ou como ele se sente com dinheiro).
+Seja humano, direto e específico. Não faça questionário, faça conversa.`;
+
+        try {
+          const { data: { session: sess } } = await supabase.auth.getSession();
+          const resp = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess?.access_token}` },
+            body: JSON.stringify({
+              messages: [{ role: "user", content: prompt }],
+              context: { renda, gastos, metas, perfil, mem },
+              proactive: true,
+            }),
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            const text = data.message ?? data.content ?? "";
+            if (text) {
+              const { text: parsed, plan } = parsePlan(text);
+              setMessages([{ role: "assistant", content: parsed, plan: plan ?? undefined }]);
+            }
+          }
+        } catch { /* silencioso */ }
+      }
+
       setHistoryLoaded(true);
     }
     load();
-  }, [supabase, fromScore]);
+  }, [supabase, fromScore, fromOnboarding]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
