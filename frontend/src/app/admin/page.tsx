@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import KpiHeader from "./_components/KpiHeader";
 import FunnelChart from "./_components/FunnelChart";
+import ShareLoopCard from "./_components/ShareLoopCard";
 import AgentCards from "./_components/AgentCards";
 
 const AGENTS = [
@@ -47,6 +48,10 @@ export default function AdminDashboard() {
         {/* FUNIL DE AQUISIÇÃO */}
         <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[#3a6b45]">🔻 Funil de aquisição</h2>
         <FunnelChart />
+
+        {/* LOOP VIRAL */}
+        <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[#3a6b45]">🔁 Loop viral — compartilhamento de conquistas</h2>
+        <ShareLoopCard />
 
         {/* LISTA DE ESPERA */}
         <div className="mt-8 rounded-2xl border border-[#00C853]/15 bg-[#0e1a10] p-5">
