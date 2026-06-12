@@ -141,7 +141,7 @@ export default function AuthPage() {
         });
         setSuccess("Conta criada! Redirecionando...");
         const _nextReg = new URLSearchParams(window.location.search).get('next') || '';
-        const _destReg = _nextReg ? `/onboarding?next=${encodeURIComponent(_nextReg)}` : '/onboarding';
+        const _destReg = _nextReg || '/onboarding';
         setTimeout(() => { window.location.href = _destReg; }, 500);
       } else {
         setSuccess("Conta criada! Verifique seu email para confirmar e depois faça login.");
