@@ -96,7 +96,10 @@ export default function OnboardingPage() {
     if (!v || !m) return null;
     const porMes = v / m;
     const pctRenda = rendaNum > 0 ? (porMes / rendaNum) * 100 : null;
-    return { porMes, pctRenda, viavel: pctRenda === null || pctRenda <= 50 };
+    const dataAlvo = new Date();
+    dataAlvo.setMonth(dataAlvo.getMonth() + m);
+    const mesAno = dataAlvo.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    return { porMes, pctRenda, viavel: pctRenda === null || pctRenda <= 50, mesAno };
   }, [metaValor, metaMeses, rendaNum]);
 
   async function salvarPerfil(userId: string) {
@@ -227,6 +230,9 @@ export default function OnboardingPage() {
           <h1 style={{ fontSize: 26, fontWeight: 900, color: "#fff", margin: "0 0 8px", lineHeight: 1.25 }}>{metaNome}</h1>
           <p style={{ fontSize: 15, color: "#A7F3D0", fontWeight: 700, margin: 0 }}>
             R$ {porMesFmt}<span style={{ fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>/mês durante {metaMeses} meses</span>
+          </p>
+          <p style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "10px 0 0" }}>
+            🗓️ Data prevista: <span style={{ color: "#F9A825", textTransform: "capitalize" }}>{calculo.mesAno}</span>
           </p>
         </div>
 
@@ -506,6 +512,11 @@ export default function OnboardingPage() {
                       : `Guardando esse valor por mês, você chega lá em ${metaMeses} meses.`
                     }
                   </div>
+                  {calculo.viavel && metaNome && (
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(8,80,65,0.15)", fontSize: 14, fontWeight: 800, color: "#085041", lineHeight: 1.45 }}>
+                      🗓️ Em <span style={{ textTransform: "capitalize" }}>{calculo.mesAno}</span> você conquista <span style={{ color: "#1D9E75" }}>{metaNome}</span>. E começa hoje.
+                    </div>
+                  )}
                 </div>
               )}
 
