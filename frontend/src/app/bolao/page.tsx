@@ -439,7 +439,7 @@ export default function BolaoPage() {
           <h2 className="section-title" id="indique" style={{ marginBottom: 16 }}>Leve amigos,<br />suba no ranking</h2>
           <p style={{ color: 'var(--texto-muted)', fontSize: '1rem', maxWidth: 440, margin: '0 auto 36px', lineHeight: 1.6 }}>
             Cada amigo que entrar pelo seu link vale pontos extras no ranking.
-            Invista no seu sonho — quem chegar ao Top 3 ganha assinatura vitalícia da iMoney.
+            Invista no seu sonho — o 3º lugar do ranking geral leva desconto na assinatura iMoney por 1 ano.
           </p>
           <div style={{
             background: 'var(--superficie)', border: '2px solid var(--borda)',
