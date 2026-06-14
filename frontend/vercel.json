@@ -59,6 +59,10 @@
     {
       "path": "/api/cron/parcela-alert",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/bolao-prizes",
+      "schedule": "0 12 * * *"
     }
   ]
 }
