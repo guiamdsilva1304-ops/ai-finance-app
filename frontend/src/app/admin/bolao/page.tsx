@@ -7,7 +7,6 @@ interface Match {
   away_team: string;
   match_date: string;
   stage: string | null;
-  group_name: string | null;
   status: string;
   home_score: number | null;
   away_score: number | null;
@@ -138,7 +137,7 @@ export default function AdminBolao() {
 
                 {/* Fase */}
                 <span className="truncate text-[11px] text-[#3a6b45]">
-                  {m.group_name ?? m.stage ?? "—"}
+                  {m.stage ?? "—"}
                 </span>
 
                 {/* Resultado / Inputs */}

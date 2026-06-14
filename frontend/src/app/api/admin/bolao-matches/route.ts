@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("world_cup_matches")
-    .select("id, home_team, away_team, match_date, stage, group_name, status, home_score, away_score")
+    .select("id, home_team, away_team, match_date, stage, status, home_score, away_score")
     .order("match_date", { ascending: true });
 
   if (error) {
