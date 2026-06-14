@@ -146,22 +146,17 @@ export default function AuthPage() {
         setTimeout(() => { window.location.href = _destReg; }, 500);
         const ref = getStoredRef();
         if (ref) {
-          supabase
-            .from("user_profiles")
-            .select("referral_code")
-            .eq("user_id", ld.user.id)
-            .maybeSingle()
-            .then(({ data: myProfile }) => {
-              if (!myProfile?.referral_code || myProfile.referral_code !== ref) {
-                supabase
-                  .from("user_profiles")
-                  .update({ referred_by: ref })
-                  .eq("user_id", ld.user.id)
-                  .is("referred_by", null)
-                  .then(() => {});
-              }
-              clearStoredRef();
-            });
+          const [{ data: me }, { data: inviter }] = await Promise.all([
+            supabase.from("user_profiles").select("referral_code")
+              .eq("user_id", ld.user.id).single(),
+            supabase.from("user_profiles").select("user_id")
+              .eq("referral_code", ref).maybeSingle(),
+          ]);
+          if (inviter && me?.referral_code !== ref) {
+            await supabase.from("user_profiles").update({ referred_by: ref })
+              .eq("user_id", ld.user.id).is("referred_by", null);
+          }
+          clearStoredRef();
         }
       } else {
         setSuccess("Conta criada! Verifique seu email para confirmar e depois faça login.");
