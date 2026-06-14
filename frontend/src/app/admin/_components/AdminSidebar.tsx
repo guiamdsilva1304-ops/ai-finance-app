@@ -8,6 +8,7 @@ const ITEMS = [
   { href: "/admin/agentes", icon: "🤖", label: "Agentes" },
   { href: "/admin/assessor", icon: "💬", label: "Assessor Admin" },
   { href: "/admin/whatsapp", icon: "📱", label: "WhatsApp" },
+  { href: "/admin/bolao", icon: "⚽", label: "Bolão Copa" },
   { href: "/admin/config", icon: "⚙️", label: "Configurações" },
 ];
 
