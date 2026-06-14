@@ -279,6 +279,37 @@ export default function BolaoPage() {
             Criar conta e participar
           </a>
 
+          <div style={{ margin: 'clamp(12px, 3vw, 16px) auto 0', width: '100%', maxWidth: '260px', textAlign: 'left' }}>
+            <label
+              htmlFor="ref-code-hero"
+              style={{ display: 'block', fontSize: '0.75rem', color: 'var(--texto-muted)', marginBottom: '5px' }}
+            >
+              Tem um código de indicação? <span style={{ fontWeight: 400 }}>(opcional)</span>
+            </label>
+            <input
+              id="ref-code-hero"
+              type="text"
+              value={refCode}
+              onChange={handleRefChange}
+              onBlur={handleRefBlur}
+              maxLength={7}
+              placeholder="Ex: ABC1234"
+              style={{
+                width: '100%',
+                padding: '9px 14px',
+                background: 'rgba(255,255,255,0.85)',
+                border: '1px solid var(--borda)',
+                borderRadius: '10px',
+                color: 'var(--texto)',
+                fontSize: '0.9rem',
+                fontFamily: 'inherit',
+                letterSpacing: '2px',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
           <p className="hero-note">
             Já tem conta?{' '}
             <a href="/login?next=/dashboard/bolao" style={{ color: 'var(--verde)', textDecoration: 'none', fontWeight: 700 }}>
@@ -414,33 +445,6 @@ export default function BolaoPage() {
           DE VOCÊ
         </h2>
         <p className="cta-sub">Palpite nos jogos e dispute o Premium vitalício.</p>
-        <div style={{ margin: '0 auto 24px', maxWidth: '320px', textAlign: 'left' }}>
-          <label htmlFor="ref-code" style={{ display: 'block', fontSize: '0.8rem', color: 'var(--texto-muted)', marginBottom: '6px' }}>
-            Tem um código de indicação? <span style={{ fontWeight: 400 }}>(opcional)</span>
-          </label>
-          <input
-            id="ref-code"
-            type="text"
-            value={refCode}
-            onChange={handleRefChange}
-            onBlur={handleRefBlur}
-            maxLength={7}
-            placeholder="Ex: ABC1234"
-            style={{
-              width: '100%',
-              padding: '10px 14px',
-              background: '#fff',
-              border: '1px solid var(--borda)',
-              borderRadius: '10px',
-              color: 'var(--texto)',
-              fontSize: '1rem',
-              fontFamily: 'inherit',
-              letterSpacing: '2px',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
         <a href="/login" className="btn-hero" style={{ display: 'inline-flex' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
