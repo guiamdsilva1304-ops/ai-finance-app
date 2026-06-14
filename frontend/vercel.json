@@ -60,9 +60,5 @@
       "path": "/api/cron/parcela-alert",
       "schedule": "0 7 * * *"
     },
-    {
-      "path": "/api/cron/bolao-results",
-      "schedule": "0 * * * *"
-    }
   ]
 }
