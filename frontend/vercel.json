@@ -59,6 +59,6 @@
     {
       "path": "/api/cron/parcela-alert",
       "schedule": "0 7 * * *"
-    },
+    }
   ]
 }
