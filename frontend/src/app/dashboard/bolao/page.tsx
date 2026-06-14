@@ -153,6 +153,8 @@ export default function BolaoPage() {
   const [saving, setSaving] = useState<number | null>(null);
   const [saved, setSaved] = useState<Set<number>>(new Set());
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const [myRefCode, setMyRefCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -160,15 +162,17 @@ export default function BolaoPage() {
     if (!user) { window.location.href = '/login'; return; }
     setUserId(user.id);
 
-    const [mRes, pRes, rRes] = await Promise.all([
+    const [mRes, pRes, rRes, profRes] = await Promise.all([
       supabase.from('world_cup_matches').select('*').neq('home_team', 'TBD').order('match_number'),
       supabase.from('world_cup_predictions').select('*').eq('user_id', user.id),
       supabase.from('world_cup_ranking').select('*').order('ranking').limit(30),
+      supabase.from('user_profiles').select('referral_code').eq('user_id', user.id).single(),
     ]);
 
     const mList: Match[] = mRes.data ?? [];
     const pList: Prediction[] = pRes.data ?? [];
     const rList: RankRow[] = rRes.data ?? [];
+    if (profRes.data?.referral_code) setMyRefCode(profRes.data.referral_code);
 
     setMatches(mList);
 
@@ -212,6 +216,14 @@ export default function BolaoPage() {
       away_score_pred: inp.away, points_earned: null,
     }));
     setSaving(null);
+  }
+
+  function copyLink() {
+    if (!myRefCode) return;
+    navigator.clipboard.writeText(`https://imoney.ia.br/bolao?ref=${myRefCode}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   }
 
   function setInp(matchId: number, side: 'home' | 'away', v: number) {
@@ -285,6 +297,49 @@ export default function BolaoPage() {
           <span style={{ fontSize: 13, fontWeight: 700, color: upcoming.length > 0 ? C.green500 : 'var(--text-3)' }}>{upcoming.length} jogos abertos</span>
         </div>
       </div>
+
+      {/* Indique e ganhe */}
+      {myRefCode && (
+        <div style={{ marginBottom: 24, background: 'var(--bg-card)', border: `1px solid ${C.green500}30`, borderRadius: 14, padding: '18px 20px' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: C.green500, marginBottom: 14 }}>
+            Indique e ganhe
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 4 }}>Seu código de indicação</div>
+              <div style={{ fontFamily: FONT, fontSize: 28, fontWeight: 900, color: C.green500, letterSpacing: 6, lineHeight: 1, marginBottom: 10 }}>
+                {myRefCode}
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, margin: 0 }}>
+                Cada amigo que entrar pelo seu link vale pontos extras.<br />
+                O 3º lugar do ranking leva desconto na assinatura por 1 ano.
+              </p>
+            </div>
+            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 200 }}>
+              <div style={{
+                background: 'var(--bg-page)', border: '1px solid var(--border)', borderRadius: 8,
+                padding: '8px 12px', fontSize: 11, color: 'var(--text-3)',
+                fontFamily: 'monospace', wordBreak: 'break-all', letterSpacing: 0.5,
+              }}>
+                imoney.ia.br/bolao?ref={myRefCode}
+              </div>
+              <button
+                onClick={copyLink}
+                style={{
+                  padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+                  fontFamily: FONT, fontWeight: 800, fontSize: 13,
+                  background: copied ? `${C.green500}20` : C.green500,
+                  color: copied ? C.green500 : '#000',
+                  outline: copied ? `1px solid ${C.green500}` : 'none',
+                  transition: 'background 0.2s, color 0.2s',
+                }}
+              >
+                {copied ? '✓ Link copiado!' : '🔗 Copiar link de indicação'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 4 }}>

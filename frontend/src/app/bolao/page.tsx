@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { captureRefFromUrl, saveRefManual, getStoredRef } from '@/lib/referral';
 import { Logo } from '@/components/ui/Logo';
-import { createSupabaseBrowser } from '@/lib/supabase';
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
@@ -145,32 +144,6 @@ footer { padding: 32px clamp(1rem,5vw,3rem); border-top: 1px solid var(--borda);
 
 export default function BolaoPage() {
   const [refCode, setRefCode] = useState('');
-  const [myRefCode, setMyRefCode] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  // Busca o próprio referral_code se estiver logado
-  useEffect(() => {
-    const supabase = createSupabaseBrowser();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase
-        .from('user_profiles')
-        .select('referral_code')
-        .eq('user_id', user.id)
-        .single()
-        .then(({ data }) => {
-          if (data?.referral_code) setMyRefCode(data.referral_code);
-        });
-    });
-  }, []);
-
-  function copyLink() {
-    if (!myRefCode) return;
-    navigator.clipboard.writeText(`https://imoney.ia.br/bolao?ref=${myRefCode}`).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
 
   function handleRefChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
@@ -432,54 +405,6 @@ export default function BolaoPage() {
           </a>
         </div>
       </section>
-
-      {myRefCode && (
-        <section aria-labelledby="indique" style={{ textAlign: 'center', background: '#fff', padding: 'clamp(64px,10vw,120px) clamp(1rem,5vw,3rem)' }}>
-          <p className="section-label">Indique e ganhe</p>
-          <h2 className="section-title" id="indique" style={{ marginBottom: 16 }}>Leve amigos,<br />suba no ranking</h2>
-          <p style={{ color: 'var(--texto-muted)', fontSize: '1rem', maxWidth: 440, margin: '0 auto 36px', lineHeight: 1.6 }}>
-            Cada amigo que entrar pelo seu link vale pontos extras no ranking.
-            Invista no seu sonho — o 3º lugar do ranking geral leva desconto na assinatura iMoney por 1 ano.
-          </p>
-          <div style={{
-            background: 'var(--superficie)', border: '2px solid var(--borda)',
-            borderRadius: 20, padding: 'clamp(28px,5vw,48px)',
-            display: 'inline-block', minWidth: 'min(360px, 90vw)', textAlign: 'center',
-            boxShadow: '0 4px 24px rgba(0,200,83,0.08)',
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--texto-muted)', marginBottom: 8 }}>
-              Seu código de indicação
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-display)', fontSize: 'clamp(2.8rem,9vw,4rem)',
-              color: 'var(--verde)', letterSpacing: 8, lineHeight: 1, marginBottom: 20,
-            }}>
-              {myRefCode}
-            </div>
-            <div style={{
-              background: '#fff', border: '1px solid var(--borda)', borderRadius: 10,
-              padding: '10px 16px', fontSize: 13, color: 'var(--texto-muted)',
-              marginBottom: 20, wordBreak: 'break-all', fontFamily: 'monospace',
-              letterSpacing: 0.5,
-            }}>
-              imoney.ia.br/bolao?ref={myRefCode}
-            </div>
-            <button
-              onClick={copyLink}
-              style={{
-                width: '100%', padding: '14px 0', borderRadius: 12, border: 'none',
-                cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 800, fontSize: 15,
-                background: copied ? '#e8f5e9' : 'var(--verde)',
-                color: copied ? 'var(--verde)' : '#fff',
-                outline: copied ? '1px solid var(--verde)' : 'none',
-                transition: 'background 0.2s, color 0.2s',
-              }}
-            >
-              {copied ? '✓ Link copiado!' : '🔗 Copiar link de indicação'}
-            </button>
-          </div>
-        </section>
-      )}
 
       <section className="cta-section">
         <p className="section-label">Falta pouco</p>
