@@ -800,14 +800,6 @@ Seja humano, direto e específico. Não faça questionário, faça conversa.`;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-envia a pergunta vinda do dashboard (?q=) uma única vez
-  useEffect(() => {
-    if (!historyLoaded || autoSentRef.current) return;
-    if (!qInicial) return;
-    autoSentRef.current = true;
-    send(qInicial);
-  }, [historyLoaded, qInicial, send]);
-
   const send = useCallback(async (text: string) => {
     const content = text.trim();
     if (!content || loading) return;
@@ -933,6 +925,14 @@ Seja humano, direto e específico. Não faça questionário, faça conversa.`;
       setLoading(false);
     }
   }, [messages, loading, supabase]);
+
+  // Auto-envia a pergunta vinda do dashboard (?q=) uma única vez
+  useEffect(() => {
+    if (!historyLoaded || autoSentRef.current) return;
+    if (!qInicial) return;
+    autoSentRef.current = true;
+    send(qInicial);
+  }, [historyLoaded, qInicial, send]);
 
   async function clearHistory() {
     if (!confirm("Apagar todo o histórico?")) return;
