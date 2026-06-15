@@ -8,6 +8,7 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 import { NPSToast } from "@/components/NPSToast";
 import { StreakBadgeCompact } from "@/components/imoney/StreakBadge";
+import { TrialBanner } from "@/components/imoney/TrialBanner";
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { isDark } = useTheme();
@@ -60,6 +61,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg-page)' }}>
+      <TrialBanner />
       {/* ── Bolão Copa 2026 — banner permanente ── */}
       {new Date() < new Date('2026-07-20') && (
         <Link
