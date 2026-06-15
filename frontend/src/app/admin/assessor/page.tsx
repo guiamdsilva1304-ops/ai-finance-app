@@ -49,10 +49,10 @@ export default function AdminAssessor() {
   };
 
   return (
-    <div className="flex h-full flex-col px-5 pb-5 pt-7 text-[#dff0e3]" style={{ fontFamily: "'Nunito','Segoe UI',sans-serif" }}>
+    <div className="flex h-full flex-col px-5 pb-5 pt-7 text-[#16241a]" style={{ fontFamily: "'Nunito','Segoe UI',sans-serif" }}>
       <div className="mx-auto flex w-full max-w-[800px] flex-1 flex-col">
-        <h1 className="mb-1 text-lg font-black text-white">💬 Assessor Admin</h1>
-        <p className="mb-4 text-xs text-[#3a6b45]">IA com as métricas da plataforma no contexto. Sem limite de mensagens.</p>
+        <h1 className="mb-1 text-lg font-black text-[#16241a]">💬 Assessor Admin</h1>
+        <p className="mb-4 text-xs text-[#5c7568]">IA com as métricas da plataforma no contexto. Sem limite de mensagens.</p>
 
         <div className="mb-3 flex flex-wrap gap-2">
           {CHIPS.map(c => (
@@ -60,26 +60,26 @@ export default function AdminAssessor() {
               key={c}
               onClick={() => enviar(c)}
               disabled={loading}
-              className="rounded-full border border-[#00C853]/15 bg-[#0e1a10] px-3 py-1.5 text-[11px] font-bold text-[#dff0e3]/70 hover:border-[#00C853]/40 disabled:opacity-50"
+              className="rounded-full border border-[#00C853]/15 bg-white px-3 py-1.5 text-[11px] font-bold text-[#16241a] hover:border-[#00C853]/40 disabled:opacity-50"
             >
               {c}
             </button>
           ))}
         </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-[#00C853]/10 bg-[#0e1a10] p-4">
+        <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-[#1a3a1a]/10 bg-white p-4">
           {msgs.length === 0 && (
-            <p className="py-10 text-center text-xs text-[#3a6b45]">
+            <p className="py-10 text-center text-xs text-[#5c7568]">
               Pergunte sobre usuários, engajamento, MRR ou crescimento — ou use as sugestões acima.
             </p>
           )}
           {msgs.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed ${
-                m.role === "user" ? "bg-[#00C853]/15 text-[#dff0e3]" : "bg-[#07100a] text-[#dff0e3]/90"
+                m.role === "user" ? "bg-[#00C853]/15 text-[#16241a]" : "bg-[#f5f8f5] text-[#16241a]"
               }`}>
                 {m.role === "assistant" ? (
-                  <div className="prose prose-sm prose-invert max-w-none prose-strong:text-[#00C853]">
+                  <div className="prose prose-sm max-w-none prose-strong:text-[#00803a]">
                     <ReactMarkdown>{m.content}</ReactMarkdown>
                   </div>
                 ) : (
@@ -95,7 +95,7 @@ export default function AdminAssessor() {
               ))}
             </div>
           )}
-          {erro && <p className="text-xs text-[#ff5252]">{erro}</p>}
+          {erro && <p className="text-xs text-[#d32f2f]">{erro}</p>}
           <div ref={bottomRef} />
         </div>
 
@@ -107,7 +107,7 @@ export default function AdminAssessor() {
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder="Pergunte sobre seus dados…"
-            className="flex-1 rounded-xl border border-[#00C853]/15 bg-[#0e1a10] px-4 py-3 text-[13px] text-[#dff0e3] outline-none placeholder:text-[#3a6b45] focus:border-[#00C853]/50"
+            className="flex-1 rounded-xl border border-[#00C853]/15 bg-white px-4 py-3 text-[13px] text-[#16241a] outline-none placeholder:text-[#5c7568] focus:border-[#00C853]/50"
           />
           <button
             type="submit"

@@ -38,27 +38,27 @@ export default function AdminDashboard() {
   }, [supabase]);
 
   return (
-    <div className="text-[#dff0e3]" style={{ fontFamily:"'Nunito','Segoe UI',sans-serif" }}>
+    <div className="text-[#16241a]" style={{ fontFamily:"'Nunito','Segoe UI',sans-serif" }}>
       <div className="mx-auto max-w-[1100px] px-5 pb-16 pt-7">
 
         {/* SAÚDE DO NEGÓCIO */}
-        <h2 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-[#3a6b45]">💚 Saúde do negócio</h2>
+        <h2 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-[#5c7568]">💚 Saúde do negócio</h2>
         <KpiHeader />
 
         {/* FUNIL DE AQUISIÇÃO */}
-        <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[#3a6b45]">🔻 Funil de aquisição</h2>
+        <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[#5c7568]">🔻 Funil de aquisição</h2>
         <FunnelChart />
 
         {/* LOOP VIRAL */}
-        <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[#3a6b45]">🔁 Loop viral — compartilhamento de conquistas</h2>
+        <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[#5c7568]">🔁 Loop viral — compartilhamento de conquistas</h2>
         <ShareLoopCard />
 
         {/* LISTA DE ESPERA */}
-        <div className="mt-8 rounded-2xl border border-[#00C853]/15 bg-[#0e1a10] p-5">
+        <div className="mt-8 rounded-2xl border border-[#00C853]/15 bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <div className="mb-0.5 text-[15px] font-extrabold text-white">🏦 Lista de Espera — Open Finance</div>
-              <div className="text-xs text-[#3a6b45]">{waitlist.length} pessoas interessadas</div>
+              <div className="mb-0.5 text-[15px] font-extrabold text-[#16241a]">🏦 Lista de Espera — Open Finance</div>
+              <div className="text-xs text-[#5c7568]">{waitlist.length} pessoas interessadas</div>
             </div>
             {waitlist.length > 0 && (
               <a
@@ -70,23 +70,23 @@ export default function AdminDashboard() {
             )}
           </div>
           {waitlist.length === 0 ? (
-            <div className="py-8 text-center text-[13px] text-[#3a6b45]">Nenhum cadastro ainda.</div>
+            <div className="py-8 text-center text-[13px] text-[#5c7568]">Nenhum cadastro ainda.</div>
           ) : (
             <table className="w-full border-collapse text-[13px]">
               <thead>
-                <tr className="border-b border-[#00C853]/10">
+                <tr className="border-b border-[#1a3a1a]/10">
                   {["E-mail","Data","Status"].map(h => (
-                    <th key={h} className="px-2.5 py-2 text-left text-[11px] font-bold uppercase text-[#3a6b45]">{h}</th>
+                    <th key={h} className="px-2.5 py-2 text-left text-[11px] font-bold uppercase text-[#5c7568]">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {waitlist.map((entry, i) => (
-                  <tr key={entry.id} className={`border-b border-[#00C853]/5 ${i % 2 === 0 ? "bg-[#00C853]/[0.02]" : ""}`}>
-                    <td className="px-2.5 py-2.5 font-semibold text-[#dff0e3]">{entry.email}</td>
-                    <td className="px-2.5 py-2.5 text-[#3a6b45]">{new Date(entry.created_at).toLocaleDateString("pt-BR")}</td>
+                  <tr key={entry.id} className={`border-b border-[#1a3a1a]/[0.05] ${i % 2 === 0 ? "bg-[#00C853]/[0.02]" : ""}`}>
+                    <td className="px-2.5 py-2.5 font-semibold text-[#16241a]">{entry.email}</td>
+                    <td className="px-2.5 py-2.5 text-[#5c7568]">{new Date(entry.created_at).toLocaleDateString("pt-BR")}</td>
                     <td className="px-2.5 py-2.5">
-                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] ${entry.user_id ? "bg-[#00C853]/15 text-[#00C853]" : "bg-white/5 text-[#6b8f72]"}`}>
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] ${entry.user_id ? "bg-[#00C853]/15 text-[#00C853]" : "bg-[#1a3a1a]/[0.06] text-[#5c7568]"}`}>
                         {entry.user_id ? "Usuário cadastrado" : "Visitante"}
                       </span>
                     </td>
@@ -98,17 +98,17 @@ export default function AdminDashboard() {
         </div>
 
         {/* CENTRAL DE AGENTES */}
-        <h1 className="mb-1 mt-10 text-[26px] font-black tracking-tight text-white">Central de Agentes</h1>
-        <p className="mb-5 text-sm text-[#6b8f72]">Status real de execução — dados de agent_logs e agent_budgets.</p>
+        <h1 className="mb-1 mt-10 text-[26px] font-black tracking-tight text-[#16241a]">Central de Agentes</h1>
+        <p className="mb-5 text-sm text-[#5c7568]">Status real de execução — dados de agent_logs e agent_budgets.</p>
         <AgentCards />
 
-        <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[#3a6b45]">🧰 Ferramentas</h2>
+        <h2 className="mb-3 mt-8 text-[13px] font-bold uppercase tracking-wider text-[#5c7568]">🧰 Ferramentas</h2>
         <div className="flex flex-wrap gap-2">
           {AGENTS.filter(a => a.status === "ativo").map(a => (
             <button
               key={a.id}
               onClick={() => router.push(a.href)}
-              className="rounded-xl border border-[#00C853]/15 bg-[#0e1a10] px-3.5 py-2 text-xs font-bold text-[#dff0e3]/80 hover:border-[#00C853]/40"
+              className="rounded-xl border border-[#00C853]/15 bg-white px-3.5 py-2 text-xs font-bold text-[#16241a] hover:border-[#00C853]/40"
             >
               {a.icon} {a.name}
             </button>

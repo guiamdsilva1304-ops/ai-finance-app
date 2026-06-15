@@ -107,44 +107,44 @@ export default function AdminBolao() {
 
   if (loading) {
     return (
-      <div className="px-5 pb-16 pt-7 text-[#dff0e3]" style={{ fontFamily: "'Nunito','Segoe UI',sans-serif" }}>
+      <div className="px-5 pb-16 pt-7 text-[#16241a]" style={{ fontFamily: "'Nunito','Segoe UI',sans-serif" }}>
         <div className="mx-auto max-w-[900px]">
-          <p className="text-sm text-[#3a6b45]">Carregando jogos…</p>
+          <p className="text-sm text-[#5c7568]">Carregando jogos…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="px-5 pb-16 pt-7 text-[#dff0e3]" style={{ fontFamily: "'Nunito','Segoe UI',sans-serif" }}>
+    <div className="px-5 pb-16 pt-7 text-[#16241a]" style={{ fontFamily: "'Nunito','Segoe UI',sans-serif" }}>
       <div className="mx-auto max-w-[900px]">
-        <h1 className="mb-1 text-lg font-black text-white">⚽ Bolão Copa 2026</h1>
-        <p className="mb-6 text-xs text-[#3a6b45]">
+        <h1 className="mb-1 text-lg font-black text-[#16241a]">⚽ Bolão Copa 2026</h1>
+        <p className="mb-6 text-xs text-[#5c7568]">
           Registre os placares manualmente. Ao salvar, os pontos dos palpites são calculados automaticamente.
         </p>
 
         {matches.length === 0 && (
-          <div className="rounded-2xl border border-[#00C853]/15 bg-[#0e1a10] px-4 py-10 text-center text-sm text-[#3a6b45]">
+          <div className="rounded-2xl border border-[#00C853]/15 bg-white px-4 py-10 text-center text-sm text-[#5c7568]">
             Nenhum jogo cadastrado ainda.
           </div>
         )}
 
         <div className="space-y-6">
           {grouped.map(({ dateKey, items }) => (
-            <div key={dateKey} className="rounded-2xl border border-[#00C853]/15 bg-[#0e1a10] overflow-hidden">
+            <div key={dateKey} className="rounded-2xl border border-[#00C853]/15 bg-white overflow-hidden">
               {/* Cabeçalho do dia */}
-              <div className="border-b border-[#00C853]/15 bg-[#0a1408] px-4 py-2.5">
+              <div className="border-b border-[#00C853]/15 bg-[#f5f8f5] px-4 py-2.5">
                 <span className="text-[13px] font-extrabold text-[#00C853]">
                   {formatDayHeader(dateKey)}
                 </span>
               </div>
 
               {/* Header de colunas */}
-              <div className="grid grid-cols-[56px_1fr_130px_110px] border-b border-[#00C853]/10 px-4 py-1.5">
-                <span className="text-[10px] font-bold uppercase text-[#3a6b45]">Hora</span>
-                <span className="text-[10px] font-bold uppercase text-[#3a6b45]">Jogo</span>
-                <span className="text-[10px] font-bold uppercase text-[#3a6b45]">Fase</span>
-                <span className="text-[10px] font-bold uppercase text-[#3a6b45]">Resultado</span>
+              <div className="grid grid-cols-[56px_1fr_130px_110px] border-b border-[#1a3a1a]/10 px-4 py-1.5">
+                <span className="text-[10px] font-bold uppercase text-[#5c7568]">Hora</span>
+                <span className="text-[10px] font-bold uppercase text-[#5c7568]">Jogo</span>
+                <span className="text-[10px] font-bold uppercase text-[#5c7568]">Fase</span>
+                <span className="text-[10px] font-bold uppercase text-[#5c7568]">Resultado</span>
               </div>
 
               {/* Linhas de jogos */}
@@ -157,21 +157,21 @@ export default function AdminBolao() {
                   <div
                     key={m.id}
                     className={`grid grid-cols-[56px_1fr_130px_110px] items-center gap-0 px-4 py-3 ${
-                      i % 2 === 0 ? "bg-[#0e1a10]" : "bg-[#0a1408]"
+                      i % 2 === 0 ? "bg-white" : "bg-[#f5f8f5]"
                     } ${finished ? "opacity-70" : ""}`}
                   >
                     {/* Hora BRT */}
-                    <span className="text-[12px] text-[#7aaa87]">{formatTime(m.match_date)}</span>
+                    <span className="text-[12px] text-[#5c7568]">{formatTime(m.match_date)}</span>
 
                     {/* Times */}
                     <div className="min-w-0">
-                      <span className="block truncate text-[13px] font-bold text-white">
-                        {m.home_team} <span className="text-[#3a6b45]">×</span> {m.away_team}
+                      <span className="block truncate text-[13px] font-bold text-[#16241a]">
+                        {m.home_team} <span className="text-[#5c7568]">×</span> {m.away_team}
                       </span>
                     </div>
 
                     {/* Fase */}
-                    <span className="truncate text-[11px] text-[#3a6b45]">
+                    <span className="truncate text-[11px] text-[#5c7568]">
                       {m.stage ?? "—"}
                     </span>
 
@@ -190,16 +190,16 @@ export default function AdminBolao() {
                               value={s.home}
                               onChange={e => setScores(p => ({ ...p, [m.id]: { ...p[m.id], home: e.target.value } }))}
                               placeholder="—"
-                              className="w-9 rounded-lg border border-[#00C853]/20 bg-[#07100a] px-1.5 py-1 text-center text-[13px] font-bold text-white outline-none focus:border-[#00C853]/60"
+                              className="w-9 rounded-lg border border-[#00C853]/20 bg-white px-1.5 py-1 text-center text-[13px] font-bold text-[#16241a] outline-none focus:border-[#00C853]/60"
                             />
-                            <span className="text-[11px] text-[#3a6b45]">×</span>
+                            <span className="text-[11px] text-[#5c7568]">×</span>
                             <input
                               type="number"
                               min={0}
                               value={s.away}
                               onChange={e => setScores(p => ({ ...p, [m.id]: { ...p[m.id], away: e.target.value } }))}
                               placeholder="—"
-                              className="w-9 rounded-lg border border-[#00C853]/20 bg-[#07100a] px-1.5 py-1 text-center text-[13px] font-bold text-white outline-none focus:border-[#00C853]/60"
+                              className="w-9 rounded-lg border border-[#00C853]/20 bg-white px-1.5 py-1 text-center text-[13px] font-bold text-[#16241a] outline-none focus:border-[#00C853]/60"
                             />
                             <button
                               onClick={() => salvar(m)}
@@ -210,10 +210,10 @@ export default function AdminBolao() {
                             </button>
                           </div>
                           {isFuture && (
-                            <p className="text-[10px] text-[#3a6b45]">ainda não começou</p>
+                            <p className="text-[10px] text-[#5c7568]">ainda não começou</p>
                           )}
                           {s.error && (
-                            <p className="text-[10px] text-[#ff5252]">{s.error}</p>
+                            <p className="text-[10px] text-[#d32f2f]">{s.error}</p>
                           )}
                         </div>
                       )}
