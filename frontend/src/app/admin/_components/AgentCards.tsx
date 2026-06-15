@@ -109,8 +109,8 @@ export default function AgentCards() {
     else alert((await r.json()).error ?? "Erro no toggle");
   };
 
-  if (erro) return <p className="rounded-xl border border-[#ff5252]/30 bg-[#ff5252]/5 p-3 text-xs text-[#ff5252]">Agentes indisponíveis: {erro}</p>;
-  if (!agents) return <div className="h-48 animate-pulse rounded-2xl bg-[#0e1a10]" />;
+  if (erro) return <p className="rounded-xl border border-[#d32f2f]/30 bg-[#d32f2f]/5 p-3 text-xs text-[#d32f2f]">Agentes indisponíveis: {erro}</p>;
+  if (!agents) return <div className="h-48 animate-pulse rounded-2xl bg-[#1a3a1a]/[0.06]" />;
 
   return (
     <>
@@ -119,19 +119,19 @@ export default function AgentCards() {
           const status = a.isPaused ? "inativo" : a.ultimoNivel === "error" ? "erro" : "ativo";
           const prox = a.cron && !a.isPaused ? proximaExecucao(a.cron, agora) : null;
           return (
-            <div key={a.id} className="rounded-2xl border border-[#00C853]/10 bg-[#0e1a10] p-4">
+            <div key={a.id} className="rounded-2xl border border-[#1a3a1a]/10 bg-white p-4">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <span className="text-xl">{a.emoji}</span>
                   <div>
-                    <p className="text-[14px] font-extrabold text-white">{a.nome}</p>
-                    <p className="text-[10px] text-[#3a6b45]">{a.cronLabel}</p>
+                    <p className="text-[14px] font-extrabold text-[#16241a]">{a.nome}</p>
+                    <p className="text-[10px] text-[#5c7568]">{a.cronLabel}</p>
                   </div>
                 </div>
                 <span className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase ${
                   status === "ativo" ? "bg-[#00C853]/10 text-[#00C853]"
-                  : status === "erro" ? "bg-[#ff5252]/10 text-[#ff5252]"
-                  : "bg-white/5 text-[#6b8f72]"
+                  : status === "erro" ? "bg-[#d32f2f]/10 text-[#d32f2f]"
+                  : "bg-[#1a3a1a]/[0.06] text-[#5c7568]"
                 }`}>
                   {status === "ativo" && (
                     <span className="relative flex h-1.5 w-1.5">
@@ -139,33 +139,33 @@ export default function AgentCards() {
                       <span className="relative h-1.5 w-1.5 rounded-full bg-[#00C853]" />
                     </span>
                   )}
-                  {status === "erro" && <span className="h-1.5 w-1.5 rounded-full bg-[#ff5252]" />}
-                  {status === "inativo" && <span className="h-1.5 w-1.5 rounded-full bg-[#6b8f72]" />}
+                  {status === "erro" && <span className="h-1.5 w-1.5 rounded-full bg-[#d32f2f]" />}
+                  {status === "inativo" && <span className="h-1.5 w-1.5 rounded-full bg-[#5c7568]" />}
                   {status}
                 </span>
               </div>
 
-              <p className="text-[11px] text-[#3a6b45]">Última execução: <span className="text-[#dff0e3]/70">{relativo(a.ultimaExecucao)}</span></p>
-              <p className="mt-1 min-h-[32px] text-[12px] leading-snug text-[#dff0e3]/80">
+              <p className="text-[11px] text-[#5c7568]">Última execução: <span className="text-[#16241a]">{relativo(a.ultimaExecucao)}</span></p>
+              <p className="mt-1 min-h-[32px] text-[12px] leading-snug text-[#16241a]">
                 {a.ultimoResumo ?? "Sem execuções registradas."}
               </p>
               {prox && (
                 <p className="mt-1 text-[11px] font-bold text-[#00C853]">⏱ Próxima: {countdown(prox, agora)}</p>
               )}
               {a.usdUsed !== null && a.usdLimit !== null && a.usdLimit > 0 && (
-                <p className="mt-1 text-[10px] text-[#3a6b45]">Budget: ${a.usdUsed.toFixed(2)} / ${a.usdLimit.toFixed(2)}</p>
+                <p className="mt-1 text-[10px] text-[#5c7568]">Budget: ${a.usdUsed.toFixed(2)} / ${a.usdLimit.toFixed(2)}</p>
               )}
 
               <div className="mt-3 flex items-center justify-between">
                 <button
                   onClick={() => abrirLogs(a)}
-                  className="rounded-lg border border-white/15 px-2.5 py-1 text-[11px] font-bold text-[#dff0e3]/70 hover:bg-white/5"
+                  className="rounded-lg border border-[#1a3a1a]/15 px-2.5 py-1 text-[11px] font-bold text-[#5c7568] hover:bg-[#1a3a1a]/[0.06]"
                 >
                   📜 Log
                 </button>
                 <button
                   onClick={() => toggle(a)}
-                  className={`relative h-6 w-11 rounded-full transition-colors ${a.isPaused ? "bg-white/10" : "bg-[#00C853]"}`}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${a.isPaused ? "bg-[#1a3a1a]/[0.06]" : "bg-[#00C853]"}`}
                   title={a.isPaused ? "Ativar agente" : "Pausar agente"}
                 >
                   <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${a.isPaused ? "left-0.5" : "left-[22px]"}`} />
@@ -180,30 +180,30 @@ export default function AgentCards() {
       {logsDe && (
         <>
           <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setLogsDe(null)} />
-          <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto border-l border-[#00C853]/15 bg-[#0a1a0a] p-5">
+          <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto border-l border-[#1a3a1a]/15 bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-extrabold text-white">{logsDe.emoji} Logs — {logsDe.nome}</h3>
-              <button onClick={() => setLogsDe(null)} className="text-[#3a6b45] hover:text-white">✕</button>
+              <h3 className="text-sm font-extrabold text-[#16241a]">{logsDe.emoji} Logs — {logsDe.nome}</h3>
+              <button onClick={() => setLogsDe(null)} className="text-[#5c7568] hover:text-[#16241a]">✕</button>
             </div>
-            {!logs && <div className="h-32 animate-pulse rounded-xl bg-[#0e1a10]" />}
-            {logs && logs.length === 0 && <p className="text-xs text-[#3a6b45]">Nenhum log registrado.</p>}
+            {!logs && <div className="h-32 animate-pulse rounded-xl bg-[#1a3a1a]/[0.06]" />}
+            {logs && logs.length === 0 && <p className="text-xs text-[#5c7568]">Nenhum log registrado.</p>}
             <div className="space-y-2.5">
               {(logs ?? []).map(l => (
-                <div key={l.id} className="rounded-xl border border-white/5 bg-[#0e1a10] p-3">
+                <div key={l.id} className="rounded-xl border border-[#1a3a1a]/[0.05] bg-white p-3">
                   <div className="mb-1 flex items-center justify-between">
                     <span className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase ${
-                      l.level === "error" ? "bg-[#ff5252]/15 text-[#ff5252]"
-                      : l.level === "warning" ? "bg-[#F9A825]/15 text-[#F9A825]"
+                      l.level === "error" ? "bg-[#d32f2f]/15 text-[#d32f2f]"
+                      : l.level === "warning" ? "bg-[#F9A825]/15 text-[#a16207]"
                       : l.level === "success" ? "bg-[#00C853]/15 text-[#00C853]"
-                      : "bg-white/10 text-[#dff0e3]/60"
+                      : "bg-[#1a3a1a]/[0.06] text-[#5c7568]"
                     }`}>{l.level}</span>
-                    <span className="text-[10px] text-[#3a6b45]">
+                    <span className="text-[10px] text-[#5c7568]">
                       {new Date(l.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
-                  <p className="text-[12px] font-bold text-[#dff0e3]">{l.action}</p>
-                  {l.summary && <p className="mt-0.5 text-[11px] text-[#dff0e3]/70">{l.summary}</p>}
-                  <p className="mt-1 text-[10px] text-[#3a6b45]">
+                  <p className="text-[12px] font-bold text-[#16241a]">{l.action}</p>
+                  {l.summary && <p className="mt-0.5 text-[11px] text-[#16241a]">{l.summary}</p>}
+                  <p className="mt-1 text-[10px] text-[#5c7568]">
                     {l.tokens_used ? `${l.tokens_used} tokens` : ""}{l.tokens_used && l.duration_ms ? " · " : ""}{l.duration_ms ? `${(l.duration_ms / 1000).toFixed(1)}s` : ""}
                   </p>
                 </div>
