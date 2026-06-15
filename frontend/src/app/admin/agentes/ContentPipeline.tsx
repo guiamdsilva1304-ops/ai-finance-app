@@ -72,8 +72,8 @@ export default function ContentPipeline() {
               cursor: 'pointer',
               fontWeight: 600,
               fontSize: 14,
-              background: filter === f ? '#00C853' : '#222',
-              color: 'white',
+              background: filter === f ? '#00C853' : '#f0f5f1',
+              color: filter === f ? '#0a1f0a' : '#16241a',
             }}
           >
             {STATUS_LABELS[f]}
