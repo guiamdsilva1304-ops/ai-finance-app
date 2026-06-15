@@ -31,7 +31,7 @@ const FLAGS: Record<string, string> = {
   'Costa do Marfim':'🇨🇮','RD Congo':'🇨🇩','Cabo Verde':'🇨🇻','Tunísia':'🇹🇳',
   'Argélia':'🇩🇿','Arábia Saudita':'🇸🇦','Irã':'🇮🇷','Iraque':'🇮🇶','Jordânia':'🇯🇴',
   'Catar':'🇶🇦','Suíça':'🇨🇭','Rep. Tcheca':'🇨🇿','Croácia':'🇭🇷','Escócia':'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
-  'Áustria':'🇦🇹','Ucrânia':'🇺🇦','Noruega':'🇳🇴','Colômbia':'🇨🇴','Equador':'🇪🇨',
+  'Áustria':'🇦🇹','Suécia':'🇸🇪','Noruega':'🇳🇴','Colômbia':'🇨🇴','Equador':'🇪🇨',
   'Paraguai':'🇵🇾','Haiti':'🇭🇹','Panamá':'🇵🇦','Nova Zelândia':'🇳🇿','Kosovo':'🇽🇰',
   'Bósnia-Herzegovina':'🇧🇦','Curaçao':'🇨🇼','Uzbequistão':'🇺🇿','TBD':'🏳️',
 };

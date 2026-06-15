@@ -52,7 +52,6 @@ const TEAM_MAP: Record<string, string> = {
   'Switzerland': 'Suíça',
   'Tunisia': 'Tunísia',
   'Turkey': 'Turquia',
-  'Ukraine': 'Ucrânia',
   'Uruguay': 'Uruguai',
   'USA': 'Estados Unidos',
   'Uzbekistan': 'Uzbequistão',
