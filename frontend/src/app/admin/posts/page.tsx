@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const C = { green:"#00C853", greenGlow:"rgba(0,200,83,0.12)", bg:"#07100a", s1:"#0e1a10", s2:"#152018", s3:"#1c2b1e", border:"rgba(0,200,83,0.16)", text:"#dff0e3", muted:"#6b8f72", white:"#ffffff", red:"#ff5252" };
+const C = { green:"#00C853", greenGlow:"rgba(0,200,83,0.12)", bg:"#f5f8f5", s1:"#ffffff", s2:"#f5f8f5", s3:"#f0fdf4", border:"rgba(0,200,83,0.16)", text:"#16241a", muted:"#5c7568", white:"#ffffff", red:"#d32f2f" };
 
 const PLATFORMS = ["instagram","tiktok","twitter","linkedin","whatsapp"];
 const MONTHS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
