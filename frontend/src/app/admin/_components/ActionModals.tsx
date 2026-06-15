@@ -29,13 +29,13 @@ function Modal({ titulo, onClose, children }: { titulo: string; onClose: () => v
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-2xl border border-[#00C853]/20 bg-[#0e1a10] p-5"
+        className="w-full max-w-md rounded-2xl border border-[#00C853]/20 bg-white p-5"
         onClick={e => e.stopPropagation()}
         style={{ fontFamily: "'Nunito','Segoe UI',sans-serif" }}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-extrabold text-white">{titulo}</h3>
-          <button onClick={onClose} className="text-[#3a6b45] hover:text-white">✕</button>
+          <h3 className="text-sm font-extrabold text-[#16241a]">{titulo}</h3>
+          <button onClick={onClose} className="text-[#5c7568] hover:text-[#16241a]">✕</button>
         </div>
         {children}
       </div>
@@ -54,7 +54,7 @@ export function WhatsAppModal({ alvo, onClose }: { alvo: AlvoContato; onClose: (
         value={texto}
         onChange={e => setTexto(e.target.value)}
         rows={5}
-        className="w-full rounded-xl border border-[#00C853]/15 bg-[#07100a] p-3 text-[13px] text-[#dff0e3] outline-none focus:border-[#00C853]/50"
+        className="w-full rounded-xl border border-[#00C853]/15 bg-white p-3 text-[13px] text-[#16241a] outline-none focus:border-[#00C853]/50"
       />
       <div className="mt-3 flex gap-2">
         <a
@@ -76,7 +76,7 @@ export function WhatsAppModal({ alvo, onClose }: { alvo: AlvoContato; onClose: (
           {copiado ? "✓ Copiado" : "Copiar"}
         </button>
       </div>
-      <p className="mt-2 text-[10px] text-[#3a6b45]">Abre o WhatsApp Web/app com a mensagem pronta — envio pela API oficial chega na fase do canal WhatsApp.</p>
+      <p className="mt-2 text-[10px] text-[#5c7568]">Abre o WhatsApp Web/app com a mensagem pronta — envio pela API oficial chega na fase do canal WhatsApp.</p>
     </Modal>
   );
 }
@@ -91,13 +91,13 @@ export function EmailModal({ alvo, onClose }: { alvo: AlvoContato; onClose: () =
       <input
         value={assunto}
         onChange={e => setAssunto(e.target.value)}
-        className="mb-2 w-full rounded-xl border border-[#00C853]/15 bg-[#07100a] p-2.5 text-[13px] text-[#dff0e3] outline-none focus:border-[#00C853]/50"
+        className="mb-2 w-full rounded-xl border border-[#00C853]/15 bg-white p-2.5 text-[13px] text-[#16241a] outline-none focus:border-[#00C853]/50"
       />
       <textarea
         value={corpo}
         onChange={e => setCorpo(e.target.value)}
         rows={7}
-        className="w-full rounded-xl border border-[#00C853]/15 bg-[#07100a] p-3 text-[13px] text-[#dff0e3] outline-none focus:border-[#00C853]/50"
+        className="w-full rounded-xl border border-[#00C853]/15 bg-white p-3 text-[13px] text-[#16241a] outline-none focus:border-[#00C853]/50"
       />
       <a
         href={`mailto:${alvo.email}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`}
@@ -105,7 +105,7 @@ export function EmailModal({ alvo, onClose }: { alvo: AlvoContato; onClose: () =
       >
         Abrir no cliente de email →
       </a>
-      <p className="mt-2 text-[10px] text-[#3a6b45]">Envio direto via Resend chega na fase do canal WhatsApp (junto com broadcast).</p>
+      <p className="mt-2 text-[10px] text-[#5c7568]">Envio direto via Resend chega na fase do canal WhatsApp (junto com broadcast).</p>
     </Modal>
   );
 }

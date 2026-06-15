@@ -25,7 +25,7 @@ function relativo(ts: string | null): string {
 }
 
 const PLAN_STYLE: Record<string, string> = {
-  free: "bg-white/10 text-[#dff0e3]/60",
+  free: "bg-[#1a3a1a]/[0.06] text-[#5c7568]",
   pro: "bg-[#00C853]/15 text-[#00C853]",
   premium: "bg-[#F9A825]/15 text-[#F9A825]",
 };
@@ -76,39 +76,39 @@ export default function CommandBar({ open, onClose }: { open: boolean; onClose: 
       style={{ fontFamily: "'Nunito','Segoe UI',sans-serif" }}
     >
       <div
-        className="w-full max-w-xl rounded-2xl border border-[#00C853]/20 bg-[#0e1a10] shadow-2xl"
+        className="w-full max-w-xl rounded-2xl border border-[#00C853]/20 bg-white shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 border-b border-[#00C853]/10 px-4">
-          <span className="text-[#3a6b45]">🔍</span>
+        <div className="flex items-center gap-3 border-b border-[#1a3a1a]/10 px-4">
+          <span className="text-[#5c7568]">🔍</span>
           <input
             ref={inputRef}
             value={q}
             onChange={e => setQ(e.target.value)}
             onKeyDown={e => { if (e.key === "Escape") onClose(); }}
             placeholder="Nome, email ou telefone…"
-            className="w-full bg-transparent py-3.5 text-sm text-[#dff0e3] placeholder-[#3a6b45] outline-none"
+            className="w-full bg-transparent py-3.5 text-sm text-[#16241a] placeholder-[#5c7568] outline-none"
           />
-          {buscando && <span className="text-xs text-[#3a6b45]">buscando…</span>}
+          {buscando && <span className="text-xs text-[#5c7568]">buscando…</span>}
         </div>
 
         <div className="max-h-[50vh] overflow-y-auto p-2">
-          {erro && <p className="px-3 py-4 text-xs text-[#ff5252]">{erro}</p>}
+          {erro && <p className="px-3 py-4 text-xs text-[#d32f2f]">{erro}</p>}
           {!erro && q.trim().length >= 2 && !buscando && hits.length === 0 && (
-            <p className="px-3 py-4 text-xs text-[#3a6b45]">Nenhum usuário encontrado.</p>
+            <p className="px-3 py-4 text-xs text-[#5c7568]">Nenhum usuário encontrado.</p>
           )}
           {!erro && q.trim().length < 2 && (
-            <p className="px-3 py-4 text-xs text-[#3a6b45]">Digite pelo menos 2 caracteres. Esc fecha.</p>
+            <p className="px-3 py-4 text-xs text-[#5c7568]">Digite pelo menos 2 caracteres. Esc fecha.</p>
           )}
           {hits.map(u => (
-            <div key={u.user_id} className="rounded-xl px-3 py-2.5 hover:bg-white/5">
+            <div key={u.user_id} className="rounded-xl px-3 py-2.5 hover:bg-[#1a3a1a]/[0.06]">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-extrabold text-[#dff0e3]">
+                  <p className="truncate text-sm font-extrabold text-[#16241a]">
                     {u.nome ?? u.email ?? "Sem nome"}
                     <span className={`ml-2 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold uppercase ${PLAN_STYLE[u.plan] ?? PLAN_STYLE.free}`}>{u.plan}</span>
                   </p>
-                  <p className="truncate text-[11px] text-[#3a6b45]">
+                  <p className="truncate text-[11px] text-[#5c7568]">
                     {u.email ?? "sem email"} {u.phone ? `· ${u.phone}` : ""} · {relativo(u.last_login_at)} · 🔥 {u.streak}d
                   </p>
                 </div>
@@ -121,7 +121,7 @@ export default function CommandBar({ open, onClose }: { open: boolean; onClose: 
                   </button>
                   <button
                     onClick={() => irPara(`/admin/usuarios?u=${u.user_id}&tab=tx`)}
-                    className="rounded-lg border border-white/15 px-2 py-1 text-[11px] font-bold text-[#dff0e3]/70 hover:bg-white/5"
+                    className="rounded-lg border border-[#1a3a1a]/15 px-2 py-1 text-[11px] font-bold text-[#5c7568] hover:bg-[#1a3a1a]/[0.06]"
                   >
                     📊 Transações
                   </button>

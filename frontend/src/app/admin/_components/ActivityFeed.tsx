@@ -57,13 +57,13 @@ export default function ActivityFeed() {
     return () => { ativo = false; clearInterval(timer); };
   }, []);
 
-  if (erro && !eventos) return <p className="rounded-xl border border-[#ff5252]/30 bg-[#ff5252]/5 p-3 text-xs text-[#ff5252]">Feed indisponível: {erro}</p>;
-  if (!eventos) return <div className="h-64 animate-pulse rounded-2xl bg-[#0e1a10]" />;
+  if (erro && !eventos) return <p className="rounded-xl border border-[#d32f2f]/30 bg-[#d32f2f]/5 p-3 text-xs text-[#d32f2f]">Feed indisponível: {erro}</p>;
+  if (!eventos) return <div className="h-64 animate-pulse rounded-2xl bg-[#1a3a1a]/[0.06]" />;
 
   return (
-    <div className="rounded-2xl border border-[#00C853]/10 bg-[#0e1a10]">
-      <div className="flex items-center justify-between border-b border-[#00C853]/10 px-4 py-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-[#3a6b45]">Ao vivo · atualiza a cada 10s</span>
+    <div className="rounded-2xl border border-[#1a3a1a]/10 bg-white">
+      <div className="flex items-center justify-between border-b border-[#1a3a1a]/10 px-4 py-3">
+        <span className="text-xs font-bold uppercase tracking-wider text-[#5c7568]">Ao vivo · atualiza a cada 10s</span>
         <span className="flex items-center gap-1.5 text-[10px] font-bold text-[#00C853]">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#00C853] opacity-60" />
@@ -73,20 +73,20 @@ export default function ActivityFeed() {
         </span>
       </div>
       <div className="max-h-[70vh] overflow-y-auto p-2">
-        {eventos.length === 0 && <p className="px-3 py-6 text-center text-xs text-[#3a6b45]">Nenhum evento ainda.</p>}
+        {eventos.length === 0 && <p className="px-3 py-6 text-center text-xs text-[#5c7568]">Nenhum evento ainda.</p>}
         {eventos.map(e => (
           <button
             key={e.id}
             onClick={() => e.user_id && router.push(`/admin/usuarios?u=${e.user_id}`)}
-            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/5 ${
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[#1a3a1a]/[0.06] ${
               novos.has(e.id) ? "bg-[#00C853]/[0.07]" : ""
             }`}
           >
             <span className="text-base">{e.icone}</span>
-            <span className="min-w-0 flex-1 truncate text-[13px] text-[#dff0e3]/85">
-              <strong className="font-extrabold text-[#dff0e3]">{e.nome}</strong> {e.descricao}
+            <span className="min-w-0 flex-1 truncate text-[13px] text-[#16241a]">
+              <strong className="font-extrabold text-[#16241a]">{e.nome}</strong> {e.descricao}
             </span>
-            <span className="shrink-0 text-[10px] text-[#3a6b45]">{relativo(e.ts)}</span>
+            <span className="shrink-0 text-[10px] text-[#5c7568]">{relativo(e.ts)}</span>
           </button>
         ))}
       </div>
