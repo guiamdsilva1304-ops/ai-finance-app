@@ -33,3 +33,4 @@ venv/
 .vercel
 node_modules/
 frontend/.env.local.vercel
+.env*
