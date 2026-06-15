@@ -46,10 +46,10 @@ export default function AdminSidebar({ open, onClose, onOpenCommandBar }: {
 
         <button
           onClick={onOpenCommandBar}
-          className="mx-4 mt-4 flex items-center justify-between rounded-xl border border-[#00C853]/15 bg-[#0e1a10] px-3 py-2 text-left text-xs text-[#3a6b45] hover:border-[#00C853]/40"
+          className="mx-4 mt-4 flex items-center justify-between rounded-xl border border-[#00C853]/15 bg-[#0e1a10] px-3 py-2 text-left text-xs text-[#86ad91] hover:border-[#00C853]/40"
         >
           <span>🔍 Buscar usuário…</span>
-          <kbd className="rounded bg-[#07100a] px-1.5 py-0.5 text-[10px] font-bold text-[#3a6b45]">⌘K</kbd>
+          <kbd className="rounded bg-[#07100a] px-1.5 py-0.5 text-[10px] font-bold text-[#86ad91]">⌘K</kbd>
         </button>
 
         <nav className="mt-4 flex-1 space-y-1 overflow-y-auto px-3">
