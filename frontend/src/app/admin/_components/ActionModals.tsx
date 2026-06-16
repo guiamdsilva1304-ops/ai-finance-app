@@ -85,6 +85,27 @@ export function EmailModal({ alvo, onClose }: { alvo: AlvoContato; onClose: () =
   const t = templateEmail(alvo.nome);
   const [assunto, setAssunto] = useState(t.assunto);
   const [corpo, setCorpo] = useState(t.corpo);
+  const [status, setStatus] = useState<"idle" | "sending" | "ok" | "err">("idle");
+  const [errMsg, setErrMsg] = useState("");
+
+  async function enviar() {
+    if (!alvo.email) { setErrMsg("Usuário sem email cadastrado"); setStatus("err"); return; }
+    setStatus("sending");
+    try {
+      const adminKey = typeof window !== "undefined" ? localStorage.getItem("imoney_admin_key") ?? "" : "";
+      const res = await fetch("/api/admin/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ to: alvo.email, subject: assunto, text: corpo }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro desconhecido");
+      setStatus("ok");
+    } catch (e: unknown) {
+      setErrMsg(e instanceof Error ? e.message : "Erro ao enviar");
+      setStatus("err");
+    }
+  }
 
   return (
     <Modal titulo={`✉️ Email para ${alvo.nome ?? alvo.email ?? ""}`} onClose={onClose}>
@@ -99,13 +120,21 @@ export function EmailModal({ alvo, onClose }: { alvo: AlvoContato; onClose: () =
         rows={7}
         className="w-full rounded-xl border border-[#00C853]/15 bg-white p-3 text-[13px] text-[#16241a] outline-none focus:border-[#00C853]/50"
       />
-      <a
-        href={`mailto:${alvo.email}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`}
-        className="mt-3 block rounded-xl bg-[#00C853] py-2.5 text-center text-[13px] font-extrabold text-[#0a1f0a]"
-      >
-        Abrir no cliente de email →
-      </a>
-      <p className="mt-2 text-[10px] text-[#5c7568]">Envio direto via Resend chega na fase do canal WhatsApp (junto com broadcast).</p>
+      {status === "ok" ? (
+        <div className="mt-3 rounded-xl bg-[#00C853]/10 py-2.5 text-center text-[13px] font-extrabold text-[#00803a]">
+          ✓ Email enviado para {alvo.email}
+        </div>
+      ) : (
+        <button
+          onClick={enviar}
+          disabled={status === "sending"}
+          className="mt-3 w-full rounded-xl bg-[#00C853] py-2.5 text-center text-[13px] font-extrabold text-[#0a1f0a] disabled:opacity-60"
+        >
+          {status === "sending" ? "Enviando…" : "Enviar email →"}
+        </button>
+      )}
+      {status === "err" && <p className="mt-1.5 text-[11px] text-[#d32f2f]">{errMsg}</p>}
+      <p className="mt-2 text-[10px] text-[#5c7568]">Enviado via Resend de gui@imoney.ia.br</p>
     </Modal>
   );
 }
