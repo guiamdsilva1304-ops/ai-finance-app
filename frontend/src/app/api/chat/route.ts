@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import { getBudgetContext } from "@/lib/budget-context";
 
 export const dynamic = 'force-dynamic'
 
@@ -579,11 +580,11 @@ Regras do plano:
 - Fase 1 sempre começa pelos fundamentos (reserva ou hábito)
 - Última fase inclui o marco final da conquista`
 
-    const [behaviorRules] = await Promise.all([getBehaviorRules()])
+    const [behaviorRules, budgetCtx] = await Promise.all([getBehaviorRules(), getBudgetContext(supabase, user.id)])
     const behaviorBlock = behaviorRules.trim()
       ? `\n\nREGRAS DE COMPORTAMENTO ADICIONAIS (atualizadas com base no feedback dos usuários):\n${behaviorRules.trim()}`
       : ''
-    const systemPrompt = (isPro ? systemPromptPro : systemPromptFree) + behaviorBlock
+    const systemPrompt = (isPro ? systemPromptPro : systemPromptFree) + behaviorBlock + (budgetCtx ? `\n\n${budgetCtx}` : '')
 
     // Semente do prompt na primeira requisição (fire-and-forget)
     seedPromptIfEmpty().catch(() => {})

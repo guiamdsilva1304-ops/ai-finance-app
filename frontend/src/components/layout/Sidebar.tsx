@@ -28,6 +28,7 @@ function buildNavItems(ocupacao?: string): { href: string; icon: IconName; label
     { href: "/dashboard",               icon: 'home'          as IconName, label: "Dashboard" },
     { href: "/dashboard/assessor",      icon: 'sparkles'      as IconName, label: "Assessor" },
     { href: "/dashboard/transacoes",    icon: 'wallet'        as IconName, label: "Transações" },
+    { href: "/dashboard/orcamento",     icon: 'piggy-bank'    as IconName, label: "Orçamento" },
     { href: "/dashboard/cartoes",       icon: 'credit-card'   as IconName, label: "Cartões" },
     { href: "/dashboard/metas",         icon: 'target'        as IconName, label: "Metas" },
     { href: "/dashboard/investimentos", icon: 'trending-up'   as IconName, label: "Investimentos" },
