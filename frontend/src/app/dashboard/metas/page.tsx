@@ -8,7 +8,8 @@ import { GoalCard } from "@/components/imoney/primitives";
 import { C, FONT } from "@/components/imoney/tokens";
 import { MetaCompletion, MilestoneToast, useMilestoneDetector } from "@/components/imoney/celebration";
 import type { Meta } from "@/types";
-import { fmtInt, metaEmoji, metaNomeLimpo } from "@/lib/utils";
+import { fmtInt, metaEmoji, metaNomeLimpo, formatBRL } from "@/lib/utils";
+import { calcularAporteMensal, CDI_TAXA_MENSAL } from "@/lib/finance";
 
 type MetaExt = Meta & { principal?: boolean };
 
@@ -128,6 +129,8 @@ export default function MetasPage() {
       valor_alvo: alvo, valor_atual: atual,
       prazo_meses: meses, criada_em: new Date().toISOString().split("T")[0],
       concluida: false,
+      taxa_mensal: CDI_TAXA_MENSAL,
+      taxa_atualizada_em: new Date().toISOString(),
     });
     setNome(""); setValorAlvo(""); setValorAtual(""); setPrazo("12");
     setShowForm(false); setSaving(false); load();
@@ -150,6 +153,8 @@ export default function MetasPage() {
       valor_alvo: alvo, valor_atual: 0,
       prazo_meses: meses, criada_em: new Date().toISOString().split("T")[0],
       concluida: false,
+      taxa_mensal: CDI_TAXA_MENSAL,
+      taxa_atualizada_em: new Date().toISOString(),
     }).select().single();
     setSaving(false);
     setShowOnboarding(false);
@@ -197,7 +202,7 @@ export default function MetasPage() {
 
   function calcAporte(meta: MetaExt): number {
     const falta = meta.valor_alvo - meta.valor_atual;
-    return falta > 0 && meta.prazo_meses > 0 ? falta / meta.prazo_meses : 0;
+    return calcularAporteMensal(falta, meta.taxa_mensal ?? CDI_TAXA_MENSAL, meta.prazo_meses);
   }
 
   const sorted = [
@@ -208,12 +213,16 @@ export default function MetasPage() {
 
   const mesesForm = parseInt(prazo) || 0;
   const aporteEstimado = valorAlvo && mesesForm > 0
-    ? (parseFloat(valorAlvo.replace(",", ".") || "0") - parseFloat(valorAtual.replace(",", ".") || "0")) / mesesForm
+    ? calcularAporteMensal(
+        parseFloat(valorAlvo.replace(",", ".") || "0") - parseFloat(valorAtual.replace(",", ".") || "0"),
+        CDI_TAXA_MENSAL,
+        mesesForm
+      )
     : null;
 
   const mesesOnb = parseInt(onboardingPrazo) || 0;
   const onbAporte = onboardingValor && mesesOnb > 0
-    ? parseFloat(onboardingValor.replace(",", ".") || "0") / mesesOnb
+    ? calcularAporteMensal(parseFloat(onboardingValor.replace(",", ".") || "0"), CDI_TAXA_MENSAL, mesesOnb)
     : null;
 
   return (
@@ -309,9 +318,10 @@ export default function MetasPage() {
                 {onbAporte !== null && !isNaN(onbAporte) && onbAporte > 0 && (
                   <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 14, padding: "14px 16px" }}>
                     <p style={{ fontSize: 11, fontWeight: 700, color: C.green500, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 6px" }}>SUGESTÃO DA IMONEY</p>
-                    <p style={{ fontSize: 14, color: C.green900, margin: 0, fontWeight: 600, fontFamily: FONT }}>
-                      Guardando R$ {fmtInt(onbAporte)}/mês, em {onboardingPrazo} meses você chega lá 🎯
+                    <p style={{ fontSize: 14, color: C.green900, margin: "0 0 4px", fontWeight: 600, fontFamily: FONT }}>
+                      Guardando {formatBRL(onbAporte)}/mês, em {onboardingPrazo} meses você chega lá 🎯
                     </p>
+                    <p style={{ fontSize: 10, color: "#6b9e80", margin: 0 }}>Calculado com CDI de ~10,65% a.a.</p>
                   </div>
                 )}
               </div>
@@ -366,7 +376,8 @@ export default function MetasPage() {
             {aporteEstimado !== null && !isNaN(aporteEstimado) && aporteEstimado > 0 && (
               <div style={{ background: "#fff", border: `1.5px solid ${C.green100}`, borderRadius: 12, padding: "12px 16px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: C.ink3, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>Aporte mensal</p>
-                <p style={{ fontSize: 20, fontWeight: 900, color: C.green500, margin: 0 }}>R$ {fmtInt(aporteEstimado)}</p>
+                <p style={{ fontSize: 20, fontWeight: 900, color: C.green500, margin: "0 0 2px" }}>{formatBRL(aporteEstimado)}</p>
+                <p style={{ fontSize: 10, color: C.ink3, margin: 0 }}>Calculado com CDI de ~10,65% a.a.</p>
               </div>
             )}
           </div>

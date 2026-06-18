@@ -7,6 +7,7 @@ import { C, FONT } from "@/components/imoney/tokens";
 import type { Meta } from "@/types";
 import { Trash2, CheckCircle2, Star } from "lucide-react";
 import { fmtInt, metaEmoji, metaNomeLimpo } from "@/lib/utils";
+import { calcularAporteMensal, CDI_TAXA_MENSAL } from "@/lib/finance";
 
 type MetaExt = Meta & { principal?: boolean };
 
@@ -136,7 +137,7 @@ export default function MetaDetailPage() {
 
   const falta = Math.max(0, meta.valor_alvo - meta.valor_atual);
   const pct = meta.valor_alvo > 0 ? Math.min(100, Math.round((meta.valor_atual / meta.valor_alvo) * 100)) : 0;
-  const aporte = meta.prazo_meses > 0 && falta > 0 ? falta / meta.prazo_meses : 0;
+  const aporte = calcularAporteMensal(falta, meta.taxa_mensal ?? CDI_TAXA_MENSAL, meta.prazo_meses);
   const acelerarExtra = Math.round(aporte * 0.2);
   const novoAporte = aporte + acelerarExtra;
   const novosPrazoMeses = novoAporte > 0 ? falta / novoAporte : meta.prazo_meses;
@@ -261,7 +262,8 @@ export default function MetaDetailPage() {
         <div style={{ margin: "0 16px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: "14px 16px", border: `1.5px solid ${C.green100}` }}>
             <p style={{ fontSize: 10, fontWeight: 700, color: C.ink3, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 6px" }}>MENSAL</p>
-            <p style={{ fontSize: 22, fontWeight: 900, color: C.green900, margin: 0, fontFamily: FONT }}>R$ {fmtInt(aporte)}</p>
+            <p style={{ fontSize: 22, fontWeight: 900, color: C.green900, margin: "0 0 2px", fontFamily: FONT }}>R$ {fmtInt(aporte)}</p>
+            <p style={{ fontSize: 9, color: C.ink3, margin: 0 }}>CDI ~10,65% a.a.</p>
           </div>
           {acelerarExtra > 0 && semanasSalvas > 0 && (
             <div style={{ background: "#f0fdf4", borderRadius: 16, padding: "14px 16px", border: "1.5px solid #bbf7d0" }}>

@@ -14,6 +14,8 @@ export interface Meta {
   id: string; user_id: string; nome: string;
   valor_alvo: number; valor_atual: number;
   prazo_meses: number; criada_em: string; concluida: boolean;
+  taxa_mensal?: number;
+  taxa_atualizada_em?: string | null;
 }
 export interface Investment {
   id: string; user_id: string; nome: string; tipo: string;
