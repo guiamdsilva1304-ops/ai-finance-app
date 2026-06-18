@@ -156,55 +156,80 @@ async function extractAndSaveMemory(
   messages: Array<{ role: string; content: string }>
 ): Promise<void> {
   try {
-    // Precisa de pelo menos uma troca real (user + assistant)
     const hasUser      = messages.some(m => m.role === 'user')
     const hasAssistant = messages.some(m => m.role === 'assistant')
-    if (!hasUser || !hasAssistant) return
+    if (!hasUser || !hasAssistant) {
+      console.log('[memory] Pulando: sem troca completa user+assistant')
+      return
+    }
 
-    // Últimas 6 mensagens para manter o custo baixo
     const excerpt = messages.slice(-6)
       .map(m => `${m.role === 'user' ? 'Usuário' : 'Assessor'}: ${m.content}`)
       .join('\n\n')
 
-    const extraction = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
-      system: `Você é um extrator de memória financeira. Dado um trecho de conversa, extraia fatos-chave sobre o usuário.
-Retorne SOMENTE um JSON válido com estes campos (use null se não houver informação suficiente — nunca invente):
-{
-  "objetivo_financeiro": "objetivo financeiro principal ou null",
-  "sonho_principal": "maior sonho ou desejo do usuário ou null",
-  "perfil_risco": "conservador | moderado | arrojado ou null",
-  "ultima_preocupacao": "maior preocupação financeira mencionada ou null",
-  "habitos_positivos": "hábitos saudáveis observados ou null",
-  "personalidade_financeira": "descrição breve do estilo financeiro ou null",
-  "contexto_familiar": "contexto familiar relevante (filhos, casado, etc) ou null"
-}`,
-      messages: [{ role: 'user', content: `Trecho da conversa:\n${excerpt}` }],
-    })
+    let extraction
+    try {
+      extraction = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 400,
+        system: `Você é um extrator de memória financeira.
+Dado um trecho de conversa, extraia fatos sobre o usuário.
+Retorne APENAS JSON válido, sem texto adicional, sem markdown, sem backticks.
+Campos possíveis: objetivo_financeiro, sonho_principal, perfil_risco, ultima_preocupacao, habitos_positivos, personalidade_financeira, contexto_familiar.
+Se não houver informação suficiente para um campo, OMITA-O do JSON — nunca invente, nunca use null.
+Exemplo de resposta válida: {"objetivo_financeiro":"juntar 20k para viagem","perfil_risco":"conservador"}`,
+        messages: [{ role: 'user', content: `Trecho da conversa:\n${excerpt}` }],
+      })
+    } catch (apiErr) {
+      console.error('[memory] Erro na chamada Haiku:', apiErr)
+      return
+    }
 
-    const raw = extraction.content[0].type === 'text' ? extraction.content[0].text : ''
+    const raw = extraction.content[0].type === 'text' ? extraction.content[0].text.trim() : ''
+    console.log(`[memory] Resposta bruta do Haiku para ${userId}:`, raw.slice(0, 300))
+
     const match = raw.match(/\{[\s\S]*\}/)
-    if (!match) return
+    if (!match) {
+      console.warn('[memory] Haiku não retornou JSON válido. Raw:', raw.slice(0, 200))
+      return
+    }
 
-    const parsed: Record<string, unknown> = JSON.parse(match[0])
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(match[0])
+    } catch (parseErr) {
+      console.error('[memory] Erro ao parsear JSON do Haiku:', parseErr, 'Raw:', match[0].slice(0, 200))
+      return
+    }
 
-    // Filtra só campos com valor real (string não vazia)
+    const camposValidos = new Set([
+      'objetivo_financeiro','sonho_principal','perfil_risco',
+      'ultima_preocupacao','habitos_positivos','personalidade_financeira','contexto_familiar',
+    ])
     const updates: Record<string, string> = {}
     for (const [k, v] of Object.entries(parsed)) {
-      if (v && typeof v === 'string' && v.trim() && v.trim().toLowerCase() !== 'null') {
+      if (camposValidos.has(k) && v && typeof v === 'string' && v.trim()) {
         updates[k] = v.trim()
       }
     }
-    if (Object.keys(updates).length === 0) return
 
-    await supabase
+    if (Object.keys(updates).length === 0) {
+      console.log('[memory] Nenhum campo válido extraído da conversa')
+      return
+    }
+
+    const { error: upsertErr } = await supabase
       .from('user_memory')
       .upsert({ user_id: userId, ...updates, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
 
-    console.log(`[memory] Extraídos ${Object.keys(updates).length} insights para ${userId}`)
+    if (upsertErr) {
+      console.error('[memory] Erro no upsert para', userId, ':', upsertErr)
+      return
+    }
+
+    console.log(`[memory] ${Object.keys(updates).length} campo(s) salvos para ${userId}:`, Object.keys(updates).join(', '))
   } catch (err) {
-    console.error('[memory] Erro na extração (ignorado):', err)
+    console.error('[memory] Erro inesperado na extração:', err)
   }
 }
 

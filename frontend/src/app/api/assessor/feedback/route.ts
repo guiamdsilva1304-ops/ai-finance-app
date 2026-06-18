@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
     .eq("user_id", user.id)
     .single();
 
+  if (!mem) console.warn("[feedback] user_memory vazia para user:", user.id);
+
   const { error } = await supabase.from("assessor_feedback").insert({
     user_id: user.id,
     message,
