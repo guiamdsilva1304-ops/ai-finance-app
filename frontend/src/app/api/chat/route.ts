@@ -78,6 +78,90 @@ function fvMensal(pmt: number, r: number, n: number): number {
   return pmt * ((Math.pow(1 + r, n) - 1) / r)
 }
 
+// ─── Tipos de memória ─────────────────────────────────────────────────────────
+interface AiMemory {
+  objetivo_financeiro?: string | null
+  sonho_principal?: string | null
+  perfil_risco?: string | null
+  ultima_preocupacao?: string | null
+  habitos_positivos?: string | null
+  personalidade_financeira?: string | null
+  contexto_familiar?: string | null
+}
+
+function buildMemoryBlock(mem: AiMemory | null): string {
+  if (!mem) return ''
+  const lines = [
+    mem.objetivo_financeiro && `- Objetivo financeiro: ${mem.objetivo_financeiro}`,
+    mem.sonho_principal     && `- Sonho principal: ${mem.sonho_principal}`,
+    mem.perfil_risco        && `- Perfil de risco: ${mem.perfil_risco}`,
+    mem.ultima_preocupacao  && `- Última preocupação: ${mem.ultima_preocupacao}`,
+    mem.habitos_positivos   && `- Hábitos positivos: ${mem.habitos_positivos}`,
+    mem.personalidade_financeira && `- Personalidade financeira: ${mem.personalidade_financeira}`,
+    mem.contexto_familiar   && `- Contexto familiar: ${mem.contexto_familiar}`,
+  ].filter(Boolean)
+  if (lines.length === 0) return ''
+  return `\nO QUE VOCÊ JÁ SABE SOBRE ESTE USUÁRIO (memória de conversas anteriores — use para personalizar desde a primeira mensagem):\n${lines.join('\n')}`
+}
+
+// ─── Extração de memória (fire-and-forget, usa Haiku) ─────────────────────────
+async function extractAndSaveMemory(
+  userId: string,
+  messages: Array<{ role: string; content: string }>
+): Promise<void> {
+  try {
+    // Precisa de pelo menos uma troca real (user + assistant)
+    const hasUser      = messages.some(m => m.role === 'user')
+    const hasAssistant = messages.some(m => m.role === 'assistant')
+    if (!hasUser || !hasAssistant) return
+
+    // Últimas 6 mensagens para manter o custo baixo
+    const excerpt = messages.slice(-6)
+      .map(m => `${m.role === 'user' ? 'Usuário' : 'Assessor'}: ${m.content}`)
+      .join('\n\n')
+
+    const extraction = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      system: `Você é um extrator de memória financeira. Dado um trecho de conversa, extraia fatos-chave sobre o usuário.
+Retorne SOMENTE um JSON válido com estes campos (use null se não houver informação suficiente — nunca invente):
+{
+  "objetivo_financeiro": "objetivo financeiro principal ou null",
+  "sonho_principal": "maior sonho ou desejo do usuário ou null",
+  "perfil_risco": "conservador | moderado | arrojado ou null",
+  "ultima_preocupacao": "maior preocupação financeira mencionada ou null",
+  "habitos_positivos": "hábitos saudáveis observados ou null",
+  "personalidade_financeira": "descrição breve do estilo financeiro ou null",
+  "contexto_familiar": "contexto familiar relevante (filhos, casado, etc) ou null"
+}`,
+      messages: [{ role: 'user', content: `Trecho da conversa:\n${excerpt}` }],
+    })
+
+    const raw = extraction.content[0].type === 'text' ? extraction.content[0].text : ''
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) return
+
+    const parsed: Record<string, unknown> = JSON.parse(match[0])
+
+    // Filtra só campos com valor real (string não vazia)
+    const updates: Record<string, string> = {}
+    for (const [k, v] of Object.entries(parsed)) {
+      if (v && typeof v === 'string' && v.trim() && v.trim().toLowerCase() !== 'null') {
+        updates[k] = v.trim()
+      }
+    }
+    if (Object.keys(updates).length === 0) return
+
+    await supabase
+      .from('user_memory')
+      .upsert({ user_id: userId, ...updates, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+
+    console.log(`[memory] Extraídos ${Object.keys(updates).length} insights para ${userId}`)
+  } catch (err) {
+    console.error('[memory] Erro na extração (ignorado):', err)
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const auth = req.headers.get("authorization");
@@ -90,12 +174,19 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { messages, context, proactive } = body;
 
+    // Busca memória de IA em paralelo com as demais queries
+    const memoryFetch = supabase
+      .from('user_memory')
+      .select('objetivo_financeiro,sonho_principal,perfil_risco,ultima_preocupacao,habitos_positivos,personalidade_financeira,contexto_familiar')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
     const noventa_dias = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     const trinta_dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     const _now = new Date()
     const inicio_mes = `${_now.getUTCFullYear()}-${String(_now.getUTCMonth() + 1).padStart(2, '0')}-01`
 
-    const [limiteResult, diagnosticoResult, categoriasResult, receitasResult, metasResult, ultimaTxResult] = await Promise.allSettled([
+    const [limiteResult, diagnosticoResult, categoriasResult, receitasResult, metasResult, ultimaTxResult, memoryResult] = await Promise.allSettled([
       verificarLimite(user.id),
       supabase.from('user_profiles')
         .select('perfil_financeiro, score_saude, diagnostico_json, renda, gastos_mensais, monthly_available, preferred_save_day')
@@ -120,12 +211,15 @@ export async function POST(req: NextRequest) {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
+      memoryFetch,
     ])
 
     const { permitido, usadas, limite, plano } = limiteResult.status === 'fulfilled'
       ? limiteResult.value
       : { permitido: true, usadas: 0, limite: 10, plano: 'free' }
     const perfilDiagnostico = diagnosticoResult.status === 'fulfilled' ? diagnosticoResult.value.data : null
+    const aiMemory = memoryResult?.status === 'fulfilled' ? (memoryResult.value.data as AiMemory | null) : null
+    const memoryBlock = buildMemoryBlock(aiMemory)
     const metasServidor = metasResult.status === 'fulfilled' ? (metasResult.value.data ?? []) : []
     const metasParaPrompt = metasServidor.length > 0 ? metasServidor : (context?.metas ?? [])
 
@@ -277,6 +371,7 @@ COMO RESPONDER:
 - Não cruze dados entre categorias nem analise padrões históricos
 - Quando análise mais profunda realmente ajudaria, adicione de forma natural (não em toda resposta): "💡 No Pro, eu analiso isso com os seus dados reais e te mostro exatamente o que fazer."
 ${comportamentoBlock}
+${memoryBlock}
 
 ECONOMIA:
 - SELIC: ${context?.selic ?? 14.50}% a.a.
@@ -383,6 +478,7 @@ MEMÓRIA FINANCEIRA DO USUÁRIO — use para personalizar cada resposta:
 - Prioridades dos próximos 30 dias: ${(perfilDiagnostico.diagnostico_json.prioridades ?? []).join(' | ')}
 
 A iMoney conhece este usuário. Use essa memória para personalizar TODAS as respostas desde a primeira mensagem. Se o usuário mencionar algo que contradiz o diagnóstico, pergunte o que mudou — a memória evolui com ele.` : ''}
+${memoryBlock}
 
 ECONOMIA:
 - SELIC: ${context?.selic ?? 14.50}% a.a.
@@ -440,6 +536,16 @@ Regras do plano:
       historyInserts.length ? supabase.from('chat_history').insert(historyInserts) : Promise.resolve(),
       plano !== 'premium' ? incrementarContador(user.id) : Promise.resolve(),
     ])
+
+    // Fire-and-forget: extrai insights da conversa e salva em user_memory
+    // Só roda em trocas reais (não em mensagens proativas do sistema)
+    if (!proactive && messages.length >= 1) {
+      const fullConversation = [
+        ...messages,
+        { role: 'assistant', content: reply },
+      ]
+      extractAndSaveMemory(user.id, fullConversation).catch(() => {})
+    }
 
     return NextResponse.json({
       reply,
