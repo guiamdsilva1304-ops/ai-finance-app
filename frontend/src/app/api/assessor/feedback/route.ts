@@ -28,9 +28,9 @@ export async function POST(req: NextRequest) {
 
   const { data: mem } = await supabase
     .from("user_memory")
-    .select("objetivo_financeiro,perfil_risco,personalidade_financeira")
+    .select("*")
     .eq("user_id", user.id)
-    .maybeSingle();
+    .single();
 
   const { error } = await supabase.from("assessor_feedback").insert({
     user_id: user.id,
