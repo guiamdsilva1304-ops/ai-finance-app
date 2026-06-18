@@ -67,6 +67,10 @@
     {
       "path": "/api/cron/bolao-prizes",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/optimize-prompt",
+      "schedule": "0 3 * * *"
     }
   ]
 }

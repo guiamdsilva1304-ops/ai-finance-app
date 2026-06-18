@@ -587,6 +587,7 @@ export default function AssessorPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // ─── Voz ──────────────────────────────────────────────────────────────────
   const [isListening, setIsListening] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState<Record<number, "up" | "down">>({});
   const recognitionRef = useRef<any>(null);
   // ──────────────────────────────────────────────────────────────────────────
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -941,6 +942,29 @@ Seja humano, direto e específico. Não faça questionário, faça conversa.`;
     setMessages([]);
   }
 
+  async function sendFeedback(msgIndex: number, rating: boolean) {
+    if (feedbackSent[msgIndex] !== undefined) return;
+    const msg = messages[msgIndex];
+    if (!msg || msg.role !== "assistant") return;
+    const prevUser = messages.slice(0, msgIndex).reverse().find(m => m.role === "user");
+    setFeedbackSent(prev => ({ ...prev, [msgIndex]: rating ? "up" : "down" }));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      await fetch("/api/assessor/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token ?? ""}`,
+        },
+        body: JSON.stringify({
+          message: prevUser?.content ?? "",
+          response: msg.content,
+          rating,
+        }),
+      });
+    } catch { /* silencioso */ }
+  }
+
   const contextualStarters = buildContextualStarters(userCtx);
   const usadas = infoLimite?.usadas ?? 0;
   const limite = infoLimite?.limite ?? (planoUsuario === 'premium' ? 999 : planoUsuario === 'pro' ? 50 : 15);
@@ -1054,6 +1078,39 @@ Seja humano, direto e específico. Não faça questionário, faça conversa.`;
                   </div>
                 )}
                 {msg.plan && <PlanCards plan={msg.plan} />}
+                {msg.role === "assistant" && msg.content && !loading && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, paddingLeft: 2 }}>
+                    <button
+                      onClick={() => sendFeedback(i, true)}
+                      disabled={feedbackSent[i] !== undefined}
+                      style={{
+                        background: feedbackSent[i] === "up" ? "#e8f5e9" : "transparent",
+                        border: `1px solid ${feedbackSent[i] === "up" ? "#1D9E75" : "rgba(26,58,26,0.15)"}`,
+                        borderRadius: 6, padding: "2px 8px", cursor: feedbackSent[i] !== undefined ? "default" : "pointer",
+                        fontSize: 13, color: feedbackSent[i] === "up" ? "#1D9E75" : "#8db89d",
+                        opacity: feedbackSent[i] !== undefined && feedbackSent[i] !== "up" ? 0.35 : 1,
+                        transition: "all 0.15s",
+                      }}
+                      title="Resposta útil"
+                    >👍</button>
+                    <button
+                      onClick={() => sendFeedback(i, false)}
+                      disabled={feedbackSent[i] !== undefined}
+                      style={{
+                        background: feedbackSent[i] === "down" ? "#fff1f0" : "transparent",
+                        border: `1px solid ${feedbackSent[i] === "down" ? "#d32f2f" : "rgba(26,58,26,0.15)"}`,
+                        borderRadius: 6, padding: "2px 8px", cursor: feedbackSent[i] !== undefined ? "default" : "pointer",
+                        fontSize: 13, color: feedbackSent[i] === "down" ? "#d32f2f" : "#8db89d",
+                        opacity: feedbackSent[i] !== undefined && feedbackSent[i] !== "down" ? 0.35 : 1,
+                        transition: "all 0.15s",
+                      }}
+                      title="Resposta ruim"
+                    >👎</button>
+                    {feedbackSent[i] !== undefined && (
+                      <span style={{ fontSize: 11, color: "#8db89d", fontFamily: "Nunito, sans-serif" }}>Obrigado!</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}

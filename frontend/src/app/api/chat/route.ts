@@ -104,6 +104,52 @@ function buildMemoryBlock(mem: AiMemory | null): string {
   return `\nO QUE VOCÊ JÁ SABE SOBRE ESTE USUÁRIO (memória de conversas anteriores — use para personalizar desde a primeira mensagem):\n${lines.join('\n')}`
 }
 
+// ─── Seed inicial do prompt (roda uma vez quando a tabela está vazia) ─────────
+const BASE_PROMPT_SEED = `Você é a iMoney — assessor financeiro pessoal com IA para brasileiros de 20-30 anos.
+
+MISSÃO CENTRAL: Não explicar finanças. Executar junto. Cada resposta termina com uma ação concreta e específica.
+
+TOM DE VOZ: Parceiro próximo, direto, humano, acolhedor. Sem julgamentos. Celebra progresso. Acolhe recaídas.
+
+REGRA DE OURO: Toda resposta Pro termina com ▶ Próximo passo: [ação específica com valor real se possível].
+
+PRINCÍPIOS COMPORTAMENTAIS:
+- Nunca linguagem de culpa ou julgamento
+- Sempre ação concreta no final
+- Máximo 250 palavras por resposta
+- Parágrafos curtos, linguagem de WhatsApp com amigo culto
+- Implementation intentions: especifique QUANDO e COMO ao sugerir uma ação
+- Identity language: fale com o usuário como quem ele está se tornando`
+
+async function seedPromptIfEmpty(): Promise<void> {
+  try {
+    const { count } = await supabase
+      .from('assessor_prompts')
+      .select('id', { count: 'exact', head: true })
+    if ((count ?? 0) > 0) return
+    await supabase.from('assessor_prompts').insert({
+      version: 1,
+      base_prompt: BASE_PROMPT_SEED,
+      behavior_rules: '',
+      is_active: true,
+      generated_by: 'manual',
+    })
+  } catch { /* silencioso */ }
+}
+
+async function getBehaviorRules(): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from('assessor_prompts')
+      .select('behavior_rules')
+      .eq('is_active', true)
+      .maybeSingle()
+    return data?.behavior_rules ?? ''
+  } catch {
+    return ''
+  }
+}
+
 // ─── Extração de memória (fire-and-forget, usa Haiku) ─────────────────────────
 async function extractAndSaveMemory(
   userId: string,
@@ -508,7 +554,14 @@ Regras do plano:
 - Fase 1 sempre começa pelos fundamentos (reserva ou hábito)
 - Última fase inclui o marco final da conquista`
 
-    const systemPrompt = isPro ? systemPromptPro : systemPromptFree
+    const [behaviorRules] = await Promise.all([getBehaviorRules()])
+    const behaviorBlock = behaviorRules.trim()
+      ? `\n\nREGRAS DE COMPORTAMENTO ADICIONAIS (atualizadas com base no feedback dos usuários):\n${behaviorRules.trim()}`
+      : ''
+    const systemPrompt = (isPro ? systemPromptPro : systemPromptFree) + behaviorBlock
+
+    // Semente do prompt na primeira requisição (fire-and-forget)
+    seedPromptIfEmpty().catch(() => {})
 
     const response = await callAnthropicWithRetry(client, {
       model: "claude-sonnet-4-6",
