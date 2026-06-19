@@ -8,7 +8,7 @@ export type IconName =
   | 'chevron-right' | 'chevron-left' | 'check' | 'user' | 'send'
   | 'trending-up' | 'plane' | 'car' | 'ring' | 'arrow-up-right'
   | 'arrow-down-left' | 'compass' | 'chat' | 'pie'
-  | 'piggy-bank' | 'calendar';
+  | 'piggy-bank' | 'calendar' | 'credit-card';
 
 export function Icon({
   name, size = 22, color = C.green900, stroke = 1.75,
@@ -40,6 +40,7 @@ export function Icon({
     case 'ring': return <svg {...p}><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>;
     case 'piggy-bank': return <svg {...p}><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2z"/><path d="M2 9v1a2 2 0 0 0 2 2"/><path d="M16 11h0" strokeWidth={2.5}/></svg>;
     case 'calendar': return <svg {...p}><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>;
+    case 'credit-card': return <svg {...p}><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>;
     default: return <svg {...p}/>;
   }
 }

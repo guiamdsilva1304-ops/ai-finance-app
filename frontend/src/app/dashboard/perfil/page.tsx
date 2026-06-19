@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { CheckCircle2, User } from "lucide-react";
+import {
+  CheckCircle2, User, Smile, ClipboardList, MapPin, Smartphone,
+  Palette, ShieldCheck, Star, MessageCircle, Mail, AlertTriangle,
+  Frown, Sun, Moon,
+} from "lucide-react";
 import TwoFactorSetup from "@/components/TwoFactorSetup";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -56,10 +60,12 @@ const OCUPACOES = [
 ];
 
 const EXPLORAR_LINKS: { href: string; icon: IconName; label: string; desc: string; color: string }[] = [
+  { href: "/dashboard/orcamento",     icon: "piggy-bank",  label: "Orçamento",       desc: "Tetos de gasto por categoria", color: "#00C853" },
+  { href: "/dashboard/cartoes",       icon: "credit-card", label: "Cartões",         desc: "Seus cartões de crédito",      color: "#378ADD" },
   { href: "/dashboard/metas",         icon: "target",      label: "Metas",           desc: "Acompanhe seus sonhos",        color: "#1D9E75" },
-  { href: "/dashboard/investimentos", icon: "trending-up", label: "Investimentos",   desc: "Sua carteira em um lugar",     color: "#378ADD" },
-  { href: "/dashboard/renda",         icon: "pie",         label: "Renda Variável",  desc: "Ações, FIIs e impostos",       color: "#7F77DD" },
-  { href: "/dashboard/openfinance",   icon: "compass",     label: "Open Finance",    desc: "Conecte seus bancos",          color: "#EF9F27" },
+  { href: "/dashboard/investimentos", icon: "trending-up", label: "Investimentos",   desc: "Sua carteira em um lugar",     color: "#7F77DD" },
+  { href: "/dashboard/renda",         icon: "pie",         label: "Renda Variável",  desc: "Ações, FIIs e impostos",       color: "#EF9F27" },
+  { href: "/dashboard/openfinance",   icon: "compass",     label: "Open Finance",    desc: "Conecte seus bancos",          color: "#F97316" },
 ];
 
 interface Profile {
@@ -268,7 +274,7 @@ export default function PerfilPage() {
       {showCancelPlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <div className="text-2xl mb-3">😢</div>
+            <div className="mb-3"><Frown size={22} color="#6b9e80" /></div>
             <h3 className="font-black text-[#0d2414] text-lg mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Cancelar plano?</h3>
             <p className="text-sm text-[#6b9e80] mb-5 leading-relaxed">
               Você voltará ao plano gratuito com limite de 3 mensagens/dia no Assessor. Seus dados continuam salvos.
@@ -292,7 +298,7 @@ export default function PerfilPage() {
       {showDeleteAccount && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <div className="text-2xl mb-3">⚠️</div>
+            <div className="mb-3"><AlertTriangle size={22} color="#ef4444" /></div>
             <h3 className="font-black text-[#0d2414] text-lg mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Excluir conta permanentemente?</h3>
             <p className="text-sm text-[#6b9e80] mb-4 leading-relaxed">
               Todos os seus dados serão apagados — transações, metas, histórico e perfil. Essa ação <strong>não pode ser desfeita</strong>.
@@ -359,7 +365,7 @@ export default function PerfilPage() {
           )}
           {plan === 'premium' && (
             <span className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1" style={{ background: '#FEF3C7', color: '#92400E' }}>
-              ⭐ Premium
+              <Star size={11} color="#92400E" /> Premium
             </span>
           )}
         </div>
@@ -388,8 +394,8 @@ export default function PerfilPage() {
 
       {/* Profile form */}
       <form onSubmit={save} className="card animate-fade-up opacity-0 anim-3">
-        <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
-          😊 Como quer ser chamado?
+        <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
+          <Smile size={16} color="#00C853" /> Como quer ser chamado?
         </p>
         <div className="mb-5">
           <label className="label">Nome preferido</label>
@@ -407,8 +413,8 @@ export default function PerfilPage() {
         </div>
 
         <div className="border-t border-[#e4f5e9] pt-5 mb-1">
-          <p className="font-bold text-[#0d2414] mb-5" style={{ fontFamily: "Nunito, sans-serif" }}>
-            📋 Informações Pessoais
+          <p className="font-bold text-[#0d2414] mb-5" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
+            <ClipboardList size={16} color="#00C853" /> Informações Pessoais
           </p>
         </div>
 
@@ -432,8 +438,8 @@ export default function PerfilPage() {
         </div>
 
         <div className="border-t border-[#e4f5e9] pt-5 mb-5">
-          <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
-            📍 Localização
+          <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
+            <MapPin size={16} color="#00C853" /> Localização
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -457,8 +463,8 @@ export default function PerfilPage() {
         </div>
 
         <div className="border-t border-[#e4f5e9] pt-5 mb-5">
-          <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
-            📱 WhatsApp
+          <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
+            <Smartphone size={16} color="#00C853" /> WhatsApp
           </p>
 
           {phoneAtual && (
@@ -539,13 +545,14 @@ export default function PerfilPage() {
 
       {/* Aparência */}
       <div className="card mt-5 animate-fade-up opacity-0 anim-4">
-        <p className="font-bold mb-4" style={{ fontFamily: "Nunito, sans-serif", color: 'var(--text-1)' }}>
-          🎨 Aparência
+        <p className="font-bold mb-4" style={{ fontFamily: "Nunito, sans-serif", color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Palette size={16} color="#00C853" /> Aparência
         </p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>
-              {isDark ? '🌙 Modo escuro ativo' : '☀️ Modo claro ativo'}
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+              {isDark ? <Moon size={14} /> : <Sun size={14} />}
+              {isDark ? 'Modo escuro ativo' : 'Modo claro ativo'}
             </p>
             <p style={{ fontSize: 12, color: 'var(--text-2)' }}>
               {isDark ? 'Paleta verde escura — fácil para os olhos.' : 'Paleta branca padrão da iMoney.'}
@@ -568,9 +575,8 @@ export default function PerfilPage() {
               background: '#fff', transition: 'left 0.25s',
               boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12,
             }}>
-              {isDark ? '🌙' : '☀️'}
+              {isDark ? <Moon size={12} /> : <Sun size={12} />}
             </span>
           </button>
         </div>
@@ -594,16 +600,16 @@ export default function PerfilPage() {
 
       {/* Segurança */}
       <div className="mt-5">
-        <p className="font-bold text-[#0d2414] mb-3" style={{ fontFamily: "Nunito, sans-serif" }}>
-          🔐 Segurança
+        <p className="font-bold text-[#0d2414] mb-3" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
+          <ShieldCheck size={16} color="#00C853" /> Segurança
         </p>
         <TwoFactorSetup />
       </div>
 
       {/* NPS + Contato */}
       <div className="mt-8 card animate-fade-up opacity-0 anim-5">
-        <p className="font-bold text-[#0d2414] mb-1" style={{ fontFamily: "Nunito, sans-serif" }}>
-          ⭐ Avalie a iMoney
+        <p className="font-bold text-[#0d2414] mb-1" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
+          <Star size={16} color="#F9A825" /> Avalie a iMoney
         </p>
         <p className="text-xs text-[#6b9e80] mb-4 leading-relaxed">
           Numa escala de 0 a 10, qual a probabilidade de você recomendar a iMoney para um amigo?
@@ -679,7 +685,7 @@ export default function PerfilPage() {
 
         <div style={{ borderTop: "1px solid #e4f5e9", marginTop: 16, paddingTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 12, fontWeight: 800, color: "#0d2414", marginBottom: 2 }}>💬 Fale com a gente</p>
+            <p style={{ fontSize: 12, fontWeight: 800, color: "#0d2414", marginBottom: 2, display: "flex", alignItems: "center", gap: 6 }}><MessageCircle size={13} /> Fale com a gente</p>
             <p style={{ fontSize: 11, color: "#6b9e80" }}>Suporte, dúvidas ou sugestões</p>
           </div>
           <a
@@ -691,15 +697,15 @@ export default function PerfilPage() {
               padding: "8px 14px", borderRadius: 10, textDecoration: "none",
               flexShrink: 0,
             }}>
-            ✉ Enviar email
+            <Mail size={13} /> Enviar email
           </a>
         </div>
       </div>
 
       {/* Zona de perigo */}
       <div className="mt-8 border border-red-100 rounded-2xl p-5 bg-red-50">
-        <p className="text-sm font-black text-red-600 mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
-          ⚠️ Zona de perigo
+        <p className="text-sm font-black text-red-600 mb-4" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
+          <AlertTriangle size={16} /> Zona de perigo
         </p>
         <div className="flex flex-col gap-3">
           {plan !== 'free' && (
