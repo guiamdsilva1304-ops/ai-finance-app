@@ -39,7 +39,7 @@ export function NextStepCard({ meta, preferredSaveDay }: { meta: NextStepMeta | 
     titulo = `Hoje é seu dia de guardar R$ ${fmt(aporteMes)}.`;
     cta = "Registrar agora →";
   } else if (delta >= 1) {
-    titulo = `Você está R$ ${fmt(delta)} à frente do plano. 🔥`;
+    titulo = `Você está R$ ${fmt(delta)} à frente do plano.`;
     cta = preferredSaveDay !== null
       ? `Próximo aporte: ${DIA_LABEL[preferredSaveDay]} →`
       : null;

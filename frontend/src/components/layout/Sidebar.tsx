@@ -6,7 +6,7 @@ import { Logo } from "@/components/ui/Logo";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "@/components/imoney/primitives";
-import { LogOut } from "lucide-react";
+import { LogOut, Sun, Moon } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "@/lib/theme";
 import { StreakBadgeCompact } from "@/components/imoney/StreakBadge";
@@ -211,7 +211,7 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
           title={isDark ? "Modo claro" : "Modo escuro"}
           style={{ color: 'var(--text-2)' }}
         >
-          <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{isDark ? '☀️' : '🌙'}</span>
+          {isDark ? <Sun size={18} /> : <Moon size={18} />}
           {!collapsed && <span>{isDark ? 'Modo claro' : 'Modo escuro'}</span>}
         </button>
 

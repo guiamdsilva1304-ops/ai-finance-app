@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { MetricCard, MetricCardSkeleton } from "@/components/ui/MetricCard";
 import { formatBRL, getScoreColor, getScoreLabel, fmtInt, metaEmoji, metaNomeLimpo } from "@/lib/utils";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Sun, Moon, Target, Brain, Trophy, Sprout } from "lucide-react";
 import { GoalCard, Icon } from "@/components/imoney/primitives";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
@@ -135,7 +135,7 @@ function SonhoHero({ meta, loading }: { meta: Meta | null; loading: boolean }) {
   if (!meta) {
     return (
       <a href="/dashboard/metas?add=true" style={{ display: "block", textDecoration: "none", background: "linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)", borderRadius: 22, padding: "22px", marginBottom: 14 }}>
-        <p style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "Nunito, sans-serif" }}>🎯 Defina seu primeiro sonho</p>
+        <p style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 8 }}><Target size={16} color="#fff" /> Defina seu primeiro sonho</p>
         <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", margin: 0 }}>Diga o que você quer realizar →</p>
       </a>
     );
@@ -200,8 +200,8 @@ function MemoriaFinanceiraCard() {
     <a href="/dashboard/pro" style={{ display: "block", textDecoration: "none", marginBottom: 14 }}>
       <div style={{ background: "var(--bg-card)", borderRadius: 16, padding: "14px 16px", border: "1.5px dashed var(--border)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", margin: 0, fontFamily: "Nunito, sans-serif" }}>
-            🧠 Memória financeira: <span style={{ color: "var(--text-3)" }}>desativada</span>
+          <p style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", margin: 0, fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 6 }}>
+            <Brain size={14} /> <span>Memória financeira: <span style={{ color: "var(--text-3)" }}>desativada</span></span>
           </p>
           <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 800, color: "#1D9E75", background: "rgba(0,200,83,0.1)", borderRadius: 8, padding: "3px 10px" }}>Ativar →</span>
         </div>
@@ -331,7 +331,7 @@ export default function DashboardPage() {
 
   const insight = gerarInsight(userName, dash, mainMeta, hora);
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
-  const saudacaoEmoji = hora < 12 ? "☀️" : hora < 18 ? "🌤️" : "🌙";
+  const saudacaoIcon = hora < 12 ? <Sun size={20} color="#F9A825" /> : hora < 18 ? <Sun size={20} color="#F9A825" /> : <Moon size={20} color="#9ca3af" />;
   const isSaveDay = preferredSaveDay !== null && new Date().getDay() === preferredSaveDay;
   const subtitulo = loading
     ? "Veja como seus sonhos estão evoluindo"
@@ -343,8 +343,8 @@ export default function DashboardPage() {
     <div className="md:hidden" style={{ minHeight: "100vh", background: "var(--bg-page)", paddingBottom: 100 }}>
       <div style={{ padding: "20px 20px 0", fontFamily: "Nunito, sans-serif" }}>
         <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-1)", margin: "0 0 2px" }}>
-            {userName ? `${saudacao}, ${userName}! ${saudacaoEmoji}` : `${saudacao}! ${saudacaoEmoji}`}
+          <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-1)", margin: "0 0 2px", display: "flex", alignItems: "center", gap: 8 }}>
+            {userName ? `${saudacao}, ${userName}!` : `${saudacao}!`} {saudacaoIcon}
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-2)", margin: 0 }}>
             {subtitulo}
@@ -416,13 +416,13 @@ export default function DashboardPage() {
         {!loading && dash && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
             {[
-              { label: "Renda", value: `R$ ${fmtInt(dash.renda)}`, color: "#1D9E75", icon: "💰" },
-              { label: "Gastos", value: `R$ ${fmtInt(dash.gastos)}`, color: "var(--text-1)", icon: "📤" },
-              { label: "Sobra", value: `R$ ${fmtInt(Math.abs(dash.sobra))}`, color: dash.sobra >= 0 ? "#1D9E75" : "var(--text-1)", icon: dash.sobra >= 0 ? "✅" : "🔍" },
-              { label: "SELIC", value: eco ? `${eco.selic_anual}%` : "—", color: "var(--text-1)", icon: "📈" },
+              { label: "Renda", value: `R$ ${fmtInt(dash.renda)}`, color: "#1D9E75", icon: <Icon name="wallet" size={11} color="#1D9E75" /> },
+              { label: "Gastos", value: `R$ ${fmtInt(dash.gastos)}`, color: "var(--text-1)", icon: <Icon name="trending-up" size={11} color="#8db89d" /> },
+              { label: "Sobra", value: `R$ ${fmtInt(Math.abs(dash.sobra))}`, color: dash.sobra >= 0 ? "#1D9E75" : "var(--text-1)", icon: dash.sobra >= 0 ? <Icon name="piggy-bank" size={11} color="#1D9E75" /> : <Icon name="arrow-down-left" size={11} color="#ef4444" /> },
+              { label: "SELIC", value: eco ? `${eco.selic_anual}%` : "—", color: "var(--text-1)", icon: <Icon name="pie" size={11} color="#8db89d" /> },
             ].map(({ label, value, color, icon }) => (
               <div key={label} style={{ background: "var(--bg-card)", borderRadius: 14, padding: "12px 14px", border: "1.5px solid var(--border)" }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>{icon} {label}</p>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px", display: "flex", alignItems: "center", gap: 4 }}>{icon}{label}</p>
                 <p style={{ fontSize: 16, fontWeight: 900, color, margin: 0, fontFamily: "Nunito, sans-serif" }}>{value}</p>
               </div>
             ))}
@@ -435,8 +435,8 @@ export default function DashboardPage() {
     <div className="hidden md:block p-5 lg:p-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: "var(--text-1)", margin: "0 0 4px", fontFamily: "Nunito, sans-serif" }}>
-            {`${saudacao}${userName ? `, ${userName}` : ""}! ${saudacaoEmoji}`}
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: "var(--text-1)", margin: "0 0 4px", fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
+            {`${saudacao}${userName ? `, ${userName}` : ""}!`} {saudacaoIcon}
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-2)", margin: 0 }}>
             {subtitulo}
@@ -481,7 +481,7 @@ export default function DashboardPage() {
                     {proxNivel && (
                       <p style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", margin: 0 }}>{proxNivel} →</p>
                     )}
-                    {!proxNivel && <span style={{ fontSize: 22 }}>🏆</span>}
+                    {!proxNivel && <Trophy size={22} color="#F9A825" />}
                   </div>
                 </div>
                 <div style={{ height: 8, background: "var(--bg-hover)", borderRadius: 999, overflow: "hidden" }}>
@@ -497,7 +497,7 @@ export default function DashboardPage() {
           <a href="/dashboard/diagnostico" style={{ display: "block", textDecoration: "none", marginBottom: 20 }}>
             <div style={{ background: "linear-gradient(135deg, #0a3d28 0%, #1D9E75 100%)", borderRadius: 16, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", margin: "0 0 3px" }}>🎯 Descubra seu Score iMoney</p>
+                <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", margin: "0 0 3px", display: "flex", alignItems: "center", gap: 8 }}><Target size={14} color="#fff" /> Descubra seu Score iMoney</p>
                 <p style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", margin: 0, fontWeight: 600 }}>Diagnóstico financeiro gratuito em 5 perguntas</p>
               </div>
               <div style={{ background: "#fff", borderRadius: 10, padding: "8px 14px", flexShrink: 0 }}>
@@ -608,7 +608,7 @@ export default function DashboardPage() {
 
       {!loading && (!dash || (dash.renda === 0 && dash.gastos === 0)) && (
         <div className="card text-center py-12 bg-[#f8fdf9]">
-          <p className="text-3xl mb-2">🌱</p>
+          <div className="flex justify-center mb-2"><Sprout size={40} color="#00C853" /></div>
           <p className="font-bold text-[#0d2414]">Seu histórico começa aqui</p>
           <p className="text-sm text-[#6b9e80] mt-1 mb-4">
             Cada registro te aproxima do seu sonho.
