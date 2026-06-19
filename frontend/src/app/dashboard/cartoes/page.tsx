@@ -370,6 +370,25 @@ export default function CartoesPage() {
         </button>
       </div>
 
+      {/* Abas */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {([
+          { href: "/dashboard/transacoes", label: "Transações", active: false },
+          { href: "/dashboard/orcamento",  label: "Orçamento",  active: false },
+          { href: "/dashboard/cartoes",    label: "Cartões",    active: true },
+        ] as { href: string; label: string; active: boolean }[]).map(({ href, label, active }) => (
+          <a key={href} href={href} style={{
+            display: "inline-flex", alignItems: "center",
+            padding: "7px 16px", borderRadius: 999,
+            background: active ? "#1D9E75" : "transparent",
+            color: active ? "#fff" : "#6b9e80",
+            fontWeight: 700, fontSize: 13, fontFamily: "Nunito, sans-serif",
+            textDecoration: "none",
+            border: active ? "1.5px solid transparent" : "1.5px solid #e4f5e9",
+          }}>{label}</a>
+        ))}
+      </div>
+
       {/* Resumo geral */}
       {cartoes.length > 0 && (
         <div className="card mb-5" style={{ background: '#0d2414', color: '#fff' }}>

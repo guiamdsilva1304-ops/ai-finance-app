@@ -418,6 +418,25 @@ export default function TransacoesPage() {
         </div>
       </div>
 
+      {/* Abas */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {([
+          { href: "/dashboard/transacoes", label: "Transações", active: true },
+          { href: "/dashboard/orcamento",  label: "Orçamento",  active: false },
+          { href: "/dashboard/cartoes",    label: "Cartões",    active: false },
+        ] as { href: string; label: string; active: boolean }[]).map(({ href, label, active }) => (
+          <a key={href} href={href} style={{
+            display: "inline-flex", alignItems: "center",
+            padding: "7px 16px", borderRadius: 999,
+            background: active ? "#1D9E75" : "transparent",
+            color: active ? "#fff" : "#6b9e80",
+            fontWeight: 700, fontSize: 13, fontFamily: "Nunito, sans-serif",
+            textDecoration: "none",
+            border: active ? "1.5px solid transparent" : "1.5px solid #e4f5e9",
+          }}>{label}</a>
+        ))}
+      </div>
+
       {/* Month navigator */}
       <div className="flex items-center justify-center gap-3 mb-4">
         <button
