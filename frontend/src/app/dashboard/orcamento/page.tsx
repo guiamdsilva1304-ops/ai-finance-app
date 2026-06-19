@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { Trash2, X } from "lucide-react";
+import { Trash2, X, Wallet, Calendar, Plus } from "lucide-react";
 
 const FONT = "'Nunito', 'Segoe UI', sans-serif";
 const GREEN = "#00C853";
 const DARK = "#1a3a1a";
 const GOLD = "#F9A825";
-const RED = "#d32f2f";
+const RED = "#ef4444";
 
 const CATEGORIAS = [
   "Alimentação", "Transporte", "Moradia", "Saúde",
@@ -32,10 +32,10 @@ function currentMonth(): string {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function statusOf(pct: number): { emoji: string; label: string; color: string } {
-  if (pct >= 100) return { emoji: "🔴", label: "Teto atingido", color: RED };
-  if (pct >= 80)  return { emoji: "🟡", label: "Atenção",       color: GOLD };
-  return { emoji: "🟢", label: "No controle", color: GREEN };
+function statusOf(pct: number): { dot: string; label: string; color: string } {
+  if (pct >= 100) return { dot: RED,  label: "Teto atingido", color: RED };
+  if (pct >= 80)  return { dot: GOLD, label: "Atenção",       color: GOLD };
+  return { dot: GREEN, label: "No controle", color: GREEN };
 }
 
 function fmtBRL(n: number) {
@@ -54,6 +54,7 @@ export default function OrcamentoPage() {
   const [modalAmt, setModalAmt] = useState("");
   const [modalErr, setModalErr] = useState("");
   const [saving, setSaving] = useState(false);
+  const [hoveredTrash, setHoveredTrash] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,7 +149,10 @@ export default function OrcamentoPage() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: DARK, margin: 0 }}>💰 Orçamento</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: DARK, margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
+            <Wallet size={28} color={GREEN} />
+            Orçamento
+          </h1>
           <p style={{ fontSize: 13, color: "#6b7280", marginTop: 4, marginBottom: 0 }}>
             Tetos de gasto por categoria
           </p>
@@ -156,25 +160,28 @@ export default function OrcamentoPage() {
         <button
           onClick={() => openModal()}
           style={{
-            background: DARK, color: "#fff", border: "none", borderRadius: 12,
+            background: DARK, color: "#fff", border: "none", borderRadius: 8,
             padding: "10px 18px", fontWeight: 800, fontSize: 14, fontFamily: FONT,
-            cursor: "pointer",
+            cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
           }}
         >
-          + Novo teto
+          <Plus size={16} /> Novo teto
         </button>
       </div>
 
       {/* Month selector */}
-      <input
-        type="month"
-        value={month}
-        onChange={e => setMonth(e.target.value)}
-        style={{
-          marginBottom: 24, border: "1.5px solid #e5e7eb", borderRadius: 10,
-          padding: "8px 14px", fontSize: 14, fontFamily: FONT, color: DARK, outline: "none",
-        }}
-      />
+      <div style={{ position: "relative", display: "inline-flex", alignItems: "center", marginBottom: 24 }}>
+        <input
+          type="month"
+          value={month}
+          onChange={e => setMonth(e.target.value)}
+          style={{
+            border: "1px solid #e5e7eb", borderRadius: 8,
+            padding: "8px 36px 8px 12px", fontSize: 14, fontFamily: FONT, color: DARK, outline: "none",
+          }}
+        />
+        <Calendar size={16} color="#9ca3af" style={{ position: "absolute", right: 10, pointerEvents: "none" }} />
+      </div>
 
       {loading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}>
@@ -188,11 +195,12 @@ export default function OrcamentoPage() {
             <div className="border border-gray-100 rounded-2xl shadow-sm" style={{ padding: "20px 24px", marginBottom: 20, background: "#fff" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: DARK }}>Total do mês</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: totalStatus.color }}>
-                  {totalStatus.emoji} {totalPct}%
+                <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 800, color: totalStatus.color }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: totalStatus.dot, display: "inline-block", flexShrink: 0 }} />
+                  {totalPct}%
                 </span>
               </div>
-              <div style={{ background: "#f3f4f6", height: 10, borderRadius: 999, overflow: "hidden", marginBottom: 10 }}>
+              <div style={{ background: "#f3f4f6", height: 8, borderRadius: 999, overflow: "hidden", marginBottom: 10 }}>
                 <div style={{
                   height: "100%", borderRadius: 999,
                   width: `${totalPct}%`,
@@ -211,14 +219,16 @@ export default function OrcamentoPage() {
           {/* Budget cards */}
           {budgets.length === 0 ? (
             <div className="border border-gray-100 rounded-2xl" style={{ padding: "48px 24px", textAlign: "center", background: "#fafafa" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>💰</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+                <Wallet size={40} color={GREEN} />
+              </div>
               <p style={{ fontWeight: 800, color: DARK, margin: "0 0 6px" }}>Nenhum teto definido ainda</p>
               <p style={{ fontSize: 13, color: "#6b7280", margin: "0 0 20px" }}>Defina limites por categoria e acompanhe seus gastos.</p>
               <button
                 onClick={() => openModal()}
-                style={{ background: GREEN, color: "#0a200a", border: "none", borderRadius: 10, padding: "10px 22px", fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: "pointer" }}
+                style={{ background: GREEN, color: "#0a200a", border: "none", borderRadius: 10, padding: "10px 22px", fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
               >
-                + Criar primeiro teto
+                <Plus size={14} /> Criar primeiro teto
               </button>
             </div>
           ) : (
@@ -233,16 +243,19 @@ export default function OrcamentoPage() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                       <div>
                         <p style={{ fontSize: 15, fontWeight: 800, color: DARK, margin: "0 0 4px" }}>{b.category}</p>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: `${st.color}18`, padding: "2px 8px", borderRadius: 999 }}>
-                          {st.emoji} {st.label}
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: st.color, background: `${st.color}18`, padding: "2px 8px", borderRadius: 999 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: st.dot, display: "inline-block", flexShrink: 0 }} />
+                          {st.label}
                         </span>
                       </div>
                       <button
                         onClick={() => deleteBudget(b.id)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 4 }}
+                        onMouseEnter={() => setHoveredTrash(b.id)}
+                        onMouseLeave={() => setHoveredTrash(null)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: hoveredTrash === b.id ? RED : "#9ca3af", padding: 4 }}
                         title="Excluir teto"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                     <div style={{ background: "#f3f4f6", height: 8, borderRadius: 999, overflow: "hidden", margin: "12px 0" }}>
@@ -287,12 +300,12 @@ export default function OrcamentoPage() {
                     <button
                       onClick={() => openModal(cat)}
                       style={{
-                        background: "#f0fdf4", color: "#15803d", border: "1.5px solid #bbf7d0",
-                        borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 800,
-                        fontFamily: FONT, cursor: "pointer",
+                        background: "#fff", color: GREEN, border: `1.5px solid ${GREEN}`,
+                        borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 800,
+                        fontFamily: FONT, cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
                       }}
                     >
-                      + Teto
+                      <Plus size={12} /> Teto
                     </button>
                   </div>
                 ))}
