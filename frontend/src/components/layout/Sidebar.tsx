@@ -83,11 +83,6 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className={cn("px-4 py-5 border-b", collapsed && "px-3")} style={{ borderColor: 'var(--border)' }}>
-        <Logo size={collapsed ? 48 : 200} showText={false} showTagline={false} />
-      </div>
-
       {/* Nome + Email */}
       {!collapsed && (displayName || email) && (
         <div className="px-4 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -227,6 +222,11 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
           <LogOut size={18} className="shrink-0" />
           {!collapsed && <span>Sair</span>}
         </button>
+
+        {/* Logo rodapé */}
+        <div className={cn("pt-3 mt-1 border-t", collapsed && "flex justify-center")} style={{ borderColor: 'var(--border)' }}>
+          <Logo size={collapsed ? 24 : 26} showText={!collapsed} showTagline={false} />
+        </div>
       </div>
     </div>
   );
