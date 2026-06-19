@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { formatBRL, formatDate, metaEmoji, metaNomeLimpo } from "@/lib/utils";
-import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Search, Tag, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Search, Tag, Download, ChevronDown, ChevronUp, Receipt, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORIAS, type Categoria, type Transaction } from "@/types";
 import Link from "next/link";
@@ -331,8 +331,8 @@ export default function TransacoesPage() {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
-            📂 Importar Extrato
+          <h2 className="text-lg font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
+            <FolderOpen size={20} color="#00C853" /> Importar Extrato
           </h2>
           <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
         </div>
@@ -399,8 +399,8 @@ export default function TransacoesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-7">
         <div>
-          <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
-            📝 Transações
+          <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 10 }}>
+            <Receipt size={28} color="#00C853" /> Transações
           </h1>
           <p className="text-sm text-[#6b9e80] mt-0.5">Registre e acompanhe seus gastos e receitas</p>
         </div>
@@ -410,7 +410,7 @@ export default function TransacoesPage() {
             <Download size={16} className={exportando ? "animate-pulse" : ""}/>
           </button>
           <button onClick={() => setShowImportModal(true)} className="btn-ghost p-2" title="Importar extrato">
-            📂
+            <FolderOpen size={16}/>
           </button>
           <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="btn-primary">
             <Plus size={16}/> Nova
@@ -449,7 +449,7 @@ export default function TransacoesPage() {
       {/* Add form */}
       {showForm && (
         <form onSubmit={save} className="card mb-5 animate-fade-up opacity-0 border-[#bbf7d0] bg-[#f8fdf9]">
-          <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>➕ Nova transação</p>
+          <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>Nova transação</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div className="sm:col-span-2">
               <label className="label">Descrição</label>
@@ -482,7 +482,7 @@ export default function TransacoesPage() {
                         ? t === "gasto" ? "bg-red-50 border-red-300 text-red-700" : "bg-[#f0fdf4] border-[#86efac] text-[#15803d]"
                         : "bg-white border-[#e4f5e9] text-[#8db89d] hover:bg-[#f8fdf9]"
                     )} style={{ fontFamily: "Nunito, sans-serif" }}>
-                    {t === "gasto" ? "📤 Gasto" : "📥 Receita"}
+                    {t === "gasto" ? "Gasto" : "Receita"}
                   </button>
                 ))}
               </div>
@@ -554,7 +554,7 @@ export default function TransacoesPage() {
 
           <div className="flex gap-2">
             <button type="submit" disabled={saving} className="btn-primary flex-1">
-              {saving ? "Salvando..." : isParcelado ? `💾 Criar ${numParcelas} parcelas` : "💾 Salvar"}
+              {saving ? "Salvando..." : isParcelado ? `Criar ${numParcelas} parcelas` : "Salvar"}
             </button>
             <button type="button" onClick={() => { resetForm(); setShowForm(false); }} className="btn-secondary px-4">Cancelar</button>
           </div>

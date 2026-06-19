@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { RefreshCw, Trash2, CheckCircle2, Star } from "lucide-react";
+import { RefreshCw, Trash2, CheckCircle2, Star, Target, Plus } from "lucide-react";
 import { GoalCard } from "@/components/imoney/primitives";
 import { C, FONT } from "@/components/imoney/tokens";
 import { MetaCompletion, MilestoneToast, useMilestoneDetector } from "@/components/imoney/celebration";
@@ -338,7 +338,7 @@ export default function MetasPage() {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: C.green900, margin: 0 }}>🎯 Metas Financeiras</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: C.green900, margin: 0, display: "flex", alignItems: "center", gap: 10 }}><Target size={28} color="#00C853" /> Metas Financeiras</h1>
           <p style={{ fontSize: 13, color: C.ink3, marginTop: 4, marginBottom: 0 }}>
             Sobra mensal disponível: <strong style={{ color: C.green500 }}>R$ {fmtInt(sobra)}</strong>
           </p>
@@ -347,15 +347,15 @@ export default function MetasPage() {
           <button onClick={load} style={{ background: "none", border: `1.5px solid ${C.divider}`, borderRadius: 12, padding: "8px 10px", cursor: "pointer", color: C.ink3 }}>
             <RefreshCw size={16} style={loading ? { animation: "spin 1s linear infinite" } : {}} />
           </button>
-          <button onClick={() => setShowForm(!showForm)} style={{ background: C.green500, color: C.green900, border: "none", borderRadius: 12, padding: "8px 18px", fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: "pointer" }}>
-            + Nova meta
+          <button onClick={() => setShowForm(!showForm)} style={{ background: C.green500, color: C.green900, border: "none", borderRadius: 12, padding: "8px 18px", fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <Plus size={16} /> Nova meta
           </button>
         </div>
       </div>
 
       {showForm && (
         <form onSubmit={save} style={{ background: C.green50, borderRadius: 20, padding: 24, marginBottom: 28, border: `1.5px solid ${C.green100}` }}>
-          <p style={{ fontSize: 15, fontWeight: 800, color: C.green900, marginBottom: 20, marginTop: 0 }}>➕ Nova meta</p>
+          <p style={{ fontSize: 15, fontWeight: 800, color: C.green900, marginBottom: 20, marginTop: 0 }}>Nova meta</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div className="sm:col-span-2">
               <label className="label">Nome da meta</label>
@@ -384,7 +384,7 @@ export default function MetasPage() {
           {formError && <p className="text-xs text-red-500 mb-3">⚠ {formError}</p>}
           <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
             <button type="submit" disabled={saving} style={{ flex: 1, background: C.green900, color: "#fff", border: "none", borderRadius: 14, padding: "13px 0", fontWeight: 800, fontSize: 15, fontFamily: FONT, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
-              {saving ? "Salvando..." : "💾 Criar meta"}
+              {saving ? "Salvando..." : "Criar meta"}
             </button>
             <button type="button" onClick={() => setShowForm(false)} style={{ background: "#fff", color: C.ink2, border: `1.5px solid ${C.divider}`, borderRadius: 14, padding: "13px 20px", fontWeight: 700, fontSize: 14, fontFamily: FONT, cursor: "pointer" }}>
               Cancelar
@@ -401,7 +401,7 @@ export default function MetasPage() {
         </div>
       ) : sorted.length === 0 ? (
         <div style={{ background: C.green50, borderRadius: 20, padding: "48px 24px", textAlign: "center" }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><Target size={40} color="#00C853" /></div>
           <p style={{ fontWeight: 800, color: C.green900, margin: "0 0 6px" }}>Qual é o primeiro sonho que vamos realizar?</p>
           <p style={{ fontSize: 13, color: C.ink3, margin: "0 0 20px" }}>Quem define um sonho com prazo já está na frente.</p>
           <button onClick={() => setShowForm(true)}

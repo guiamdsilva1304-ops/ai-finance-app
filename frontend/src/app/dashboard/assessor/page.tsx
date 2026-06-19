@@ -4,7 +4,7 @@ import { amplitude } from "@/app/amplitude";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { Trash2, X, ChevronRight, User, Target, TrendingUp, MapPin, Briefcase, Heart, Brain, Mic, MicOff } from "lucide-react";
+import { Trash2, X, ChevronRight, User, Target, TrendingUp, MapPin, Briefcase, Heart, Brain, Mic, MicOff, MessageCircle } from "lucide-react";
 import { Icon } from "@/components/imoney/primitives";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -985,8 +985,8 @@ Seja humano, direto e específico. Não faça questionário, faça conversa.`;
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 900, color: '#0d2414', fontFamily: 'Nunito, sans-serif', margin: 0 }}>
-              💬 Assessor
+            <h1 style={{ fontSize: 22, fontWeight: 900, color: '#0d2414', fontFamily: 'Nunito, sans-serif', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <MessageCircle size={22} color="#00C853" /> Assessor
             </h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

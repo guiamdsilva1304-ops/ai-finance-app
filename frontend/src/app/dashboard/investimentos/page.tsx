@@ -125,8 +125,8 @@ export default function InvestimentosPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-7">
         <div>
-          <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
-            📈 Investimentos
+          <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 10 }}>
+            <TrendingUp size={28} color="#00C853" /> Investimentos
           </h1>
           <p className="text-sm text-[#6b9e80] mt-0.5">Patrimônio consolidado com cotações em tempo real</p>
         </div>
@@ -171,7 +171,7 @@ export default function InvestimentosPage() {
       {/* Add form */}
       {showForm && (
         <form onSubmit={save} className="card mb-6 border-[#bbf7d0] bg-[#f8fdf9] animate-fade-up opacity-0">
-          <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>➕ Novo investimento</p>
+          <p className="font-bold text-[#0d2414] mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>Novo investimento</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div className="sm:col-span-2">
               <label className="label">Nome do ativo</label>
@@ -222,7 +222,7 @@ export default function InvestimentosPage() {
           {formError && <p className="text-xs text-red-500 mb-3">⚠ {formError}</p>}
           <div className="flex gap-2">
             <button type="submit" disabled={saving} className="btn-primary flex-1">
-              {saving ? "Salvando..." : "💾 Salvar"}
+              {saving ? "Salvando..." : "Salvar"}
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-4">Cancelar</button>
           </div>

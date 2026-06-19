@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { ProBanner } from "@/components/ui/ProBanner";
 import { formatBRL } from "@/lib/utils";
-import { Calculator, Shield, PiggyBank, FileText, HelpCircle, CheckCircle, AlertCircle } from "lucide-react";
+import { Calculator, Shield, PiggyBank, FileText, HelpCircle, CheckCircle, AlertCircle, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Tool = "simulador" | "emergencia" | "cofre" | "impostos";
@@ -262,7 +262,7 @@ export default function RendaPage() {
     <div className="p-5 lg:p-8 max-w-3xl mx-auto" style={{ fontFamily: "Nunito, sans-serif" }}>
       <div className="mb-7">
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <h1 className="text-2xl font-black text-[#0d2414]">💼 Finanças para Autônomos</h1>
+          <h1 className="text-2xl font-black text-[#0d2414]" style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><Briefcase size={28} color="#00C853" /> Finanças para Autônomos</h1>
           <span style={{ fontSize: 11, fontWeight: 700, color: "#085041", background: "#E1F5EE", padding: "2px 10px", borderRadius: 20 }}>Pro</span>
         </div>
         <p className="text-sm text-[#6b9e80]">Ferramentas exclusivas para MEI, freelancers e empreendedores</p>

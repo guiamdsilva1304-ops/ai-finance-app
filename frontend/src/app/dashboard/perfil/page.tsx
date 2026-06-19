@@ -321,8 +321,8 @@ export default function PerfilPage() {
 
       {/* Header */}
       <div className="mb-7">
-        <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>
-          👤 Meu Perfil
+        <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 10 }}>
+          <User size={28} color="#00C853" /> Meu Perfil
         </h1>
         <p className="text-sm text-[#6b9e80] mt-0.5">
           Suas informações ajudam o assessor IA a dar recomendações mais precisas
@@ -508,7 +508,7 @@ export default function PerfilPage() {
             </span>
           ) : saved ? (
             <span className="flex items-center gap-2"><CheckCircle2 size={16}/> Salvo!</span>
-          ) : "💾 Salvar perfil"}
+          ) : "Salvar perfil"}
         </button>
       </form>
 

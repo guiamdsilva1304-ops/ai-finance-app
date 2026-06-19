@@ -357,8 +357,8 @@ export default function CartoesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-7">
         <div>
-          <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: 'Nunito, sans-serif' }}>
-            💳 Cartões
+          <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: 'Nunito, sans-serif', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CreditCard size={28} color="#00C853" /> Cartões
           </h1>
           <p className="text-sm text-[#6b9e80] mt-0.5">Gerencie seus cartões de crédito</p>
         </div>

@@ -36,7 +36,7 @@ export default function OpenFinancePage() {
   return (
     <div className="p-5 lg:p-8 max-w-3xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif" }}>🏦 Open Finance</h1>
+        <h1 className="text-2xl font-black text-[#0d2414]" style={{ fontFamily: "Nunito, sans-serif", display: "flex", alignItems: "center", gap: 10 }}><Landmark size={28} color="#00C853" /> Open Finance</h1>
         <p className="text-sm text-[#6b9e80] mt-0.5">Conecte seus bancos automaticamente</p>
       </div>
 
