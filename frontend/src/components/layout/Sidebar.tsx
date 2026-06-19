@@ -113,8 +113,10 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
               )}
               title={collapsed ? label : undefined}
             >
-              <Icon name={icon} size={18} color={active ? '#1D9E75' : '#8db89d'} />
-              {!collapsed && <span>{label}</span>}
+              {collapsed
+                ? <Icon name={icon} size={18} color={active ? '#1D9E75' : '#8db89d'} />
+                : <span>{label}</span>
+              }
             </Link>
           );
         })}
@@ -160,8 +162,7 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
             pathname.startsWith("/dashboard/relatorio") ? "nav-link-active" : "",
           ].join(" ")}
         >
-          <Icon name="pie" size={18} />
-          {!collapsed && <span>Relatório</span>}
+          {collapsed ? <Icon name="pie" size={18} /> : <span>Relatório</span>}
         </Link>
 
         <Link
@@ -173,12 +174,10 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
           )}
           title={collapsed ? "Open Finance" : undefined}
         >
-          <Icon
-            name="compass"
-            size={18}
-            color={pathname.startsWith("/dashboard/openfinance") ? '#1D9E75' : '#8db89d'}
-          />
-          {!collapsed && <span>Open Finance</span>}
+          {collapsed
+            ? <Icon name="compass" size={18} color={pathname.startsWith("/dashboard/openfinance") ? '#1D9E75' : '#8db89d'} />
+            : <span>Open Finance</span>
+          }
         </Link>
 
         {/* Meu Perfil */}
@@ -191,12 +190,10 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
           )}
           title={collapsed ? "Meu Perfil" : undefined}
         >
-          <Icon
-            name="user"
-            size={18}
-            color={pathname.startsWith("/dashboard/perfil") ? '#1D9E75' : '#8db89d'}
-          />
-          {!collapsed && <span>Meu Perfil</span>}
+          {collapsed
+            ? <Icon name="user" size={18} color={pathname.startsWith("/dashboard/perfil") ? '#1D9E75' : '#8db89d'} />
+            : <span>Meu Perfil</span>
+          }
         </Link>
 
         {/* Dark mode toggle */}
@@ -206,8 +203,10 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
           title={isDark ? "Modo claro" : "Modo escuro"}
           style={{ color: 'var(--text-2)' }}
         >
-          {isDark ? <Sun size={18} /> : <Moon size={18} />}
-          {!collapsed && <span>{isDark ? 'Modo claro' : 'Modo escuro'}</span>}
+          {collapsed
+            ? (isDark ? <Sun size={18} /> : <Moon size={18} />)
+            : <span>{isDark ? 'Modo claro' : 'Modo escuro'}</span>
+          }
         </button>
 
         {/* Sair */}
@@ -219,8 +218,7 @@ export function Sidebar({ email, plan = 'free', ocupacao, displayName }: Sidebar
           )}
           title={collapsed ? "Sair" : undefined}
         >
-          <LogOut size={18} className="shrink-0" />
-          {!collapsed && <span>Sair</span>}
+          {collapsed ? <LogOut size={18} className="shrink-0" /> : <span>Sair</span>}
         </button>
 
         {/* Logo rodapé */}
