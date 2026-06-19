@@ -125,6 +125,17 @@ export function Hero() {
           <Button href="/login" style={{ padding: '16px 26px', fontSize: 16 }}>Começar agora — é grátis</Button>
           <Button variant="ghost" href="#como-funciona" style={{ padding: '16px 26px', fontSize: 16 }}>Ver como funciona →</Button>
         </div>
+        <div style={{ marginTop: 14 }}>
+          <a href="/bolao" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '12px 22px', borderRadius: 14, fontSize: 15, fontWeight: 800,
+            background: 'linear-gradient(135deg, #00C853 0%, #F9A825 100%)',
+            color: '#fff', textDecoration: 'none', fontFamily: FONT,
+            boxShadow: '0 4px 18px rgba(0,200,83,0.25)',
+          }}>
+            ⚽ Bolão da iMoney
+          </a>
+        </div>
         <div style={{ display: 'flex', gap: 18, marginTop: 28, alignItems: 'center', fontSize: 13, color: C.ink2 }}>
           <span>⭐⭐⭐⭐⭐ 4.8 · 12k usuários</span>
           <span>· sem cartão de crédito</span>
