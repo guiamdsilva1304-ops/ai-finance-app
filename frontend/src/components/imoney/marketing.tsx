@@ -136,10 +136,6 @@ export function Hero() {
             ⚽ Bolão da iMoney
           </a>
         </div>
-        <div style={{ display: 'flex', gap: 18, marginTop: 28, alignItems: 'center', fontSize: 13, color: C.ink2 }}>
-          <span>⭐⭐⭐⭐⭐ 4.8 · 12k usuários</span>
-          <span>· sem cartão de crédito</span>
-        </div>
       </div>
 
       <PhoneMockup src="/app-mockup.png" />
