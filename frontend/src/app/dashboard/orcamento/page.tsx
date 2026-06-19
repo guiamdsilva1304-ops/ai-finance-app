@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { Trash2, X, Wallet, Calendar, Plus } from "lucide-react";
+import { Trash2, X, Wallet, Calendar, Plus, Lock } from "lucide-react";
+import Link from "next/link";
 
 const FONT = "'Nunito', 'Segoe UI', sans-serif";
 const GREEN = "#00C853";
@@ -48,6 +49,7 @@ export default function OrcamentoPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [spend, setSpend] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState<string>("free");
 
   const [showModal, setShowModal] = useState(false);
   const [modalCat, setModalCat] = useState(CATEGORIAS[0]);
@@ -61,6 +63,10 @@ export default function OrcamentoPage() {
     const { data: { session } } = await supabase.auth.getSession();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !session) { setLoading(false); return; }
+
+    const { data: perfil } = await supabase
+      .from("user_profiles").select("plan").eq("user_id", user.id).single();
+    if (perfil?.plan) setPlan(perfil.plan);
 
     const [budgetRes, txRes] = await Promise.allSettled([
       fetch(`/api/budgets?month=${month}`, {
@@ -144,6 +150,60 @@ export default function OrcamentoPage() {
     .filter(([cat]) => !budgetCategories.has(cat))
     .sort(([, a], [, b]) => b - a);
 
+  const TABS = (
+    <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+      {([
+        { href: "/dashboard/transacoes", label: "Transações", active: false },
+        { href: "/dashboard/orcamento",  label: "Orçamento",  active: true },
+        { href: "/dashboard/cartoes",    label: "Cartões",    active: false },
+      ] as { href: string; label: string; active: boolean }[]).map(({ href, label, active }) => (
+        <a key={href} href={href} style={{
+          display: "inline-flex", alignItems: "center",
+          padding: "7px 16px", borderRadius: 999,
+          background: active ? "#1D9E75" : "transparent",
+          color: active ? "#fff" : "#6b9e80",
+          fontWeight: 700, fontSize: 13, fontFamily: FONT,
+          textDecoration: "none",
+          border: active ? "1.5px solid transparent" : "1.5px solid #e4f5e9",
+        }}>{label}</a>
+      ))}
+    </div>
+  );
+
+  if (!loading && plan !== "premium") {
+    return (
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 20px 100px", fontFamily: FONT }}>
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: DARK, margin: "0 0 24px", display: "flex", alignItems: "center", gap: 10 }}>
+          <Wallet size={28} color={GREEN} /> Orçamento
+        </h1>
+        {TABS}
+        <div style={{
+          textAlign: "center", padding: "60px 24px",
+          background: "#f8fdf9", borderRadius: 20,
+          border: "1.5px solid #e4f5e9",
+        }}>
+          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 64, height: 64, borderRadius: "50%", background: "#e4f5e9", marginBottom: 20 }}>
+            <Lock size={28} color="#1D9E75" />
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 900, color: DARK, margin: "0 0 10px", fontFamily: FONT }}>
+            Orçamento é exclusivo do plano Premium
+          </h2>
+          <p style={{ fontSize: 14, color: "#6b9e80", margin: "0 0 28px", lineHeight: 1.6, maxWidth: 360, marginLeft: "auto", marginRight: "auto" }}>
+            Defina tetos de gasto por categoria, receba alertas quando estiver chegando no limite e mantenha suas finanças no controle todo mês.
+          </p>
+          <Link href="/dashboard/premium" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: "#1D9E75", color: "#fff",
+            fontWeight: 800, fontSize: 15, fontFamily: FONT,
+            padding: "14px 28px", borderRadius: 14, textDecoration: "none",
+          }}>
+            Ver plano Premium — R$39,90/mês
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 20px 100px", fontFamily: FONT }}>
       {/* Header */}
@@ -169,24 +229,7 @@ export default function OrcamentoPage() {
         </button>
       </div>
 
-      {/* Abas */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-        {([
-          { href: "/dashboard/transacoes", label: "Transações", active: false },
-          { href: "/dashboard/orcamento",  label: "Orçamento",  active: true },
-          { href: "/dashboard/cartoes",    label: "Cartões",    active: false },
-        ] as { href: string; label: string; active: boolean }[]).map(({ href, label, active }) => (
-          <a key={href} href={href} style={{
-            display: "inline-flex", alignItems: "center",
-            padding: "7px 16px", borderRadius: 999,
-            background: active ? "#1D9E75" : "transparent",
-            color: active ? "#fff" : "#6b9e80",
-            fontWeight: 700, fontSize: 13, fontFamily: FONT,
-            textDecoration: "none",
-            border: active ? "1.5px solid transparent" : "1.5px solid #e4f5e9",
-          }}>{label}</a>
-        ))}
-      </div>
+      {TABS}
 
       {/* Month selector */}
       <div style={{ position: "relative", display: "inline-flex", alignItems: "center", marginBottom: 24 }}>
