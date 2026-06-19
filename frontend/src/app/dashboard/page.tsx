@@ -146,7 +146,6 @@ function SonhoHero({ meta, loading }: { meta: Meta | null; loading: boolean }) {
   const aporte = meta.prazo_meses > 0 ? Math.round(falta / meta.prazo_meses) : 0;
   const aporteMesPlanejado = meta.prazo_meses > 0 ? meta.valor_alvo / meta.prazo_meses : 0;
   const mesesFaltam = falta <= 0 ? 0 : aporteMesPlanejado > 0 ? Math.max(1, Math.ceil(falta / aporteMesPlanejado)) : meta.prazo_meses;
-  const emoji = metaEmoji(meta.nome);
   const pctColor = pct >= 75 ? "#FFD600" : pct >= 50 ? "#69F0AE" : "#00C853";
 
   return (
@@ -154,7 +153,7 @@ function SonhoHero({ meta, loading }: { meta: Meta | null; loading: boolean }) {
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 28 }}>{emoji}</span>
+          <Target size={28} color="#00C853" />
           <div>
             <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 2px" }}>Seu sonho principal</p>
             <p style={{ fontSize: 15, fontWeight: 900, color: "#fff", margin: 0, fontFamily: "Nunito, sans-serif", lineHeight: 1.2 }}>{metaNomeLimpo(meta.nome)}</p>

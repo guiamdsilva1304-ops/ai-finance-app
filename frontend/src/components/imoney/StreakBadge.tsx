@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { createSupabaseBrowser } from "@/lib/supabase"
 import { loadStreakInfo, type StreakInfo } from "@/lib/streak"
 import { WeeklyReward } from "./WeeklyReward"
+import { Flame, Trophy } from "lucide-react"
 
 export function StreakBadge() {
   const [info, setInfo] = useState<StreakInfo | null>(null)
@@ -41,7 +42,7 @@ export function StreakBadge() {
           background: "var(--bg-card)", borderRadius: 16, padding: "14px 16px",
           border: "1.5px dashed var(--border)", display: "flex", alignItems: "center", gap: 12
         }}>
-          <span style={{ fontSize: 28, flexShrink: 0 }}>🔥</span>
+          <Flame size={28} color="#ff6b00" style={{ flexShrink: 0 }} />
           <div>
             <p style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", margin: "0 0 2px", fontFamily: "Nunito, sans-serif" }}>
               Sua primeira semana ativa começa agora
@@ -81,7 +82,7 @@ export function StreakBadge() {
           boxShadow: isDestaque ? "0 4px 20px rgba(255,107,0,0.25)" : undefined,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 32, flexShrink: 0 }}>🔥</span>
+            <Flame size={32} color={isDestaque ? "#fff" : "#ff6b00"} style={{ flexShrink: 0 }} />
             <div>
               <p style={{ fontSize: 10, fontWeight: 700, color: labelColor, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 2px" }}>
                 Semanas ativas
@@ -100,7 +101,7 @@ export function StreakBadge() {
           <div style={{ textAlign: "right" }}>
             {isDestaque && (
               <span style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.9)", background: "rgba(255,255,255,0.2)", borderRadius: 8, padding: "2px 8px", display: "block", marginBottom: 4 }}>
-                🏆 Incrível!
+                <Trophy size={11} /> Incrível!
               </span>
             )}
             <p style={{ fontSize: 11, color: subColor, margin: 0, fontWeight: 600 }}>
@@ -140,7 +141,7 @@ export function StreakBadgeCompact() {
       fontSize: 12, fontWeight: 800, fontFamily: "Nunito, sans-serif",
       color: semanas >= 4 ? "#fff" : "var(--text-1, #1a3a1a)",
     }}>
-      🔥 {semanas}
+      <Flame size={12} /> {semanas}
     </a>
   )
 }
