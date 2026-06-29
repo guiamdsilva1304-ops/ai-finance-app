@@ -57,6 +57,8 @@ const TEAM_MAP: Record<string, string> = {
   'Uzbekistan': 'Uzbequistão',
 };
 
+const KNOCKOUT_STAGES = new Set(['Oitavas', 'Quartas', 'Semifinal', '3º Lugar', 'Final']);
+
 export async function GET(req: Request) {
   const auth = req.headers.get('authorization')?.replace('Bearer ', '');
   if (auth !== process.env.CRON_SECRET) {
@@ -73,7 +75,7 @@ export async function GET(req: Request) {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     const { data: pending } = await supabase
       .from('world_cup_matches')
-      .select('id, home_team, away_team, match_date')
+      .select('id, home_team, away_team, match_date, stage')
       .neq('home_team', 'TBD')
       .neq('status', 'finished')
       .lt('match_date', twoHoursAgo);
@@ -94,7 +96,11 @@ export async function GET(req: Request) {
     const allMatches: Array<{
       team1: string;
       team2: string;
-      score?: { ft: [number, number] };
+      score?: {
+        ft?: [number, number];
+        aet?: [number, number];
+        pen?: [number, number];
+      };
     }> = apiData.matches ?? [];
 
     let updated = 0;
@@ -122,12 +128,30 @@ export async function GET(req: Request) {
         continue;
       }
 
-      const [homeScore, awayScore] = fixture.score.ft;
+      const isKnockout = KNOCKOUT_STAGES.has(match.stage ?? '');
+
+      // Para mata-mata: usar placar após prorrogação (aet) se disponível
+      const scoreSource = (isKnockout && fixture.score.aet) ? fixture.score.aet : fixture.score.ft;
+      const [homeScore, awayScore] = scoreSource;
+
+      // Detectar pênaltis: score.pen indica decisão nos tiros (placar fica empatado)
+      let advancedTeam: string | null = null;
+      if (isKnockout && fixture.score.pen) {
+        const [homePen, awayPen] = fixture.score.pen;
+        advancedTeam = homePen > awayPen ? match.home_team : match.away_team;
+      }
 
       // 4. Atualizar placar no BD
+      const updatePayload: Record<string, unknown> = {
+        home_score: homeScore,
+        away_score: awayScore,
+        status: 'finished',
+      };
+      if (advancedTeam !== null) updatePayload.advanced_team = advancedTeam;
+
       const { error: updateErr } = await supabase
         .from('world_cup_matches')
-        .update({ home_score: homeScore, away_score: awayScore, status: 'finished' })
+        .update(updatePayload)
         .eq('id', match.id);
 
       if (updateErr) {
@@ -144,7 +168,8 @@ export async function GET(req: Request) {
         continue;
       }
 
-      console.log(`[bolao-results] ✅ ${match.home_team} ${homeScore}x${awayScore} ${match.away_team}`);
+      const penLabel = advancedTeam ? ` (${advancedTeam} pên.)` : '';
+      console.log(`[bolao-results] ✅ ${match.home_team} ${homeScore}x${awayScore} ${match.away_team}${penLabel}`);
       updated++;
     }
 

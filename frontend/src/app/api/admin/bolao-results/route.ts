@@ -13,14 +13,14 @@ export async function POST(req: NextRequest) {
   const denied = adminGuard(req);
   if (denied) return denied;
 
-  let body: { match_id: unknown; home_score: unknown; away_score: unknown };
+  let body: { match_id: unknown; home_score: unknown; away_score: unknown; advanced_team?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { match_id, home_score, away_score } = body;
+  const { match_id, home_score, away_score, advanced_team } = body;
 
   if (
     typeof match_id !== "number" ||
@@ -35,9 +35,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // advanced_team deve ser string não-vazia ou ausente
+  const advancedTeam =
+    typeof advanced_team === "string" && advanced_team.trim() !== ""
+      ? advanced_team.trim()
+      : null;
+
+  const updatePayload: Record<string, unknown> = {
+    home_score,
+    away_score,
+    status: "finished",
+  };
+  if (advancedTeam !== null) updatePayload.advanced_team = advancedTeam;
+
   const { error: updateErr } = await supabase
     .from("world_cup_matches")
-    .update({ home_score, away_score, status: "finished" })
+    .update(updatePayload)
     .eq("id", match_id);
 
   if (updateErr) {
@@ -55,5 +68,5 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return NextResponse.json({ success: true, match_id, home_score, away_score });
+  return NextResponse.json({ success: true, match_id, home_score, away_score, advanced_team: advancedTeam });
 }

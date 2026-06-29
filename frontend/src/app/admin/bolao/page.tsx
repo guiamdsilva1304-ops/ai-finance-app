@@ -10,24 +10,26 @@ interface Match {
   status: string;
   home_score: number | null;
   away_score: number | null;
+  advanced_team: string | null;
 }
 
 interface ScoreState {
   home: string;
   away: string;
+  advanced: string;
   loading: boolean;
   error: string;
 }
 
+const KNOCKOUT = new Set(["Oitavas", "Quartas", "Semifinal", "3º Lugar", "Final"]);
+
 const TZ = "America/Sao_Paulo";
 
 function brasiliaDateKey(iso: string) {
-  // Retorna "YYYY-MM-DD" no fuso de Brasília, para agrupamento
   return new Date(iso).toLocaleDateString("sv-SE", { timeZone: TZ });
 }
 
 function formatDayHeader(dateKey: string) {
-  // "2026-06-13" → "Sábado, 13/06"
   const d = new Date(dateKey + "T12:00:00");
   return d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })
     .replace(",", ",")
@@ -55,7 +57,7 @@ export default function AdminBolao() {
         setMatches(list);
         const init: Record<number, ScoreState> = {};
         for (const m of list) {
-          init[m.id] = { home: "", away: "", loading: false, error: "" };
+          init[m.id] = { home: "", away: "", advanced: "", loading: false, error: "" };
         }
         setScores(init);
       })
@@ -70,12 +72,28 @@ export default function AdminBolao() {
       setScores(p => ({ ...p, [match.id]: { ...p[match.id], error: "Placares inválidos" } }));
       return;
     }
+
+    // Mata-mata com empate: exige classificado
+    const isKnockout = KNOCKOUT.has(match.stage ?? "");
+    if (isKnockout && home === away && !s.advanced) {
+      setScores(p => ({
+        ...p,
+        [match.id]: { ...p[match.id], error: "Empate na prorrogação: selecione o classificado nos pênaltis" },
+      }));
+      return;
+    }
+
     setScores(p => ({ ...p, [match.id]: { ...p[match.id], loading: true, error: "" } }));
     try {
       const res = await fetch("/api/admin/bolao-results", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ match_id: match.id, home_score: home, away_score: away }),
+        body: JSON.stringify({
+          match_id: match.id,
+          home_score: home,
+          away_score: away,
+          advanced_team: s.advanced || null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -84,16 +102,17 @@ export default function AdminBolao() {
       }
       setMatches(prev =>
         prev.map(m =>
-          m.id === match.id ? { ...m, status: "finished", home_score: home, away_score: away } : m
+          m.id === match.id
+            ? { ...m, status: "finished", home_score: home, away_score: away, advanced_team: s.advanced || null }
+            : m
         )
       );
-      setScores(p => ({ ...p, [match.id]: { home: "", away: "", loading: false, error: "" } }));
+      setScores(p => ({ ...p, [match.id]: { home: "", away: "", advanced: "", loading: false, error: "" } }));
     } catch {
       setScores(p => ({ ...p, [match.id]: { ...p[match.id], loading: false, error: "Erro de rede" } }));
     }
   }
 
-  // Agrupar por dia (BRT), mantendo ordem cronológica
   const grouped: { dateKey: string; items: Match[] }[] = [];
   for (const m of matches) {
     const key = brasiliaDateKey(m.match_date);
@@ -120,7 +139,7 @@ export default function AdminBolao() {
       <div className="mx-auto max-w-[900px]">
         <h1 className="mb-1 text-lg font-black text-[#16241a]">⚽ Bolão Copa 2026</h1>
         <p className="mb-6 text-xs text-[#5c7568]">
-          Registre os placares manualmente. Ao salvar, os pontos dos palpites são calculados automaticamente.
+          Registre os placares manualmente. Em jogos de mata-mata decididos nos pênaltis, selecione o time classificado.
         </p>
 
         {matches.length === 0 && (
@@ -140,7 +159,7 @@ export default function AdminBolao() {
               </div>
 
               {/* Header de colunas */}
-              <div className="grid grid-cols-[56px_1fr_130px_110px] border-b border-[#1a3a1a]/10 px-4 py-1.5">
+              <div className="grid grid-cols-[56px_1fr_130px_140px] border-b border-[#1a3a1a]/10 px-4 py-1.5">
                 <span className="text-[10px] font-bold uppercase text-[#5c7568]">Hora</span>
                 <span className="text-[10px] font-bold uppercase text-[#5c7568]">Jogo</span>
                 <span className="text-[10px] font-bold uppercase text-[#5c7568]">Fase</span>
@@ -151,38 +170,46 @@ export default function AdminBolao() {
               {items.map((m, i) => {
                 const finished = m.status === "finished";
                 const isFuture = new Date(m.match_date) > new Date();
-                const s = scores[m.id] ?? { home: "", away: "", loading: false, error: "" };
+                const isKnockout = KNOCKOUT.has(m.stage ?? "");
+                const s = scores[m.id] ?? { home: "", away: "", advanced: "", loading: false, error: "" };
 
                 return (
                   <div
                     key={m.id}
-                    className={`grid grid-cols-[56px_1fr_130px_110px] items-center gap-0 px-4 py-3 ${
+                    className={`grid grid-cols-[56px_1fr_130px_140px] items-start gap-0 px-4 py-3 ${
                       i % 2 === 0 ? "bg-white" : "bg-[#f5f8f5]"
                     } ${finished ? "opacity-70" : ""}`}
                   >
                     {/* Hora BRT */}
-                    <span className="text-[12px] text-[#5c7568]">{formatTime(m.match_date)}</span>
+                    <span className="text-[12px] text-[#5c7568] pt-0.5">{formatTime(m.match_date)}</span>
 
                     {/* Times */}
-                    <div className="min-w-0">
+                    <div className="min-w-0 pt-0.5">
                       <span className="block truncate text-[13px] font-bold text-[#16241a]">
                         {m.home_team} <span className="text-[#5c7568]">×</span> {m.away_team}
                       </span>
                     </div>
 
                     {/* Fase */}
-                    <span className="truncate text-[11px] text-[#5c7568]">
+                    <span className="truncate text-[11px] text-[#5c7568] pt-0.5">
                       {m.stage ?? "—"}
                     </span>
 
                     {/* Resultado / Inputs */}
                     <div>
                       {finished ? (
-                        <span className="text-[14px] font-black text-[#00C853]">
-                          {m.home_score} × {m.away_score} ✓
-                        </span>
+                        <div>
+                          <span className="text-[14px] font-black text-[#00C853]">
+                            {m.home_score} × {m.away_score} ✓
+                          </span>
+                          {m.advanced_team && (
+                            <p className="text-[10px] text-[#5c7568] mt-0.5">
+                              {m.advanced_team} (pên.)
+                            </p>
+                          )}
+                        </div>
                       ) : (
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           <div className="flex items-center gap-1.5">
                             <input
                               type="number"
@@ -209,6 +236,20 @@ export default function AdminBolao() {
                               {s.loading ? "…" : "✓"}
                             </button>
                           </div>
+
+                          {/* Dropdown de classificado — apenas para mata-mata */}
+                          {isKnockout && (
+                            <select
+                              value={s.advanced}
+                              onChange={e => setScores(p => ({ ...p, [m.id]: { ...p[m.id], advanced: e.target.value } }))}
+                              className="w-full rounded-lg border border-[#00C853]/20 bg-white px-1.5 py-1 text-[11px] text-[#16241a] outline-none focus:border-[#00C853]/60"
+                            >
+                              <option value="">Pênaltis? Classificado:</option>
+                              <option value={m.home_team}>{m.home_team}</option>
+                              <option value={m.away_team}>{m.away_team}</option>
+                            </select>
+                          )}
+
                           {isFuture && (
                             <p className="text-[10px] text-[#5c7568]">ainda não começou</p>
                           )}
