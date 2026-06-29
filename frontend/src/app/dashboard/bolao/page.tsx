@@ -56,9 +56,9 @@ function getRound(n: number): string {
 const STAGE_ORDER = [
   'Grupo A','Grupo B','Grupo C','Grupo D','Grupo E','Grupo F',
   'Grupo G','Grupo H','Grupo I','Grupo J','Grupo K','Grupo L',
-  'Oitavas','Quartas','Semifinal','3º Lugar','Final',
+  'Dezesseis-avos','Oitavas','Quartas','Semifinal','3º Lugar','Final',
 ];
-const KNOCKOUT = ['Oitavas','Quartas','Semifinal','3º Lugar','Final'];
+const KNOCKOUT = ['Dezesseis-avos','Oitavas','Quartas','Semifinal','3º Lugar','Final'];
 
 function pointsLabel(pts: number | null) {
   if (pts === null) return null;

@@ -21,7 +21,7 @@ interface ScoreState {
   error: string;
 }
 
-const KNOCKOUT = new Set(["Oitavas", "Quartas", "Semifinal", "3º Lugar", "Final"]);
+const KNOCKOUT = new Set(["Dezesseis-avos", "Oitavas", "Quartas", "Semifinal", "3º Lugar", "Final"]);
 
 const TZ = "America/Sao_Paulo";
 

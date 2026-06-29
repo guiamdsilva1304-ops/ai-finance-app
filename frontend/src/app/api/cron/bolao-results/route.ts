@@ -57,7 +57,7 @@ const TEAM_MAP: Record<string, string> = {
   'Uzbekistan': 'Uzbequistão',
 };
 
-const KNOCKOUT_STAGES = new Set(['Oitavas', 'Quartas', 'Semifinal', '3º Lugar', 'Final']);
+const KNOCKOUT_STAGES = new Set(['Dezesseis-avos', 'Oitavas', 'Quartas', 'Semifinal', '3º Lugar', 'Final']);
 
 export async function GET(req: Request) {
   const auth = req.headers.get('authorization')?.replace('Bearer ', '');
