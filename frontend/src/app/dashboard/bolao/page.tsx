@@ -251,9 +251,11 @@ export default function BolaoPage() {
       if (!roundMap.has(roundKey)) roundMap.set(roundKey, []);
       roundMap.get(roundKey)!.push(m);
     });
-    // Sort stages
+    // Sort by STAGE_ORDER; stages not in the list are appended in insertion order
+    // so a new DB stage never causes a silent blank screen.
     const sorted = new Map<string, Map<string, Match[]>>();
     STAGE_ORDER.forEach(s => { if (stageMap.has(s)) sorted.set(s, stageMap.get(s)!); });
+    stageMap.forEach((v, s) => { if (!sorted.has(s)) sorted.set(s, v); });
     return sorted;
   }
 
